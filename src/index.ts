@@ -4,10 +4,19 @@
  *
  * @remarks
  * This entry is server-safe: it has no React and touches no DOM on import, so
- * Server Components and Node can import it (ADR 0004, ADR 0007). The core
- * arrives in the next releases.
+ * Server Components and Node can import it (ADR 0004, ADR 0007).
  *
  * @packageDocumentation
  */
 
-export {};
+export type { ImageErrorCode } from "./core/errors/image-error.js";
+export { ImageError, isImageError } from "./core/errors/image-error.js";
+export type {
+  ImageFilePolicy,
+  ImageFilePolicyOverrides,
+  ImageLimitDefinitions,
+  ImageLimitName,
+} from "./core/errors/image-limits.js";
+export { imageLimitDefinitions, imageLimits } from "./core/errors/image-limits.js";
+export type { ImageMessageCatalogue } from "./messages/en.js";
+export { imageMessages } from "./messages/en.js";
