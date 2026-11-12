@@ -40,6 +40,18 @@ export function emptyExif(): ExifSummary {
   };
 }
 
+/**
+ * An EXIF ASCII value: UTF-8 where it's valid UTF-8, as most writers now
+ * store non-ASCII text, including the SDK's own; otherwise Latin-1.
+ */
+function asciiText(raw: Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(raw);
+  } catch {
+    return new TextDecoder("latin1").decode(raw);
+  }
+}
+
 /** The most IFDs one EXIF block may hold, and the most entries in one IFD. */
 const MAX_IFDS = 8;
 const MAX_ENTRIES = 1_000;
@@ -104,9 +116,7 @@ export function readExif(block: Uint8Array, format: ImageFormat): ExifSummary {
       throw invalid(format, "an EXIF value ends past the block");
     }
     const raw = block.subarray(at, at + bytes);
-    const decoded = utf16
-      ? new TextDecoder("utf-16le").decode(raw)
-      : new TextDecoder("latin1").decode(raw);
+    const decoded = utf16 ? new TextDecoder("utf-16le").decode(raw) : asciiText(raw);
     return decoded.replace(/\0+$/, "").slice(0, MAX_METADATA_LENGTH);
   };
 

@@ -25,6 +25,31 @@ export interface ImageEngineOptions {
   readonly assetsUrl?: string | URL;
 }
 
+/**
+ * What a processor needs from the engine whose render worker it shares
+ * (docs/adr/0002): its client, after the version check, and which sources
+ * it holds.
+ *
+ * @internal
+ */
+export interface EngineInternals {
+  readonly client: () => Promise<WorkerClient<RenderWorkerContract>>;
+  readonly has: (id: string) => boolean;
+}
+
+/** Where an engine made by {@link createImageEngine} keeps its internals. */
+export const ENGINE_INTERNALS: unique symbol = Symbol("hm-image-engine");
+
+/**
+ * The internals of an engine made by {@link createImageEngine}, or
+ * `undefined` for any other engine.
+ *
+ * @internal
+ */
+export function engineInternals(engine: ImageEngine): EngineInternals | undefined {
+  return (engine as { [ENGINE_INTERNALS]?: EngineInternals })[ENGINE_INTERNALS];
+}
+
 /** What the engine needs from its environment, replaceable in tests. */
 export interface EngineEnvironment {
   /** Loads the worker's code, on the first call, and returns how to start it. */
@@ -76,7 +101,9 @@ export function createImageEngine(options: ImageEngineOptions = {}): ImageEngine
  *
  * @internal
  */
-export function createEngine(environment: EngineEnvironment): ImageEngine {
+export function createEngine(
+  environment: EngineEnvironment,
+): ImageEngine & { readonly [ENGINE_INTERNALS]: EngineInternals } {
   let startWorker: (() => WorkerLike) | undefined;
   let destroyed = false;
   /** Sources the worker holds, or is decoding, by id. */
@@ -145,6 +172,14 @@ export function createEngine(environment: EngineEnvironment): ImageEngine {
     options?.signal ? { signal: options.signal } : {};
 
   return {
+    [ENGINE_INTERNALS]: {
+      client: async () => {
+        await ready();
+        return client;
+      },
+      has: (id) => ids.has(id),
+    },
+
     probe(file: Blob, options?: ImageCallOptions): Promise<ImageProbe> {
       return run(options?.signal, () => client.call("probe", { file }, callOptions(options)));
     },

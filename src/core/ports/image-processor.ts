@@ -1,5 +1,5 @@
 import type { ImagePlan } from "../model/plan.js";
-import type { ImageProgressOptions } from "./options.js";
+import type { ImageExportOptions } from "./options.js";
 
 /**
  * The file an export produces (ADR 0001). `quality`, from 0 to 1, applies to
@@ -42,9 +42,11 @@ export interface ImageProcessor {
   /**
    * Renders and encodes a plan, and returns the file. It writes only the
    * plan's kept metadata, and never a location, a camera's details,
-   * timestamps or a thumbnail.
+   * timestamps, a thumbnail or an orientation. An output over `filePolicy`'s
+   * `maxImageDimension` or `maxImagePixels` rejects with that limit's code
+   * before anything is drawn.
    */
-  export(job: ImageExportJob, options?: ImageProgressOptions): Promise<Blob>;
+  export(job: ImageExportJob, options?: ImageExportOptions): Promise<Blob>;
   /** Releases the processor. Pending calls reject, and later calls throw. */
   destroy(): Promise<void>;
 }

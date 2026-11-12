@@ -15,8 +15,9 @@ Three properties of image files are easy to get subtly wrong, and each has cause
 
 ### Colour: an sRGB working space
 
-- **The working space is sRGB.** Decoding uses `colorSpaceConversion: "default"` ([ADR 0001](0001-image-engines.md)), so the browser converts an embedded ICC profile into the canvas's sRGB. Every canvas the renderer creates is sRGB.
-- **Exports are sRGB,** and carry no ICC profile. Readers treat an untagged image as sRGB, which is what it is.
+- **The working space is sRGB.** Decoding uses `colorSpaceConversion: "default"` ([ADR 0001](0001-image-engines.md)), so the browser converts an embedded ICC profile into the canvas's sRGB. Every canvas the renderer creates asks for `colorSpace: "srgb"` explicitly, rather than relying on the default. Display-P3 canvases exist only in Chromium ([capability matrix](../capabilities.md)), so they aren't used.
+- **Exports are sRGB,** and carry no ICC profile. A wide-gamut or otherwise profiled source is **converted** to sRGB when it's decoded, and its profile is **dropped**: the export's pixels are sRGB, and the profile segments and chunks a browser's encoder adds itself, such as Chromium's `ICC_PROFILE` in JPEG, are removed with the rest of its metadata. Readers treat an untagged image as sRGB, which is what it is.
+- **JPEG has no alpha,** so a JPEG export is drawn on white; transparent areas would otherwise become black.
 - **Wide gamut is clipped, and the editor says so.** When the probe finds a profile other than sRGB, the session adds a warning that colours outside sRGB will be clipped on export.
 - **No colour management engine is bundled.** A Little CMS build in WebAssembly would cost size, `'wasm-unsafe-eval'` and native parsing code, for conversions the browser's decoder already does.
 - **Wide-gamut editing is a later record.** Display P3 canvases aren't supported in every browser ADR 0013 covers, and the capability matrix records which do. A later record can add a P3 working space where it's available, with a P3 profile on export.
@@ -46,8 +47,13 @@ Three properties of image files are easy to get subtly wrong, and each has cause
   - what kinds of metadata the file carries, as presence flags, never values: location, camera and lens, timestamps, an embedded thumbnail, a colour profile, and other or unknown fields.
 
   They're hostile-input code ([ADR 0001](0001-image-engines.md)), with the same bounds and tests as the header readers. Strings are length-limited and only ever rendered as text.
-- **Exports carry no metadata by default.** Encoding through a canvas writes none, by construction.
-- **The user may keep title, description, artist and copyright,** which the SDK writes with its own minimal writer: an EXIF `APP1` segment in JPEG and `iTXt` chunks in PNG. WebP exports carry none in the first releases.
+- **Exports carry no metadata by default.** After encoding, the worker rewrites the file to its image data alone: a JPEG keeps `SOI`, a JFIF `APP0` if the encoder wrote one, and the segments from the frame on, dropping every other `APPn` and `COM`; a PNG keeps `IHDR`, `PLTE`, `tRNS`, `IDAT` and `IEND`; a WebP keeps its image chunks, and an extended file's ICC, EXIF and XMP flags are cleared. So nothing an encoder adds survives either.
+- **The user may keep title, description, artist and copyright,** which the SDK writes with its own minimal writer, into the rewritten file:
+  - in JPEG, an EXIF `APP1` segment after any JFIF `APP0`, whose TIFF block has one IFD with only those fields: `XPTitle` in UTF-16, and `ImageDescription`, `Artist` and `Copyright` in UTF-8. It has no sub-IFD pointers, so a GPS, EXIF or thumbnail IFD can't exist in it, and the readers decode ASCII values as UTF-8 where they're valid UTF-8;
+  - in PNG, uncompressed UTF-8 `iTXt` chunks, `Title`, `Description`, `Author` and `Copyright`, after `IHDR`.
+
+  WebP exports carry none in the first releases.
+- **Orientation is never written.** The exported pixels are already upright, so a tag could only turn them again.
 - **A location is never written,** whatever the user chooses, and neither are camera serial numbers, timestamps or thumbnails. The editor doesn't offer them.
 - **The summary before a download says what was removed:** for example "Location, camera details and timestamps were removed." It's built from the probe's presence flags, so it's accurate for what the source carried. The tests read the exported bytes and check that the summary is true: an exported file must contain no metadata except the fields the user kept.
 - **Events** never carry metadata values ([ADR 0003](0003-layer-plan-document-model.md)).

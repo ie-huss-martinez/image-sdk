@@ -145,3 +145,29 @@ export function checkFileLimits(
   };
   return PER_FILE_LIMITS.filter((limit) => policy.check(limit, actual[limit]) === "warning");
 }
+
+/**
+ * The limits an export's output canvas is checked against before it's
+ * allocated: its longest side and its pixels (ADR 0004).
+ *
+ * @public
+ */
+export const OUTPUT_LIMITS = [
+  "maxImageDimension",
+  "maxImagePixels",
+] as const satisfies readonly ImageLimitName[];
+
+/**
+ * Checks an export's output size against a policy before its canvas is
+ * allocated, and throws the first violation as an `ImageError` with the
+ * limit's code (ADR 0004).
+ *
+ * @public
+ */
+export function checkOutputLimits(
+  policy: ImageFilePolicy,
+  size: { readonly width: number; readonly height: number },
+): void {
+  policy.check("maxImageDimension", Math.max(size.width, size.height));
+  policy.check("maxImagePixels", size.width * size.height);
+}
