@@ -43,3 +43,17 @@ export interface ImageRegisterOptions extends ImageProgressOptions {
    */
   readonly filePolicy?: ImageFilePolicy;
 }
+
+/**
+ * Options for exporting.
+ *
+ * @public
+ */
+export interface ImageExportOptions extends ImageProgressOptions {
+  /**
+   * The limits the output canvas is checked against before it's allocated:
+   * `maxImageDimension` and `maxImagePixels` (ADR 0004). The defaults of
+   * `imageLimits` when omitted.
+   */
+  readonly filePolicy?: ImageFilePolicy;
+}

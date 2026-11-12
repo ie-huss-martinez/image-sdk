@@ -1,8 +1,10 @@
 import { type ExposeWorkerOptions, exposeWorker } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
-import { checkFileLimits, imageLimits } from "../../core/errors/image-limits.js";
+import { checkFileLimits, checkOutputLimits, imageLimits } from "../../core/errors/image-limits.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { decodeUpright } from "../decode/decode.js";
+import { encodePlan } from "../export/encode.js";
+import { renderSize } from "../export/render.js";
 import { probeImage } from "../probe/probe.js";
 import { createWindowReader } from "../probe/window-reader.js";
 import type { RenderWorkerContract } from "./contract.js";
@@ -60,6 +62,13 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
           resizeHeight: Math.max(1, Math.round(source.height * scale)),
           resizeQuality: "high",
         });
+      },
+      async export({ plan, format, limits }, { signal }) {
+        const source = sources.get(plan.base.source);
+        if (!source) throw new TypeError(`There's no source with the id "${plan.base.source}".`);
+        // The output canvas is checked before it's allocated (docs/adr/0004).
+        checkOutputLimits(imageLimits.resolve(limits), renderSize(plan, source));
+        return encodePlan(source, plan, format, signal);
       },
       release({ id }) {
         sources.get(id)?.close();

@@ -14,6 +14,12 @@ import { SdkError } from '@hussmartinez/sdk-core';
 export function checkFileLimits(policy: ImageFilePolicy, fileSize: number, probe: ImageProbe): ImageLimitName[];
 
 // @public
+export function checkOutputLimits(policy: ImageFilePolicy, size: {
+    readonly width: number;
+    readonly height: number;
+}): void;
+
+// @public
 export function compositionSize(plan: ImagePlan, source: ImageSize): ImageSize;
 
 // @public
@@ -21,6 +27,9 @@ export function compositionToSource(point: ImagePoint, crop: ImageCrop, orientat
 
 // @public
 export function createImageEngine(options?: ImageEngineOptions): ImageEngine;
+
+// @public
+export function createImageProcessor(engine: ImageEngine): ImageProcessor;
 
 // Warning: (ae-forgotten-export) The symbol "Reducer" needs to be exported by the entry point index.d.ts
 //
@@ -109,6 +118,11 @@ export interface ImageExportJob {
     readonly format: ImageExportFormat;
     // (undocumented)
     readonly plan: ImagePlan;
+}
+
+// @public
+export interface ImageExportOptions extends ImageProgressOptions {
+    readonly filePolicy?: ImageFilePolicy;
 }
 
 // @public
@@ -329,7 +343,7 @@ export interface ImageProbe {
 // @public
 export interface ImageProcessor {
     destroy(): Promise<void>;
-    export(job: ImageExportJob, options?: ImageProgressOptions): Promise<Blob>;
+    export(job: ImageExportJob, options?: ImageExportOptions): Promise<Blob>;
 }
 
 // @public
@@ -393,6 +407,9 @@ export const NO_METADATA: ImageMetadataPresence;
 
 // @public
 export function orientedSize(stored: ImageSize, orientation: ExifOrientation): ImageSize;
+
+// @public
+export const OUTPUT_LIMITS: readonly ["maxImageDimension", "maxImagePixels"];
 
 // @public
 export function outputSize(output: ImageOutput, composition: ImageSize): ImageSize;

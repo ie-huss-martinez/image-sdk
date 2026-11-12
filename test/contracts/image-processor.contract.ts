@@ -5,6 +5,7 @@ import {
   type ImageEngine,
   type ImagePlan,
   type ImageProcessor,
+  imageLimits,
   isImageError,
 } from "../../src/index.js";
 import { aborted, type InspectedExport, rejection, type TestImageSpec } from "./harness-types.js";
@@ -168,6 +169,31 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
       );
       expect(kept.metadata).toEqual({ title: "Harbour, à l'aube", copyright: "© 2026" });
       expect(kept.hasLocation).toBe(false);
+      await processor.destroy();
+      await engine.destroy();
+    });
+
+    it("refuses an output over the file policy before drawing it", async () => {
+      const { engine, processor, plan } = await open(harness, { width: 8, height: 4 });
+      const error = await rejection(
+        processor.export(
+          { plan, format: { type: "png" } },
+          { filePolicy: imageLimits.resolve({ maxImagePixels: 31 }) },
+        ),
+      );
+      expect(isImageError(error, "IMAGE_TOO_LARGE")).toBe(true);
+      const wide = await rejection(
+        processor.export(
+          { plan, format: { type: "png" } },
+          { filePolicy: imageLimits.resolve({ maxImageDimension: 7 }) },
+        ),
+      );
+      expect(isImageError(wide, "IMAGE_DIMENSION_TOO_LARGE")).toBe(true);
+      // Scaled down within the limits, it exports.
+      await processor.export(
+        { plan: { ...plan, output: { kind: "scale", scale: 0.5 } }, format: { type: "png" } },
+        { filePolicy: imageLimits.resolve({ maxImagePixels: 31, maxImageDimension: 7 }) },
+      );
       await processor.destroy();
       await engine.destroy();
     });

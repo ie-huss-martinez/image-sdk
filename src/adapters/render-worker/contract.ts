@@ -1,5 +1,7 @@
-import type { PER_FILE_LIMITS } from "../../core/errors/image-limits.js";
+import type { OUTPUT_LIMITS, PER_FILE_LIMITS } from "../../core/errors/image-limits.js";
+import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageProbe, ImageSize } from "../../core/model/source.js";
+import type { ImageExportFormat } from "../../core/ports/image-processor.js";
 
 /**
  * The render worker's RPC contract (docs/adr/0002), shared by the page and
@@ -35,6 +37,19 @@ export interface RenderWorkerContract {
   readonly thumbnail: {
     readonly input: { readonly id: string; readonly maxSize: number };
     readonly output: ImageBitmap;
+  };
+  /**
+   * Renders a plan over a registered source at its output size, encodes it
+   * and rewrites its metadata to the kept fields only (docs/adr/0005).
+   */
+  readonly export: {
+    readonly input: {
+      readonly plan: ImagePlan;
+      readonly format: ImageExportFormat;
+      /** The maximum of each output limit. */
+      readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number], number>>;
+    };
+    readonly output: Blob;
   };
   /** Closes a source's bitmap. */
   readonly release: { readonly input: { readonly id: string }; readonly output: undefined };

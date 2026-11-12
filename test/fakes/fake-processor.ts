@@ -5,7 +5,7 @@ import {
   cropRect,
   outputSize,
 } from "../../src/core/model/geometry.js";
-import type { ImageProcessor } from "../../src/index.js";
+import { checkOutputLimits, type ImageProcessor, imageLimits } from "../../src/index.js";
 import type { FakeEngine } from "./fake-engine.js";
 import { encodeJson, type FakeExportFile } from "./fake-image.js";
 
@@ -28,6 +28,7 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
       const crop = cropRect(plan.base.crop, source);
       const composition = compositionSize(plan, source);
       const size = outputSize(plan.output, composition);
+      checkOutputLimits(options?.filePolicy ?? imageLimits.resolve(), size);
       const pixels: number[] = [];
       for (let y = 0; y < size.height; y += 1) {
         for (let x = 0; x < size.width; x += 1) {
