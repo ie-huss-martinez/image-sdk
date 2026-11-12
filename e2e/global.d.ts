@@ -1,5 +1,19 @@
-// The hooks the example page exposes (examples/vite/src/main.ts).
+// The hooks the example pages expose (examples/vite/src/main.ts and engine.ts).
 interface Window {
+  imageSdk: {
+    run(
+      bytes: ArrayBuffer,
+      selfHosted: boolean,
+    ): Promise<{
+      status: string;
+      width?: number;
+      height?: number;
+      orientation?: number;
+      decodedBytes?: number;
+      quadrants?: readonly (readonly number[])[];
+    }>;
+    readonly violations: readonly string[];
+  };
   imageCapabilities: {
     decode(
       bytes: ArrayBuffer,

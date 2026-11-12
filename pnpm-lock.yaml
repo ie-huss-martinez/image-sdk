@@ -352,6 +352,10 @@ importers:
         version: 6.0.3
 
   examples/vite:
+    dependencies:
+      '@hussmartinez/image-sdk':
+        specifier: workspace:*
+        version: link:../..
     devDependencies:
       '@hussmartinez/sdk-config':
         specifier: 'catalog:'

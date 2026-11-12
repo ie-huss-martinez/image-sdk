@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Workers only from this origin: no blob:, so only the self-hosted render worker can start. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'self'; style-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>image-sdk engine, self-hosted worker, under a strict Content Security Policy</title>
+  </head>
+  <body>
+    <main>
+      <h1>image-sdk engine, self-hosted worker, under a strict Content Security Policy</h1>
+      <p>Choose an image to probe and decode it on this device. Nothing is uploaded.</p>
+      <label>Image <input id="file" type="file" accept="image/*" /></label>
+      <label><input id="self-hosted" type="checkbox" checked /> Self-hosted worker</label>
+      <output id="result" aria-live="polite"></output>
+    </main>
+    <script type="module" src="/src/engine.ts"></script>
+  </body>
+</html>
