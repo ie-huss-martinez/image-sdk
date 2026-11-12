@@ -11,6 +11,69 @@ import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
 
 // @public
+export function compositionSize(plan: ImagePlan, source: ImageSize): ImageSize;
+
+// @public
+export function compositionToSource(point: ImagePoint, crop: ImageCrop, orientation: ImageOrientation_2): ImagePoint;
+
+// Warning: (ae-forgotten-export) The symbol "Reducer" needs to be exported by the entry point index.d.ts
+//
+// @public
+export function createImageReducer(sourceSize: (id: string) => ImageSize | undefined): Reducer<ImagePlan, ImageCommand>;
+
+// @public
+export function createPlan(source: string): ImagePlan;
+
+// @public
+export function cropRect(crop: ImageCrop | null, source: ImageSize): ImageCrop;
+
+// @public
+export const EMPTY_KEEPABLE_METADATA: ImageKeepableMetadata;
+
+// @public
+export type ExifOrientation = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+// @public
+export const FULL_SIZE: ImageOutput;
+
+// @public
+export interface ImageBase {
+    readonly crop: ImageCrop | null;
+    // (undocumented)
+    readonly orientation: ImageOrientation_2;
+    readonly source: string;
+}
+
+// @public
+export interface ImageCallOptions {
+    readonly signal?: AbortSignal;
+}
+
+// @public
+export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand;
+
+// @public
+export interface ImageCrop {
+    // (undocumented)
+    readonly height: number;
+    // (undocumented)
+    readonly width: number;
+    // (undocumented)
+    readonly x: number;
+    // (undocumented)
+    readonly y: number;
+}
+
+// @public
+export interface ImageEngine {
+    destroy(): Promise<void>;
+    probe(file: Blob, options?: ImageCallOptions): Promise<ImageProbe>;
+    register(id: string, file: Blob, probe: ImageProbe, options?: ImageProgressOptions): Promise<ImageSourceInfo>;
+    release(id: string): Promise<void>;
+    thumbnail(id: string, maxSize: number, options?: ImageCallOptions): Promise<ImageThumbnail>;
+}
+
+// @public
 export class ImageError extends SdkError<ImageErrorCode> {
     readonly name = "ImageError";
 }
@@ -19,10 +82,44 @@ export class ImageError extends SdkError<ImageErrorCode> {
 export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS";
 
 // @public
+export type ImageExportFormat = {
+    readonly type: "png";
+} | {
+    readonly type: "jpeg";
+    readonly quality?: number;
+} | {
+    readonly type: "webp";
+    readonly quality?: number;
+};
+
+// @public
+export interface ImageExportJob {
+    // (undocumented)
+    readonly format: ImageExportFormat;
+    // (undocumented)
+    readonly plan: ImagePlan;
+}
+
+// @public
 export type ImageFilePolicy = FilePolicy<ImageLimitDefinitions>;
 
 // @public
 export type ImageFilePolicyOverrides = FilePolicyOverrides<ImageLimitDefinitions>;
+
+// @public
+export type ImageFormat = "png" | "jpeg" | "webp" | "gif" | "avif" | "heif" | "bmp";
+
+// @public
+export interface ImageKeepableMetadata {
+    // (undocumented)
+    readonly artist: string;
+    // (undocumented)
+    readonly copyright: string;
+    // (undocumented)
+    readonly description: string;
+    // (undocumented)
+    readonly title: string;
+}
 
 // @public
 export type ImageLimitDefinitions = typeof imageLimitDefinitions;
@@ -152,8 +249,176 @@ export const imageMessages: {
 };
 
 // @public
+export interface ImageMetadataPresence {
+    // (undocumented)
+    readonly camera: boolean;
+    // (undocumented)
+    readonly colourProfile: boolean;
+    // (undocumented)
+    readonly location: boolean;
+    readonly other: boolean;
+    // (undocumented)
+    readonly thumbnail: boolean;
+    // (undocumented)
+    readonly timestamps: boolean;
+}
+
+// @public
+interface ImageOrientation_2 {
+    readonly flipX: boolean;
+    readonly flipY: boolean;
+    // (undocumented)
+    readonly rotate: ImageRotation;
+}
+export { ImageOrientation_2 as ImageOrientation }
+
+// @public
+export type ImageOutput = {
+    readonly kind: "scale";
+    readonly scale: number;
+} | {
+    readonly kind: "fit";
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
+export interface ImagePlan {
+    // (undocumented)
+    readonly base: ImageBase;
+    readonly metadata: ImageKeepableMetadata;
+    // (undocumented)
+    readonly output: ImageOutput;
+}
+
+// @public
+export interface ImagePoint {
+    // (undocumented)
+    readonly x: number;
+    // (undocumented)
+    readonly y: number;
+}
+
+// @public
+export interface ImageProbe {
+    readonly decodedPixelBound: number;
+    // (undocumented)
+    readonly format: ImageFormat;
+    readonly frames: number;
+    // (undocumented)
+    readonly hasAlpha: boolean;
+    readonly keepable: ImageKeepableMetadata;
+    // (undocumented)
+    readonly metadata: ImageMetadataPresence;
+    readonly orientation: ExifOrientation;
+    readonly oriented: ImageSize;
+    readonly stored: ImageSize;
+}
+
+// @public
+export interface ImageProcessor {
+    destroy(): Promise<void>;
+    export(job: ImageExportJob, options?: ImageProgressOptions): Promise<Blob>;
+}
+
+// @public
+export interface ImageProgressOptions extends ImageCallOptions {
+    readonly onProgress?: (fraction: number) => void;
+}
+
+// @public
+export type ImageRotation = 0 | 90 | 180 | 270;
+
+// @public
+export interface ImageSize {
+    // (undocumented)
+    readonly height: number;
+    // (undocumented)
+    readonly width: number;
+}
+
+// @public
+export interface ImageSourceInfo {
+    readonly decodedBytes: number;
+    // (undocumented)
+    readonly format: ImageFormat;
+    // (undocumented)
+    readonly frames: number;
+    // (undocumented)
+    readonly hasAlpha: boolean;
+    // (undocumented)
+    readonly height: number;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly width: number;
+}
+
+// @public
+export interface ImageThumbnail {
+    // (undocumented)
+    close(): void;
+    // (undocumented)
+    readonly height: number;
+    // (undocumented)
+    readonly width: number;
+}
+
+// @public
 export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value: unknown, code?: Code): value is ImageError & {
     readonly code: Code;
 };
+
+// @public
+export const MAX_METADATA_LENGTH = 2000;
+
+// @public
+export const NO_METADATA: ImageMetadataPresence;
+
+// @public
+export function orientedSize(stored: ImageSize, orientation: ExifOrientation): ImageSize;
+
+// @public
+export function outputSize(output: ImageOutput, composition: ImageSize): ImageSize;
+
+// @public
+export interface SetCropCommand {
+    // (undocumented)
+    readonly crop: ImageCrop | null;
+    // (undocumented)
+    readonly type: "image.setCrop";
+}
+
+// @public
+export interface SetMetadataCommand {
+    // (undocumented)
+    readonly field: keyof ImageKeepableMetadata;
+    // (undocumented)
+    readonly type: "image.setMetadata";
+    // (undocumented)
+    readonly value: string;
+}
+
+// @public
+export interface SetOrientationCommand {
+    // (undocumented)
+    readonly orientation: ImageOrientation_2;
+    // (undocumented)
+    readonly type: "image.setOrientation";
+}
+
+// @public
+export interface SetOutputCommand {
+    // (undocumented)
+    readonly output: ImageOutput;
+    // (undocumented)
+    readonly type: "image.setOutput";
+}
+
+// @public
+export function sourceToComposition(point: ImagePoint, crop: ImageCrop, orientation: ImageOrientation_2): ImagePoint;
+
+// @public
+export const UPRIGHT: ImageOrientation_2;
 
 ```
