@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/ie-huss-martinez/image-sdk/security/advisories/new
+    about: Report vulnerabilities privately, including any image that crashes, freezes or leaks data, such as its location. Please don't open a public issue.
