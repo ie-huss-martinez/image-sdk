@@ -18,5 +18,49 @@ export type {
   ImageLimitName,
 } from "./core/errors/image-limits.js";
 export { imageLimitDefinitions, imageLimits } from "./core/errors/image-limits.js";
+export type { ImagePoint } from "./core/model/geometry.js";
+export {
+  compositionSize,
+  compositionToSource,
+  cropRect,
+  orientedSize,
+  outputSize,
+  sourceToComposition,
+} from "./core/model/geometry.js";
+export type {
+  ImageBase,
+  ImageCrop,
+  ImageOrientation,
+  ImageOutput,
+  ImagePlan,
+  ImageRotation,
+} from "./core/model/plan.js";
+export { createPlan, FULL_SIZE, UPRIGHT } from "./core/model/plan.js";
+export type {
+  ExifOrientation,
+  ImageFormat,
+  ImageKeepableMetadata,
+  ImageMetadataPresence,
+  ImageProbe,
+  ImageSize,
+  ImageSourceInfo,
+  ImageThumbnail,
+} from "./core/model/source.js";
+export { EMPTY_KEEPABLE_METADATA, MAX_METADATA_LENGTH, NO_METADATA } from "./core/model/source.js";
+export type {
+  ImageCommand,
+  SetCropCommand,
+  SetMetadataCommand,
+  SetOrientationCommand,
+  SetOutputCommand,
+} from "./core/operations/commands.js";
+export { createImageReducer } from "./core/operations/commands.js";
+export type { ImageEngine } from "./core/ports/image-engine.js";
+export type {
+  ImageExportFormat,
+  ImageExportJob,
+  ImageProcessor,
+} from "./core/ports/image-processor.js";
+export type { ImageCallOptions, ImageProgressOptions } from "./core/ports/options.js";
 export type { ImageMessageCatalogue } from "./messages/en.js";
 export { imageMessages } from "./messages/en.js";
