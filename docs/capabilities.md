@@ -55,6 +55,7 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 ## Canvas and encoding in a worker
 
 - **convertToBlob:** `encodes` when the blob has the requested type. A browser that can't encode a type returns PNG instead, which is why the SDK checks the returned type (ADR 0001).
+- **2D context filter:** whether the 2D context has a `filter` property, and whether drawing through `brightness(50%)` halves red.
 - **Display-P3 2D context:** whether `getContext("2d", { colorSpace: "display-p3" })` gives a Display-P3 context.
 - **Canvas sizes:** whether a canvas of that size draws its far corner pixel. Some engines return a context for a canvas they can't back. 50.3 MP is the first size over `maxImagePixels`' 50 MP (ADR 0004). iOS Safari's own cap is lower than desktop WebKit's and can't be measured here.
 - **Longest side:** the longest one-pixel-high canvas that draws, found by binary search up to 131,071 pixels; an engine that reaches that shows `at least`.
@@ -67,6 +68,7 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 | convertToBlob, image/webp | encodes | encodes | encodes |
 | convertToBlob, image/avif | returns image/png | returns image/png | returns image/png |
 | Display-P3 2D context | available | not available | not available |
+| 2D context filter, brightness(50%) | applies | applies | not available |
 | Canvas of 4,096 × 4,096 (16.8 MP) | draws | draws | draws |
 | Canvas of 8,192 × 6,144 (50.3 MP) | draws | draws | draws |
 | Longest side of a one-pixel-high canvas | 65,535 pixels | 65,535 pixels | at least 131,071 pixels |

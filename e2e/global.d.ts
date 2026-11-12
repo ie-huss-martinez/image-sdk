@@ -31,6 +31,7 @@ interface Window {
           offscreen2d: boolean;
           encodes: Readonly<Record<string, string>>;
           displayP3: boolean;
+          contextFilter: "applies" | "ignored" | "not available";
           draws: Readonly<Record<string, boolean>>;
           longestSide: number;
         }

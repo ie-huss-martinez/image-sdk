@@ -164,6 +164,7 @@ export const FEATURES = [
   "convertToBlob, image/webp",
   "convertToBlob, image/avif",
   "Display-P3 2D context",
+  "2D context filter, brightness(50%)",
   "Canvas of 4,096 × 4,096 (16.8 MP)",
   "Canvas of 8,192 × 6,144 (50.3 MP)",
   "Longest side of a one-pixel-high canvas",
@@ -188,6 +189,7 @@ export function featureCells(features: Features): Record<(typeof FEATURES)[numbe
     "convertToBlob, image/webp": encodes("image/webp"),
     "convertToBlob, image/avif": encodes("image/avif"),
     "Display-P3 2D context": features.displayP3 ? "available" : "not available",
+    "2D context filter, brightness(50%)": features.contextFilter,
     "Canvas of 4,096 × 4,096 (16.8 MP)": draws("4096×4096"),
     "Canvas of 8,192 × 6,144 (50.3 MP)": draws("8192×6144"),
     // The search stops one short of 2^17: reaching that means "at least".
