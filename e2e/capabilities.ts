@@ -6,6 +6,8 @@ import {
   jpegUltraHdr,
   jpegWithExifThumbnail,
   jpegWithMpfPreview,
+  pngRotated,
+  webpRotated,
 } from "./fixtures.js";
 
 export const BROWSERS = ["chromium", "firefox", "webkit"] as const;
@@ -29,6 +31,11 @@ export interface DecodeCase {
   readonly primary: { readonly width: number; readonly height: number };
   /** Whether the SDK's probe accepts the file; the matrix also records files it refuses. */
   readonly probe: "accepts" | "refuses";
+  /**
+   * `none` asks the browser not to apply the file's orientation, so the
+   * decode is the stored size, which the probe's oriented size then isn't.
+   */
+  readonly imageOrientation?: "none";
 }
 
 const SMALL = { width: 48, height: 32 };
@@ -42,6 +49,12 @@ const LARGE = { width: 96, height: 64 };
  */
 export const DECODE_CASES: readonly DecodeCase[] = [
   { name: "PNG", bytes: () => fixture("primary.png"), primary: SMALL, probe: "accepts" },
+  {
+    name: "PNG, eXIf orientation 6",
+    bytes: pngRotated,
+    primary: { width: 32, height: 48 },
+    probe: "accepts",
+  },
   { name: "JPEG", bytes: () => fixture("primary.jpg"), primary: SMALL, probe: "accepts" },
   {
     name: "JPEG, EXIF orientation 6",
@@ -79,6 +92,12 @@ export const DECODE_CASES: readonly DecodeCase[] = [
     primary: SMALL,
     probe: "accepts",
   },
+  {
+    name: "WebP, EXIF orientation 6",
+    bytes: webpRotated,
+    primary: { width: 32, height: 48 },
+    probe: "accepts",
+  },
   { name: "GIF", bytes: () => fixture("primary.gif"), primary: SMALL, probe: "accepts" },
   {
     name: "GIF, frame outside the screen",
@@ -88,6 +107,12 @@ export const DECODE_CASES: readonly DecodeCase[] = [
   },
   { name: "BMP", bytes: () => fixture("primary.bmp"), primary: SMALL, probe: "accepts" },
   { name: "AVIF", bytes: () => fixture("primary.avif"), primary: SMALL, probe: "accepts" },
+  {
+    name: "AVIF, irot quarter turn",
+    bytes: () => fixture("rotated.avif"),
+    primary: { width: 32, height: 48 },
+    probe: "accepts",
+  },
   {
     name: "AVIF with a thumbnail item",
     bytes: () => fixture("thumbnail.avif"),
@@ -101,6 +126,22 @@ export const DECODE_CASES: readonly DecodeCase[] = [
     primary: LARGE,
     probe: "accepts",
   },
+  // The same oriented files, decoded without their orientation: the engine
+  // applies it itself where browsers disagree.
+  ...(
+    [
+      ["PNG, eXIf orientation 6", pngRotated],
+      ["JPEG, EXIF orientation 6", jpegRotated],
+      ["WebP, EXIF orientation 6", webpRotated],
+      ["AVIF, irot quarter turn", () => fixture("rotated.avif")],
+    ] as const
+  ).map(([name, bytes]) => ({
+    name: `${name}, imageOrientation none`,
+    bytes,
+    primary: SMALL,
+    probe: "accepts" as const,
+    imageOrientation: "none" as const,
+  })),
 ];
 
 /** The rows of the worker canvas table, in order. */

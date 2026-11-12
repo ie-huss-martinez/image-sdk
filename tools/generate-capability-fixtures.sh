@@ -46,6 +46,8 @@ docker run --rm \
     # A 96 × 64 primary with a 48 × 32 thumbnail: the sizes tell them apart.
     heif-enc --quality 90 --thumb 48 large.png -o /out/thumbnail.heic >/dev/null
     heif-enc --avif --quality 90 --thumb 48 large.png -o /out/thumbnail.avif >/dev/null
+    # A quarter turn anticlockwise in irot: upright, it is 32 x 48.
+    avifenc --speed 8 -q 92 --irot 1 primary.png /out/rotated.avif >/dev/null
     chown -R '"$(id -u):$(id -g)"' /out
   '
 ls -l e2e/fixtures

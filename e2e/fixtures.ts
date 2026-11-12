@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { concat, exif } from "../test/fixtures/image-writers.js";
+import { concat, exif, pngChunk, webp, webpChunk } from "../test/fixtures/image-writers.js";
 
 /**
  * The encoded images of the capability matrix: real encoders' output from
@@ -130,4 +130,24 @@ export function gifFrameOutsideScreen(): Uint8Array {
   const bytes = fixture("large.gif").slice();
   bytes.set([...be16(48).reverse(), ...be16(32).reverse()], 6);
   return bytes;
+}
+
+/** The primary PNG with an `eXIf` chunk after `IHDR` giving orientation 6: upright, it's 32 × 48. */
+export function pngRotated(): Uint8Array {
+  const png = fixture("primary.png");
+  const afterIhdr = 8 + 8 + 13 + 4;
+  return concat([
+    png.subarray(0, afterIhdr),
+    pngChunk("eXIf", exif({ orientation: 6 })),
+    png.subarray(afterIhdr),
+  ]);
+}
+
+/** The lossless WebP's bitstream in an extended file with EXIF orientation 6: upright, 32 × 48. */
+export function webpRotated(): Uint8Array {
+  const simple = fixture("primary-lossless.webp");
+  return webp({
+    canvas: { width: 48, height: 32 },
+    chunks: [simple.subarray(12), webpChunk("EXIF", exif({ orientation: 6 }))],
+  });
 }

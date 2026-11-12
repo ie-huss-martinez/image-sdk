@@ -1,7 +1,10 @@
 // The hooks the example page exposes (examples/vite/src/main.ts).
 interface Window {
   imageCapabilities: {
-    decode(bytes: ArrayBuffer): Promise<{
+    decode(
+      bytes: ArrayBuffer,
+      imageOrientation?: "from-image" | "none",
+    ): Promise<{
       status: "decoded" | "rejected" | "timeout";
       width?: number;
       height?: number;

@@ -10,7 +10,7 @@ In the pinned image, the suite fails when a browser's outcome differs from these
 
 Each file is a generated solid colour (`tools/generate-capability-fixtures.sh`, `e2e/fixtures.ts`). The primary image is red; every secondary image, such as a preview, gain map or thumbnail, is blue and larger, so the size and colour show which one the browser decoded. Before the browser sees a file, the suite checks that the SDK's own probe reads the same upright size, or refuses the file where the table says so.
 
-- **decodes:** the browser returned the primary image, red, at its upright size: the size the engine's check against the probe expects (ADR 0001).
+- **decodes:** the browser returned the primary image, red, at its upright size: the size the engine's check against the probe expects (ADR 0001). For the rows decoded with `imageOrientation: "none"`, it's the stored size instead, without the orientation.
 - **decodes W × H, colour:** the browser returned something else, such as a secondary image, or the stored size without its orientation.
 - **doesn't decode:** `createImageBitmap` rejected the file. The engine reports that as `DECODE_FAILED`.
 - **never settles:** the decode didn't finish within 10 seconds.
@@ -22,6 +22,7 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 | File | Chromium | Firefox | WebKit |
 |---|---|---|---|
 | PNG | decodes | decodes | decodes |
+| PNG, eXIf orientation 6 | decodes | decodes | decodes 48 × 32, red |
 | JPEG | decodes | decodes | decodes |
 | JPEG, EXIF orientation 6 | decodes | decodes | decodes |
 | JPEG with a larger EXIF thumbnail | decodes | decodes | decodes |
@@ -29,13 +30,19 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 | JPEG, Ultra HDR with a gain map | decodes | decodes | decodes |
 | WebP, lossy | decodes | decodes | decodes |
 | WebP, lossless | decodes | decodes | decodes |
+| WebP, EXIF orientation 6 | decodes 48 × 32, red | decodes 48 × 32, red | decodes 48 × 32, red |
 | GIF | decodes | decodes | decodes |
 | GIF, frame outside the screen | decodes 96 × 64, red | decodes 96 × 64, red | decodes 96 × 64, red |
 | BMP | decodes | decodes | decodes |
 | AVIF | decodes | decodes | decodes |
+| AVIF, irot quarter turn | decodes | decodes | decodes 48 × 32, red |
 | AVIF with a thumbnail item | decodes | decodes | decodes |
 | HEIC | doesn't decode | doesn't decode | doesn't decode |
 | HEIC with a thumbnail item | doesn't decode | doesn't decode | doesn't decode |
+| PNG, eXIf orientation 6, imageOrientation none | decodes 32 × 48, red | decodes 32 × 48, red | decodes |
+| JPEG, EXIF orientation 6, imageOrientation none | decodes 32 × 48, red | decodes 32 × 48, red | decodes 32 × 48, red |
+| WebP, EXIF orientation 6, imageOrientation none | decodes | decodes | decodes |
+| AVIF, irot quarter turn, imageOrientation none | decodes 32 × 48, red | decodes 32 × 48, red | decodes |
 
 ## Canvas and encoding in a worker
 
