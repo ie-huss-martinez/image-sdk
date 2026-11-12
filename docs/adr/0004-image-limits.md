@@ -27,7 +27,7 @@ The sources live in the render worker ([ADR 0002](0002-workers-and-assets.md)), 
 |---|---|---|---|---|
 | `maxFileSize` (core) | `FILE_TOO_LARGE` | 100 MB | 50 MB | Each file, before it's read |
 | `maxFiles` (core) | `TOO_MANY_FILES` | 20 | none | The sources in a session, on each open and insert |
-| `maxDecodedSize` (core) | `DECODED_SIZE_TOO_LARGE` | 1 GB | 400 MB | Each file's decoded size, frames × oriented pixels × 4 bytes, from the probe's bound, before decoding |
+| `maxDecodedSize` (core) | `DECODED_SIZE_TOO_LARGE` | 1 GB | 400 MB | Each file's decoded size, from the probe's bound, before decoding: frames × oriented pixels × 4 bytes, or for AVIF and HEIF the pixels of every item decoded with the primary, such as grid tiles and auxiliary planes, × 4 bytes ([ADR 0001](0001-image-engines.md)) |
 | `maxProcessingTime` (core) | `PROCESSING_TIME_EXCEEDED` | 120 s | none | Each probe, decode, render for export and encode |
 | `maxImagePixels` | `IMAGE_TOO_LARGE` | 50 megapixels | 24 megapixels | Each image or frame, from the probe; and the canvas and the export's output size, on each command that sets them |
 | `maxImageDimension` | `IMAGE_DIMENSION_TOO_LARGE` | 16,384 pixels | none | The width and height of each image or frame, from the probe; and the canvas and output |

@@ -28,10 +28,21 @@ The first releases bundle **no third-party runtime code**, except the small GIF 
   | JPEG | the `SOFn` segment that the scan follows, found by walking every segment | one |
   | WebP | `VP8 `, `VP8L` or the `VP8X` canvas | every `ANMF` frame, each of which must fit inside the `VP8X` canvas |
   | GIF | the logical screen descriptor | every image descriptor, each of which must fit inside the logical screen |
-  | AVIF and HEIF | the `ispe` of the primary item in the `meta` box, through `iprp`/`ipma`, with `irot` and `imir` | one; image sequences are refused |
+  | AVIF and HEIF | the primary item's `ispe` in the `meta` box, through `iprp`/`ipma`, with `irot` and `imir`; the decoded bound is the sum over every item decoded with it (see below) | one; image sequences are refused |
   | BMP | `BITMAPINFOHEADER` or later | one |
 
 - **The bound comes from what the decoder will decode, not from the first header that claims something.** A JPEG's dimensions come from the frame header the scan uses, not from EXIF's `PixelXDimension`. Every animation frame is walked and must fit inside the declared canvas, and a header that claims fewer frames than the file carries is an error. A header that claims more than the file's bytes can hold, such as a PNG whose `IDAT` data ends before its first row, fails with `INVALID_IMAGE`.
+- **AVIF and HEIF are bounded by every item the decoder may decode, not by the output size.** The primary item's `ispe` is only the output; the decoder also decodes:
+  - **every tile of a `grid` primary item,** each at its own `ispe`. Tiles can be far larger in total than the grid's output, since the output is cropped from them;
+  - **every auxiliary or derived item linked to the primary,** such as an alpha plane (`auxl` with an alpha `auxC`), a depth map or a gain map, and thumbnails (`thmb`), each at its own `ispe`.
+
+  So the probe follows every `dimg`, `auxl` and `thmb` reference that leads from or to the primary item, and its **decoded bound is the sum of the `ispe` pixels of the primary and every item reached**. A reference to an item without an `ispe`, or a cycle, is `INVALID_IMAGE`. For a grid:
+  - the grid's declared output size must equal the primary item's `ispe`, and fit within its rows × columns of tiles;
+  - every tile must have the same size, as the specification requires;
+  - the number of tiles is capped at a fixed 1,024, independent of the file policy, because each tile is a separate decode;
+  - anything else is `INVALID_IMAGE`.
+
+  `maxDecodedSize` is checked against the sum, and `maxImagePixels` against the output ([ADR 0004](0004-image-limits.md)), so a small declared output over huge tiles or auxiliary planes fails before any decode.
 - **Unknown fails closed.** A file whose format isn't one of the above, or whose bound can't be read, fails with `UNSUPPORTED_FORMAT` and never reaches a decoder. That includes SVG: the SDK doesn't open SVG in the first releases. A later record may add it, rasterised only through an `<img>` element, which runs no scripts ([ADR 0012](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0012-hostile-input-and-no-network.md)), and never inserted inline.
 - **Malformed fails with a code.** A truncated or inconsistent header fails with `INVALID_IMAGE`, and `details` name the format and what was wrong, never data from the file.
 
@@ -40,7 +51,7 @@ The first releases bundle **no third-party runtime code**, except the small GIF 
 The header and metadata readers are the SDK's own parsers of untrusted bytes, held to the same bar as audio-sdk's:
 
 - **Bounded by construction:** every loop advances by at least one byte; every size read from a file is checked against the bytes that remain before it's used; nesting, such as ISOBMFF boxes or TIFF IFDs, has a fixed depth limit, and IFD offsets that loop are an error; no allocation is sized from file data before the limits are checked.
-- **Tested against garbage:** each reader has tests that truncate every fixture at every byte offset, tests on random bytes and on deliberately corrupted headers, a property-based fuzz test with `fast-check` (MIT, a devDependency only) that mutates valid fixtures, and fixtures whose headers under-declare what their data carries, which must fail rather than pass the limits. Each case settles within a fixed time with a result, `INVALID_IMAGE` or `UNSUPPORTED_FORMAT`, and never hangs, throws anything else or crashes the worker.
+- **Tested against garbage:** each reader has tests that truncate every fixture at every byte offset, tests on random bytes and on deliberately corrupted headers, a property-based fuzz test with `fast-check` (MIT, a devDependency only) that mutates valid fixtures, and fixtures whose headers under-declare what their data carries, which must fail rather than pass the limits. For AVIF and HEIF these include a small grid output over oversized or too many tiles, tiles of unequal sizes, a grid output that doesn't fit its tiles, oversized auxiliary alpha and gain-map items, and reference cycles. Each case settles within a fixed time with a result, `INVALID_IMAGE` or `UNSUPPORTED_FORMAT`, and never hangs, throws anything else or crashes the worker.
 - **Fixtures are generated** by code in the tests: solid colours, gradients and patterns, with headers written by hand. Never photos.
 
 ### Decoding: `createImageBitmap` in the worker
@@ -61,7 +72,7 @@ The header and metadata readers are the SDK's own parsers of untrusted bytes, he
 - **Still formats** are encoded with `OffscreenCanvas.convertToBlob` in the worker. PNG and JPEG are available everywhere. WebP is detected, never assumed: a browser that can't encode it returns PNG instead, so the SDK checks the returned type and fails with `UNSUPPORTED_FORMAT` and `details.format` rather than saving mislabelled bytes. AVIF encoding isn't offered.
 - **Animated GIF** is encoded with **`gifenc`** (MIT, about 9 kB, credited in `NOTICE`), pinned exactly, in the worker. Frames are quantised to at most 255 colours plus one fully transparent index, and each frame clears what the previous frame drew, so transparent areas never leave ghosts.
 - **Metadata** is never copied from the source. Exports carry only the fields the user chose to keep ([ADR 0005](0005-colour-orientation-and-metadata.md)).
-- **Encoding support follows the browser.** The end-to-end suites keep a capability matrix of each format in Chromium, Firefox and WebKit, and every claim about a browser in these records is checked there before code relies on it.
+- **Encoding support follows the browser.** The end-to-end suites keep a capability matrix of each format in Chromium, Firefox and WebKit, and every claim about a browser in these records is checked there before code relies on it. It also confirms that `createImageBitmap` decodes only the primary image of a JPEG that carries secondary images (MPF pictures, Ultra HDR gain maps) or an EXIF thumbnail, and of a HEIF with a `thmb` item. If a browser decodes a secondary image, the probe counts it in the decoded bound, as it does for AVIF's auxiliary items.
 
 ### Later engines, each with its own record
 
