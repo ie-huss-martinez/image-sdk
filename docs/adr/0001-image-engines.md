@@ -28,7 +28,7 @@ The first releases bundle **no third-party runtime code**, except the small GIF 
   | JPEG | the `SOFn` segment that the scan follows, found by walking every segment | one |
   | WebP | `VP8 `, `VP8L` or the `VP8X` canvas | every `ANMF` frame, each of which must fit inside the `VP8X` canvas |
   | GIF | the logical screen descriptor | every image descriptor, each of which must fit inside the logical screen |
-  | AVIF and HEIF | the primary item's `ispe` in the `meta` box, through `iprp`/`ipma`, with `irot` and `imir`; the decoded bound is the sum over every item decoded with it (see below) | one; image sequences are refused |
+  | AVIF and HEIF | the primary item's `ispe` in the `meta` box, through `iprp`/`ipma`, cropped by its `clap` clean aperture, which encoders add when they pad to whole coding blocks, and turned by `irot` and `imir`; the decoded bound is the sum over every item decoded with it (see below) | one; image sequences are refused |
   | BMP | `BITMAPINFOHEADER` or later | one |
 
 - **The bound comes from what the decoder will decode, not from the first header that claims something.** A JPEG's dimensions come from the frame header the scan uses, not from EXIF's `PixelXDimension`. Every animation frame is walked and must fit inside the declared canvas, and a header that claims fewer frames than the file carries is an error. A header that claims more than the file's bytes can hold, such as a chunk or segment longer than the rest of the file, fails with `INVALID_IMAGE`. Compressed image data is never inflated or read: the decoder allocates from the dimensions the probe read, which the limits already bound.
