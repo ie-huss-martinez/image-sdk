@@ -57,6 +57,7 @@
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "test:browser:all": "vitest run --project browser --mode all-browsers",
+    "bench": "vitest run --config vitest.bench.config.ts",
     "build:examples": "pnpm --filter @hussmartinez/image-sdk-example-vite build",
     "test:e2e": "pnpm --filter @hussmartinez/image-sdk-e2e test:e2e",
     "check:size": "size-limit",

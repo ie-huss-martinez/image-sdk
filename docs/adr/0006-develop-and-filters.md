@@ -25,7 +25,8 @@ Develop and filters are **our own code**, applied to the rendered base's pixels 
 - **Where:** after the base is drawn at the size being rendered, and before any layer is drawn over it. Layers, such as text, shapes and redactions, are never developed. A redaction drawn over a developed base stays exactly as opaque as it was drawn.
 - **At the size being rendered:** the preview develops the stage-sized render, and an export develops the output-sized one, with the same code. Every adjustment is per pixel, with no neighbourhood, so the result doesn't depend on the scale it's computed at, beyond resampling.
 - **In strips:** the worker reads, adjusts and writes back the canvas in bands of rows with `getImageData` and `putImageData`, so the extra memory is one band, at most 4 MB, not a second full-size copy. Between bands it checks the call's `AbortSignal` and reports progress.
-- **Fast paths:** the neutral develop and a filter at strength 0 cost nothing, and tone curves are lookup tables. The rest computes per pixel; combining the per-channel steps into tables is an optimisation the golden tests allow, if measurements call for it.
+- **Tables, not `Math.pow`, per pixel.** Every transfer between sRGB-encoded values and linear light is a lookup: a 256-entry table from 8-bit input, and 4,096-step tables each way for continuous values. The tables, and the exposure gain, are computed once with `Math.pow` and rounded to 2⁻²⁰, a test checks that none of them lies near a rounding boundary, and the pixel loop uses only `+`, `−`, `×`, `÷`, `Math.min`, `Math.max` and integer rounding, which IEEE 754 specifies exactly. So engines whose `Math.pow` differs in the last place still produce the same pixels, by construction.
+- **Fast paths.** A neutral develop and a filter at strength 0 cost nothing. When no step mixes channels (temperature, tint, exposure, contrast and tone curves, without highlights, shadows, saturation, vibrance or a monochrome mix), the whole render is one fused 256-entry table per channel. Without highlights and shadows, white balance, exposure and contrast fold into one table per channel that indexes the linear-light table directly. The pixel loop allocates nothing.
 - **The read-back canvas** is created with `willReadFrequently: true` and `colorSpace: "srgb"`, so engines keep it where the CPU reads it quickly, and `getImageData` asks for sRGB explicitly.
 - **Deterministic:** the math uses only integer lookups and `Math` functions, with results rounded to 8 bits the same way everywhere. Given the same rendered base, every engine produces the same developed pixels. Browsers' decoders and resampling may still differ slightly, which the export tests' tolerances cover.
 
@@ -59,7 +60,17 @@ Each is an integer from −100 to 100, 0 meaning unchanged, applied in this fixe
 
 - **No new limit.** The strip is bounded, so a develop adds at most 4 MB to an export's peak ([ADR 0004](0004-image-limits.md)).
 - **Superseded renders stop early:** a render checks its `AbortSignal` between strips, so the preview renderer, which coalesces frames to the latest plan, can abandon a stale render mid-way. Its own tests, with the preview renderer, show that a burst of slider changes ends in one final render.
-- **Time:** develop is linear in the pixels rendered. An export runs under the file policy's `maxProcessingTime`, so a slow device fails with `PROCESSING_TIME_EXCEEDED` rather than hanging. The preview only develops the stage-sized render, and coalesces frames ([ADR 0002](0002-workers-and-assets.md)).
+- **Time:** develop is linear in the pixels rendered. Measured with `pnpm bench` in Node, which runs V8 as Chromium does, on 4 megapixels, the median of ten runs on a shared 12-core machine:
+
+  | Case | Before tables | Now |
+  |---|---|---|
+  | Every adjustment, plus `vivid` at 60 | 1,594 ms | about 355 ms |
+  | Every adjustment, plus `sepia` at 60 | 1,161 ms | about 280 ms |
+  | Temperature, exposure and contrast only | 519 ms | about 9 ms |
+  | `warm` alone, at 100 | 778 ms | about 170 ms |
+
+  So a 50-megapixel export with every adjustment and a preset takes about 4.5 s on such a desktop, well within `maxProcessingTime`, and a stage-sized preview render of 1 to 2 megapixels about 0.1 to 0.2 s, which coalescing keeps responsive. If phones prove too slow, the accelerated path of the alternatives below is the next step, matched against these tables.
+- **Time limits:** an export runs under the file policy's `maxProcessingTime`, so a slow device fails with `PROCESSING_TIME_EXCEEDED` rather than hanging. The preview only develops the stage-sized render, and coalesces frames ([ADR 0002](0002-workers-and-assets.md)).
 - **Worker size:** the module is small, plain arithmetic and tables. The worker's size budget is raised in the implementation pull request, from the measured size.
 
 ## Alternatives considered

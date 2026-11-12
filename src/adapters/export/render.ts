@@ -1,7 +1,7 @@
 import { compositionSize, cropRect, outputSize } from "../../core/model/geometry.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageSize } from "../../core/model/source.js";
-import { developPixels, needsDevelop } from "./develop.js";
+import { createDeveloper, needsDevelop } from "./develop.js";
 
 /** The most bytes one develop strip reads back at once (docs/adr/0006). */
 const STRIP_BYTES = 4_000_000;
@@ -62,13 +62,14 @@ export function renderPlan(
     // Once per render, in strips of bounded size, before any layer is drawn
     // (docs/adr/0006). Developing the same canvas twice would lose precision
     // in its premultiplied storage, so nothing ever does.
+    const developStrip = createDeveloper(develop, filter);
     const rows = Math.max(1, Math.floor(STRIP_BYTES / (size.width * 4)));
     for (let y = 0; y < size.height; y += rows) {
       if (signal?.aborted) throw signal.reason;
       const strip = context.getImageData(0, y, size.width, Math.min(rows, size.height - y), {
         colorSpace: "srgb",
       });
-      developPixels(strip.data, develop, filter);
+      developStrip(strip.data);
       context.putImageData(strip, 0, y);
     }
   }

@@ -6,7 +6,7 @@ import {
   type ImageFilter,
   NEUTRAL_DEVELOP,
 } from "../../core/model/plan.js";
-import { developPixels, needsDevelop } from "./develop.js";
+import { developPixels, linearToSrgb, needsDevelop, srgbToLinear, TRANSFER } from "./develop.js";
 
 /** A fixed set of colours: black, white, the primaries, a skin tone, a sky and a mid-grey. */
 const SWATCHES = [
@@ -82,5 +82,23 @@ describe("develop and filters (docs/adr/0006)", () => {
     expect(
       developed({ exposure: 30, contrast: -20 }, { preset: "warm", strength: 60 }),
     ).toMatchSnapshot();
+  });
+
+  it("builds every table entry and exposure gain far from a fixed-point rounding boundary", () => {
+    // Engines may differ in Math.pow's last place. The tables round its
+    // results to 2^-20, so a difference could only matter within about
+    // 1e-10 of a rounding boundary; every value here is much further away.
+    const { FIXED, STEPS } = TRANSFER;
+    const raw = [
+      ...Array.from({ length: 256 }, (_, i) => srgbToLinear(i / 255)),
+      ...Array.from({ length: STEPS + 1 }, (_, i) => srgbToLinear(i / STEPS)),
+      ...Array.from({ length: STEPS + 1 }, (_, i) => linearToSrgb(i / STEPS)),
+      ...Array.from({ length: 201 }, (_, i) => 2 ** ((i - 100) / 50)),
+    ];
+    for (const value of raw) {
+      const scaled = value * FIXED;
+      const fromBoundary = Math.abs(scaled - Math.floor(scaled) - 0.5);
+      expect(fromBoundary, String(value)).toBeGreaterThan(1e-6);
+    }
   });
 });
