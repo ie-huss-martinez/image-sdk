@@ -86,10 +86,11 @@ export type {
 } from "./core/ports/image-processor.js";
 export type {
   ImageRenderer,
+  ImageRenderOptions,
   ImageRenderOutcome,
   ImageView,
 } from "./core/ports/image-renderer.js";
-export { fittedView } from "./core/ports/image-renderer.js";
+export { backingSize, fittedView, MAX_PIXEL_RATIO } from "./core/ports/image-renderer.js";
 export type {
   ImageCallOptions,
   ImageExportOptions,

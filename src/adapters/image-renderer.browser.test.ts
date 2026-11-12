@@ -130,6 +130,35 @@ describe("the preview renderer (docs/adr/0002)", () => {
     expect(shot.pixel(600, 400)).toEqual(Array.from(expected));
   });
 
+  it("refuses an oversized view before drawing, and keeps the previous frame (docs/adr/0004)", async () => {
+    const { engine, renderer } = await open();
+    opened.push({ engine, renderer });
+    await renderer.render(createPlan("s"), fittedView(48, 32));
+    const internals = rendererInternals(renderer);
+    const before = internals?.drawn();
+    // A runaway layout: 100,000 CSS pixels wide.
+    const wide = await renderer
+      .render(createPlan("s"), fittedView(100_000, 32))
+      .catch((reason: unknown) => reason);
+    expect(isImageError(wide, "IMAGE_DIMENSION_TOO_LARGE")).toBe(true);
+    const many = await renderer
+      .render(createPlan("s"), fittedView(10_000, 10_000))
+      .catch((reason: unknown) => reason);
+    expect(isImageError(many, "IMAGE_TOO_LARGE")).toBe(true);
+    expect(internals?.drawn()).toBe(before);
+    const shot = await snapshot(renderer);
+    expect([shot.width, shot.height]).toEqual([48, 32]);
+    expect(shot.pixel(12, 8)).toEqual([255, 0, 0, 255]);
+  });
+
+  it("draws at most at a pixel ratio of 4", async () => {
+    const { engine, renderer } = await open();
+    opened.push({ engine, renderer });
+    await renderer.render(createPlan("s"), fittedView(48, 32, 10));
+    const shot = await snapshot(renderer);
+    expect([shot.width, shot.height]).toEqual([192, 128]);
+  });
+
   it("rejects renders before attach, of unknown sources and with impossible views", async () => {
     const engine = createImageEngine();
     const renderer = createImageRenderer(engine);

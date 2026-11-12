@@ -1,5 +1,15 @@
+import type { ImageFilePolicy } from "../errors/image-limits.js";
 import type { ImagePlan } from "../model/plan.js";
 import type { ImageCallOptions } from "./options.js";
+
+/**
+ * The highest device pixel ratio the preview draws at. A larger ratio is
+ * drawn at this one: no display needs more, and it bounds the canvas a
+ * runaway layout can ask for.
+ *
+ * @public
+ */
+export const MAX_PIXEL_RATIO = 4;
 
 /**
  * Where and how the preview is shown: the stage's size in CSS pixels, the
@@ -12,11 +22,29 @@ import type { ImageCallOptions } from "./options.js";
 export interface ImageView {
   readonly width: number;
   readonly height: number;
-  /** Device pixels per CSS pixel, such as `devicePixelRatio`. */
+  /**
+   * Device pixels per CSS pixel, such as `devicePixelRatio`. Ratios above
+   * {@link MAX_PIXEL_RATIO} are drawn at it.
+   */
   readonly pixelRatio: number;
   /** 1 fits the composition inside the stage; 2 is twice that. */
   readonly zoom: number;
   readonly pan: { readonly x: number; readonly y: number };
+}
+
+/**
+ * Options for a render.
+ *
+ * @public
+ */
+export interface ImageRenderOptions extends ImageCallOptions {
+  /**
+   * The limits the preview canvas's backing size, the view's size times its
+   * pixel ratio, is checked against before the canvas is resized:
+   * `maxImageDimension` and `maxImagePixels` (ADR 0004). The defaults of
+   * `imageLimits` when omitted.
+   */
+  readonly filePolicy?: ImageFilePolicy;
 }
 
 /**
@@ -46,11 +74,31 @@ export interface ImageRenderer {
   /**
    * Draws a plan into the attached canvas for a view. It resolves `drawn`
    * when this plan is on screen, or `superseded` when a later call replaced
-   * it. A plan whose source isn't registered is a `TypeError`.
+   * it. A plan whose source isn't registered is a `TypeError`. A view whose
+   * backing size is over `filePolicy`'s limits rejects with the limit's code
+   * before anything is drawn, and the canvas keeps its previous frame.
    */
-  render(plan: ImagePlan, view: ImageView, options?: ImageCallOptions): Promise<ImageRenderOutcome>;
+  render(
+    plan: ImagePlan,
+    view: ImageView,
+    options?: ImageRenderOptions,
+  ): Promise<ImageRenderOutcome>;
   /** Releases the canvas in the worker. Pending renders resolve `superseded`, and later calls throw. */
   destroy(): Promise<void>;
+}
+
+/**
+ * The size of the preview canvas's backing store for a view: its size times
+ * its pixel ratio, at most {@link MAX_PIXEL_RATIO}, in whole pixels.
+ *
+ * @public
+ */
+export function backingSize(view: ImageView): { readonly width: number; readonly height: number } {
+  const ratio = Math.min(view.pixelRatio, MAX_PIXEL_RATIO);
+  return {
+    width: Math.max(1, Math.round(view.width * ratio)),
+    height: Math.max(1, Math.round(view.height * ratio)),
+  };
 }
 
 /**

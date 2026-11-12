@@ -1,9 +1,15 @@
 import { abortError, asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
 import { ImageError } from "../core/errors/image-error.js";
+import { checkOutputLimits, imageLimits, OUTPUT_LIMITS } from "../core/errors/image-limits.js";
 import type { ImagePlan } from "../core/model/plan.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
-import type { ImageRenderer, ImageRenderOutcome, ImageView } from "../core/ports/image-renderer.js";
-import type { ImageCallOptions } from "../core/ports/options.js";
+import {
+  backingSize,
+  type ImageRenderer,
+  type ImageRenderOptions,
+  type ImageRenderOutcome,
+  type ImageView,
+} from "../core/ports/image-renderer.js";
 import { engineInternals } from "./image-engine.js";
 
 /** What tests reach of a renderer from {@link createImageRenderer}. */
@@ -34,6 +40,7 @@ interface Request {
   readonly resolve: (outcome: ImageRenderOutcome) => void;
   readonly reject: (error: unknown) => void;
   readonly signal: AbortSignal | undefined;
+  readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number], number>>;
 }
 
 function checkView(view: ImageView): void {
@@ -97,7 +104,7 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
       .then((client) =>
         client.call(
           "render",
-          { id, plan: request.plan, view: request.view },
+          { id, plan: request.plan, view: request.view, limits: request.limits },
           { signal: controller.signal },
         ),
       )
@@ -150,7 +157,7 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
     render(
       plan: ImagePlan,
       view: ImageView,
-      options?: ImageCallOptions,
+      options?: ImageRenderOptions,
     ): Promise<ImageRenderOutcome> {
       if (destroyed) return Promise.reject(new Error("The image renderer has been destroyed."));
       if (!attached) return Promise.reject(new TypeError("Attach a canvas before rendering."));
@@ -159,15 +166,22 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
           new TypeError(`There's no source with the id "${plan.base.source}".`),
         );
       }
+      const policy = options?.filePolicy ?? imageLimits.resolve();
       try {
         checkView(view);
+        // A runaway layout can't size the canvas past the limits; the
+        // current frame stays (docs/adr/0004).
+        checkOutputLimits(policy, backingSize(view));
         throwIfAborted(options?.signal);
       } catch (error) {
         return Promise.reject(error);
       }
+      const limits = Object.fromEntries(
+        OUTPUT_LIMITS.map((limit) => [limit, policy.limits[limit].maximum]),
+      ) as Request["limits"];
       return new Promise<ImageRenderOutcome>((resolve, reject) => {
         pending?.resolve("superseded");
-        pending = { plan, view, resolve, reject, signal: options?.signal };
+        pending = { plan, view, resolve, reject, signal: options?.signal, limits };
         // The render being drawn is stale now: stop it at its next strip.
         inFlight?.controller.abort(
           new DOMException("A later render replaced this one.", "AbortError"),

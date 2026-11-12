@@ -11,6 +11,12 @@ import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
 
 // @public
+export function backingSize(view: ImageView): {
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
 export function checkFileLimits(policy: ImageFilePolicy, fileSize: number, probe: ImageProbe): ImageLimitName[];
 
 // @public
@@ -402,7 +408,12 @@ export interface ImageRegisterOptions extends ImageProgressOptions {
 export interface ImageRenderer {
     attach(canvas: HTMLCanvasElement): Promise<void>;
     destroy(): Promise<void>;
-    render(plan: ImagePlan, view: ImageView, options?: ImageCallOptions): Promise<ImageRenderOutcome>;
+    render(plan: ImagePlan, view: ImageView, options?: ImageRenderOptions): Promise<ImageRenderOutcome>;
+}
+
+// @public
+export interface ImageRenderOptions extends ImageCallOptions {
+    readonly filePolicy?: ImageFilePolicy;
 }
 
 // @public
@@ -468,6 +479,9 @@ export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value
 
 // @public
 export const MAX_METADATA_LENGTH = 2000;
+
+// @public
+export const MAX_PIXEL_RATIO = 4;
 
 // @public
 export const NEUTRAL_DEVELOP: ImageDevelop;

@@ -2,6 +2,7 @@ import { type ExposeWorkerOptions, exposeWorker } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
 import { checkFileLimits, checkOutputLimits, imageLimits } from "../../core/errors/image-limits.js";
 import type { ImageProbe } from "../../core/model/source.js";
+import { backingSize } from "../../core/ports/image-renderer.js";
 import { decodeUpright } from "../decode/decode.js";
 import { encodePlan } from "../export/encode.js";
 import { drawPreview } from "../export/preview.js";
@@ -80,7 +81,9 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         canvases.set(id, context);
         return undefined;
       },
-      async render({ id, plan, view }, { signal }) {
+      async render({ id, plan, view, limits }, { signal }) {
+        // Before the canvas is resized, whatever the page checked (docs/adr/0004).
+        checkOutputLimits(imageLimits.resolve(limits), backingSize(view));
         const context = canvases.get(id);
         if (!context) throw new TypeError(`There's no canvas with the id "${id}".`);
         const source = sources.get(plan.base.source);

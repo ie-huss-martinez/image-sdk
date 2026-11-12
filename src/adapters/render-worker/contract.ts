@@ -59,7 +59,13 @@ export interface RenderWorkerContract {
   };
   /** Draws a plan into an attached canvas for a view; a cancelled render draws nothing. */
   readonly render: {
-    readonly input: { readonly id: string; readonly plan: ImagePlan; readonly view: ImageView };
+    readonly input: {
+      readonly id: string;
+      readonly plan: ImagePlan;
+      readonly view: ImageView;
+      /** The maximum of each output limit, for the canvas's backing size. */
+      readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number], number>>;
+    };
     readonly output: undefined;
   };
   /** Forgets an attached canvas. */
