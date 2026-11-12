@@ -44,9 +44,14 @@ export function keptExif(metadata: ImageKeepableMetadata): Uint8Array {
     entries.push({ tag: 0x8298, type: 2, value: concat([utf8(metadata.copyright), [0]]) });
   }
   if (metadata.title) {
-    const units = Array.from(metadata.title, (c) => c.charCodeAt(0));
-    const utf16 = Uint8Array.from([...units.flatMap((u) => [u & 0xff, u >>> 8]), 0, 0]);
-    entries.push({ tag: 0x9c9b, type: 1, value: utf16 });
+    // UTF-16 code units, so characters outside the BMP keep both surrogates.
+    const utf16: number[] = [];
+    for (let i = 0; i < metadata.title.length; i += 1) {
+      const unit = metadata.title.charCodeAt(i);
+      utf16.push(unit & 0xff, unit >>> 8);
+    }
+    utf16.push(0, 0);
+    entries.push({ tag: 0x9c9b, type: 1, value: Uint8Array.from(utf16) });
   }
   const ifdSize = 2 + entries.length * 12 + 4;
   let dataAt = 8 + ifdSize;

@@ -78,6 +78,13 @@ describe("the JPEG rewrite", () => {
     const block = keptExif(KEPT);
     expect(hasBytes(block, "\x88\x25")).toBe(false);
   });
+
+  it("round-trips titles outside the BMP and with combining marks, in JPEG and PNG", async () => {
+    const title = "Trip 🌊 to Cafe\u0301 𠀀";
+    const kept = { ...EMPTY_KEEPABLE_METADATA, title, artist: "Zoë 🎨" };
+    expect((await probe(rewriteJpeg(source(), kept))).keepable).toEqual(kept);
+    expect((await probe(rewritePng(png({ width: 2, height: 2 }), kept))).keepable).toEqual(kept);
+  });
 });
 
 describe("the PNG rewrite", () => {
