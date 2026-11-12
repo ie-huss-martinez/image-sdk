@@ -101,24 +101,23 @@ async function calibrationFile(format: ImageFormat): Promise<Blob | undefined> {
 /**
  * Decodes the calibration image and classifies the pixels: the oriented
  * layout the SDK's own probe reads from the file, the stored layout, or
- * anything else, which is `unknown` (docs/adr/0005).
+ * anything else, which is `unknown` (docs/adr/0005). Any failure, such as a
+ * refused decode or a canvas that can't be allocated under memory pressure,
+ * rejects instead, so that it isn't remembered: the file being decoded did
+ * decode, so its format's calibration file should too.
  */
 async function measure(format: ImageFormat): Promise<Calibration> {
+  const file = await calibrationFile(format);
+  if (!file) return "unknown";
+  const probe = await probeImage(createWindowReader(file));
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   try {
-    const file = await calibrationFile(format);
-    if (!file) return "unknown";
-    const probe = await probeImage(createWindowReader(file));
-    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    try {
-      const shown = classifyQuadrants(bitmap, quadrantCentres(bitmap), probe.stored);
-      if (probe.orientation !== 1 && shown === probe.orientation) return "applied";
-      if (shown === 1) return "not applied";
-      return "unknown";
-    } finally {
-      bitmap.close();
-    }
-  } catch {
+    const shown = classifyQuadrants(bitmap, quadrantCentres(bitmap), probe.stored);
+    if (probe.orientation !== 1 && shown === probe.orientation) return "applied";
+    if (shown === 1) return "not applied";
     return "unknown";
+  } finally {
+    bitmap.close();
   }
 }
 
@@ -126,16 +125,33 @@ const calibrations = new Map<ImageFormat, Promise<Calibration>>();
 
 /**
  * Whether this browser applies a format's orientation, measured on the
- * first oriented file of that format and shared by every later one, in this
- * worker's memory only (docs/adr/0005).
+ * first oriented file of that format and shared by every concurrent and
+ * later one, in this worker's memory only (docs/adr/0005). Only classified
+ * results are kept: a measurement that failed is `unknown` for the calls
+ * that shared it, and the next oriented file measures again.
  *
  * @internal
  */
-export function calibrate(format: ImageFormat): Promise<Calibration> {
+export function calibrate(
+  format: ImageFormat,
+  measureFormat: (format: ImageFormat) => Promise<Calibration> = measure,
+): Promise<Calibration> {
   let calibration = calibrations.get(format);
   if (!calibration) {
-    calibration = measure(format);
+    calibration = measureFormat(format).catch(() => {
+      calibrations.delete(format);
+      return "unknown" as const;
+    });
     calibrations.set(format, calibration);
   }
   return calibration;
+}
+
+/**
+ * Forgets every calibration, for tests.
+ *
+ * @internal
+ */
+export function forgetCalibrations(): void {
+  calibrations.clear();
 }

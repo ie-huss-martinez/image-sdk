@@ -11,6 +11,9 @@ import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
 
 // @public
+export function checkFileLimits(policy: ImageFilePolicy, fileSize: number, probe: ImageProbe): ImageLimitName[];
+
+// @public
 export function compositionSize(plan: ImagePlan, source: ImageSize): ImageSize;
 
 // @public
@@ -71,7 +74,7 @@ export interface ImageCrop {
 export interface ImageEngine {
     destroy(): Promise<void>;
     probe(file: Blob, options?: ImageCallOptions): Promise<ImageProbe>;
-    register(id: string, file: Blob, probe: ImageProbe, options?: ImageProgressOptions): Promise<ImageSourceInfo>;
+    register(id: string, file: Blob, probe: ImageProbe, options?: ImageRegisterOptions): Promise<ImageSourceInfo>;
     release(id: string): Promise<void>;
     thumbnail(id: string, maxSize: number, options?: ImageCallOptions): Promise<ImageThumbnail>;
 }
@@ -335,6 +338,11 @@ export interface ImageProgressOptions extends ImageCallOptions {
 }
 
 // @public
+export interface ImageRegisterOptions extends ImageProgressOptions {
+    readonly filePolicy?: ImageFilePolicy;
+}
+
+// @public
 export type ImageRotation = 0 | 90 | 180 | 270;
 
 // @public
@@ -388,6 +396,9 @@ export function orientedSize(stored: ImageSize, orientation: ExifOrientation): I
 
 // @public
 export function outputSize(output: ImageOutput, composition: ImageSize): ImageSize;
+
+// @public
+export const PER_FILE_LIMITS: readonly ["maxFileSize", "maxImageDimension", "maxImagePixels", "maxFrames", "maxDecodedSize"];
 
 // @public
 export interface SetCropCommand {

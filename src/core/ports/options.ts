@@ -1,3 +1,5 @@
+import type { ImageFilePolicy } from "../errors/image-limits.js";
+
 /**
  * Options every port call accepts.
  *
@@ -23,4 +25,21 @@ export interface ImageProgressOptions extends ImageCallOptions {
    * it's called with 1 before the call resolves.
    */
   readonly onProgress?: (fraction: number) => void;
+}
+
+/**
+ * Options for registering a source.
+ *
+ * @public
+ */
+export interface ImageRegisterOptions extends ImageProgressOptions {
+  /**
+   * The limits checked against the engine's own probe of the file before
+   * anything decodes it: `maxFileSize`, `maxImageDimension`,
+   * `maxImagePixels`, `maxFrames` and `maxDecodedSize` (ADR 0004). The
+   * defaults of `imageLimits` when omitted. The session checks the same
+   * policy first, so this is defence in depth for hosts that use the engine
+   * directly.
+   */
+  readonly filePolicy?: ImageFilePolicy;
 }

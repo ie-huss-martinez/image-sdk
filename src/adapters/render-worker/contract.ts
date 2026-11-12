@@ -1,3 +1,4 @@
+import type { PER_FILE_LIMITS } from "../../core/errors/image-limits.js";
 import type { ImageProbe, ImageSize } from "../../core/model/source.js";
 
 /**
@@ -16,11 +17,18 @@ export interface RenderWorkerContract {
   /** Reads a file's headers (docs/adr/0001). */
   readonly probe: { readonly input: { readonly file: Blob }; readonly output: ImageProbe };
   /**
-   * Probes the file again, requires the page's probe to describe it, and
-   * decodes it upright into a source with the id (docs/adr/0005).
+   * Probes the file again, requires the page's probe to describe it, checks
+   * the per-file limits against its own probe (docs/adr/0004), and decodes
+   * it upright into a source with the id (docs/adr/0005).
    */
   readonly register: {
-    readonly input: { readonly id: string; readonly file: Blob; readonly probe: ImageProbe };
+    readonly input: {
+      readonly id: string;
+      readonly file: Blob;
+      readonly probe: ImageProbe;
+      /** The maximum of each per-file limit. */
+      readonly limits: Readonly<Record<(typeof PER_FILE_LIMITS)[number], number>>;
+    };
     readonly output: ImageSize;
   };
   /** A rendering of a source that fits inside `maxSize` × `maxSize`. */

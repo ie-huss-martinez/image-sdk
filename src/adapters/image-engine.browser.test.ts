@@ -3,7 +3,7 @@ import { describeImageEngineContract } from "../../test/contracts/image-engine.c
 import { concat, exif, png, pngChunk, webp, webpChunk } from "../../test/fixtures/image-writers.js";
 import { isImageError } from "../core/errors/image-error.js";
 import type { ExifOrientation } from "../core/model/source.js";
-import { calibrate } from "./decode/calibration.js";
+import { calibrate, forgetCalibrations } from "./decode/calibration.js";
 import { decodeUpright } from "./decode/decode.js";
 import {
   classifyQuadrants,
@@ -246,6 +246,29 @@ describe("decoding with each calibration (docs/adr/0005)", () => {
       calibrate: async () => "applied",
     }).catch((reason: unknown) => reason);
     expect(isImageError(error, "DECODE_FAILED")).toBe(true);
+  });
+
+  it("keeps a classified calibration, but measures again after one that failed", async () => {
+    forgetCalibrations();
+    let measured = 0;
+    const failing = async () => {
+      measured += 1;
+      throw new Error("canvas allocation failed");
+    };
+    // Concurrent calls share the failed measurement, as unknown.
+    expect(await Promise.all([calibrate("png", failing), calibrate("png", failing)])).toEqual([
+      "unknown",
+      "unknown",
+    ]);
+    expect(measured).toBe(1);
+    const classified = async () => {
+      measured += 1;
+      return "not applied" as const;
+    };
+    expect(await calibrate("png", classified)).toBe("not applied");
+    expect(await calibrate("png", failing)).toBe("not applied");
+    expect(measured).toBe(2);
+    forgetCalibrations();
   });
 
   it.each(["jpeg", "png", "avif"] as const)(
