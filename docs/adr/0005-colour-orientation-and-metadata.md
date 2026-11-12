@@ -29,7 +29,12 @@ Three properties of image files are easy to get subtly wrong, and each has cause
   - `irot` and `imir` in HEIF and AVIF, in `ipma` order, where `imir` axis 0 mirrors top to bottom and axis 1 left to right, as libavif writes them.
 
   It ignores what every engine there ignores, so a file opens as browsers show it: a WebP's `EXIF` orientation, an `eXIf` after `IDAT`, and the Exif item of a HEIF or AVIF, whose `irot` and `imir` win. It still reads their presence flags and keepable fields. It reports the stored size and the oriented size.
-- **The decoder applies it:** `createImageBitmap` with `imageOrientation: "from-image"` returns the oriented bitmap, and the worker checks that its size equals the probe's oriented size ([ADR 0001](0001-image-engines.md)). A mismatch, such as a browser that ignores the tag for some format, fails with `INVALID_IMAGE` rather than producing a sideways image with a misplaced crop.
+- **Browsers don't agree on applying it,** as the [capability matrix](../capabilities.md) shows pixel by pixel: WebKit ignores a PNG's `eXIf` and AVIF's `irot` and `imir`, which Chromium and Firefox apply, and `imageOrientation: "none"` doesn't give the stored pixels portably. So the worker decodes with `imageOrientation: "from-image"` and **calibrates** whether the result is upright, instead of trusting the browser or keeping a table of browsers:
+  - **Per format, per worker, lazily.** The first file of a format whose probe reads an orientation other than 1 decodes a calibration image of that format: 48 × 32, with red, green, blue and yellow quadrants, oriented with a turn and a flip (7 for JPEG and PNG, 5 for AVIF), in exactly the carrier the probe reads (`APP1`, `eXIf` before `IDAT`, `irot` then `imir`). JPEG and PNG calibration files are encoded in the worker; AVIF and HEIF ones are small embedded files, which the matrix also decodes. Concurrent decodes share one calibration, which lives in the worker's memory only.
+  - **Classified by pixels, not size:** the quadrant centres must show exactly the orientation the SDK's probe reads from the calibration file (**applied**) or exactly the stored layout (**not applied**). Anything else, including a calibration file the browser can't decode, is **unknown**, and oriented files of that format fail closed with `DECODE_FAILED`.
+  - **Not applied:** the worker draws the stored bitmap upright into an `OffscreenCanvas` with the orientation's transform, closes the stored bitmap as soon as it's drawn, and keeps the result. The peak is one stored and one upright frame, so the probe's bound counts one more upright frame for every file with an orientation, and `maxDecodedSize` covers it ([ADR 0004](0004-image-limits.md)).
+  - **A file the probe calls upright (orientation 1) is never calibrated or transformed.**
+  - **The size check stays,** after any transform: the bitmap must be the probe's oriented size exactly, or the decode fails with `INVALID_IMAGE` ([ADR 0001](0001-image-engines.md)).
 - **Everything after decode works in oriented pixels:** the source's size, the crop and the layer geometry ([ADR 0003](0003-layer-plan-document-model.md)). The file's orientation tag is never written to an export, because the exported pixels are already upright. The plan's own `rotate` and flips are separate, user-made edits.
 
 ### Metadata: read only what's needed, keep nothing by default
@@ -50,7 +55,9 @@ Three properties of image files are easy to get subtly wrong, and each has cause
 
 - **Keeping the source's metadata by default,** as many editors do: it's convenient for photographers, but it's the riskiest default for people sharing images, and the SDK's promise is privacy.
 - **Offering every metadata field to keep:** a long list of technical fields, where one wrong choice leaks a location. The four fields people actually set cover the need.
-- **Applying orientation in the renderer instead of the decoder:** possible, but then two places know about orientation again. The decoder's own option, checked against our probe, keeps one.
+- **Applying orientation in the renderer instead of the decoder:** possible, but then two places know about orientation again. Orienting once, at decode, keeps one.
+- **Trusting the browser's `imageOrientation`:** every rotated WebP, and rotated PNG and AVIF files in WebKit, would fail the size check, and flips and half turns can't be detected by size at all.
+- **A table of which browser applies which format:** it would break silently whenever a browser changes, and can't cover browsers the matrix doesn't run, such as Safari on iOS. The calibration measures the browser the user actually has.
 - **Working in Display P3 now:** not every supported browser has P3 canvases, and a working space that differs by browser would make exports differ too.
 
 ## Consequences
@@ -58,4 +65,5 @@ Three properties of image files are easy to get subtly wrong, and each has cause
 - **Shared images leak nothing by default,** and users are told what was removed.
 - **Photographers who want their camera data kept need another tool** in the first releases. A later record could add more fields, never location.
 - **Wide-gamut photos lose some saturation on export,** with a warning, until a P3 record.
-- **Orientation bugs fail loudly** with `INVALID_IMAGE` instead of producing a wrong crop.
+- **Orientation bugs fail loudly,** with `DECODE_FAILED` when a browser orients a format in a way the calibration doesn't recognise, and `INVALID_IMAGE` when a decode isn't the probe's size, instead of producing a wrong crop.
+- **An oriented file costs one more upright frame** at its peak, and the first oriented file of each format one tiny extra decode.

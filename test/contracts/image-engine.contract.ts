@@ -12,8 +12,12 @@ export interface ImageEngineHarness {
   file(spec: TestImageSpec): Promise<Blob>;
   /** A file whose header claims more pixels than its data holds. */
   lyingHeader(): Promise<Blob>;
-  /** A file the decoder decodes to another size than its header declares. */
-  mismatchedDecode(): Promise<Blob>;
+  /**
+   * A file the decoder decodes to another size than its header declares.
+   * Real browsers don't, as the capability matrix shows, so the SDK's own
+   * harness leaves it out and tests the size check with a fake decoder.
+   */
+  mismatchedDecode?(): Promise<Blob>;
   /** A file in a recognised format that's malformed. */
   malformed(): Promise<Blob>;
   /** A file in a format the engine doesn't recognise. */
@@ -75,14 +79,17 @@ export function describeImageEngineContract(name: string, harness: ImageEngineHa
       await engine.destroy();
     });
 
-    it("rejects a decode whose size differs from the probe, and keeps nothing", async () => {
-      const engine = harness.createEngine();
-      const file = await harness.mismatchedDecode();
-      const error = await rejection(engine.register("a", file, await engine.probe(file)));
-      expect(isImageError(error, "INVALID_IMAGE")).toBe(true);
-      await expect(engine.thumbnail("a", 10)).rejects.toThrow(TypeError);
-      await engine.destroy();
-    });
+    it.skipIf(!harness.mismatchedDecode)(
+      "rejects a decode whose size differs from the probe, and keeps nothing",
+      async () => {
+        const engine = harness.createEngine();
+        const file = await (harness.mismatchedDecode?.() ?? Promise.reject(new Error("unused")));
+        const error = await rejection(engine.register("a", file, await engine.probe(file)));
+        expect(isImageError(error, "INVALID_IMAGE")).toBe(true);
+        await expect(engine.thumbnail("a", 10)).rejects.toThrow(TypeError);
+        await engine.destroy();
+      },
+    );
 
     it("fails malformed and unknown files with their codes", async () => {
       const engine = harness.createEngine();

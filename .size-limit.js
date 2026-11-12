@@ -34,4 +34,13 @@ export default [
     brotli: true,
     limit: "10 kB",
   },
+  {
+    // The render worker, inlined as a minified string and loaded on the first
+    // call (docs/adr/0002): the probes, the decoder and its orientation
+    // calibration.
+    name: "Render worker, inlined (lazy)",
+    path: "dist/lazy/inline-worker-*.js",
+    brotli: true,
+    limit: "15 kB",
+  },
 ];

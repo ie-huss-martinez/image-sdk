@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build, type Rolldown } from "vite";
@@ -107,4 +107,80 @@ describe("importing on a server", () => {
       await expect(import(url)).resolves.toBeTypeOf("object");
     },
   );
+});
+/**
+ * Code generation from strings: `eval(…)`, `new Function(…)` and
+ * `Function(…)`, as whole words, so `evaluate(` doesn't match (ADR 0028).
+ */
+const CODE_GENERATION = /(?<![\w$.])eval\s*\(|(?<![\w$.])(?:new\s+)?Function\s*\(/;
+
+describe("the render worker (docs/adr/0002)", () => {
+  const worker = () => {
+    const found = files.find((file) => /^lazy\/inline-worker-[\w-]+\.js$/.test(file.fileName));
+    if (found?.type !== "chunk") throw new Error("the inlined worker chunk wasn't built");
+    return found;
+  };
+
+  it("recognises code generation, and nothing that merely looks like it", () => {
+    for (const code of ['eval("1")', 'new Function("a", "return a")', "x = Function ('y')"]) {
+      expect(code).toMatch(CODE_GENERATION);
+    }
+    for (const code of ["evaluate(x)", "a.eval(x)", "isFunction(x)"]) {
+      expect(code).not.toMatch(CODE_GENERATION);
+    }
+  });
+
+  it("is inlined in a lazy chunk that only import() loads, never the entries", () => {
+    expect(worker().code).toContain("hm-image-render");
+    for (const entry of ["index.js", "react.js", "element.js"]) {
+      expect(
+        chunk(entry).imports.filter((name) => name.startsWith("lazy/")),
+        entry,
+      ).toEqual([]);
+    }
+    expect(chunk("index.js").dynamicImports).toEqual([worker().fileName]);
+  });
+
+  it("generates no code from strings, in any chunk, including the inlined worker", () => {
+    for (const file of files) {
+      if (file.type === "chunk") expect(file.code, file.fileName).not.toMatch(CODE_GENERATION);
+    }
+  });
+
+  it("makes no requests of its own", () => {
+    // The worker's only inputs are the Blobs the page sends it.
+    expect(worker().code).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|importScripts|WebSocket/);
+  });
+
+  it("ships no worker source maps", () => {
+    expect(files.filter((file) => /\.worker-[\w-]+\.js\.map$/.test(file.fileName))).toEqual([]);
+    expect(worker().code).not.toMatch(/sourceMappingURL=data:/);
+  });
+});
+
+describe("the self-hosted worker (docs/adr/0002)", () => {
+  const selfHosted = () => {
+    const found = files.find((file) => file.fileName === "assets/image/render.worker.js");
+    if (found?.type !== "asset") throw new Error("dist/assets/image/render.worker.js wasn't built");
+    return String(found.source);
+  };
+
+  it("is written to dist/assets/image/render.worker.js, as one module with no imports", () => {
+    const code = selfHosted();
+    expect(code).not.toMatch(/^\s*import\s|\bimport\s*\(/m);
+    expect(code).toContain("hm-rpc");
+  });
+
+  it("carries this package's version, which the engine checks", async () => {
+    const { version } = JSON.parse(await readFile("package.json", "utf8")) as { version: string };
+    // In any quotes: the minifier may write it as a template literal.
+    const escaped = version.replaceAll(".", "\\.");
+    expect(selfHosted()).toMatch(new RegExp(`version:\\(\\)=>[\`"']${escaped}[\`"']`));
+  });
+
+  it("generates no code from strings, and makes no requests", () => {
+    const code = selfHosted();
+    expect(code).not.toMatch(CODE_GENERATION);
+    expect(code).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|importScripts|WebSocket/);
+  });
 });

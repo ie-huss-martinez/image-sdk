@@ -128,6 +128,8 @@ describe("probing PNG", () => {
       stored: { width: 40, height: 30 },
       oriented: { width: 30, height: 40 },
       orientation: 6,
+      // The stored frame, and one upright frame for the worker's transform.
+      decodedPixelBound: 2 * 40 * 30,
       metadata: { location: true, camera: true, other: true },
       keepable: { title: "Harbour", copyright: "© 2026" },
     });
@@ -507,7 +509,8 @@ describe("probing AVIF and HEIF", () => {
       stored: { width: 48, height: 32 },
       oriented: { width: 32, height: 48 },
       orientation: 8,
-      decodedPixelBound: 64 * 64,
+      // The coded image, and one upright frame for the worker's transform.
+      decodedPixelBound: 64 * 64 + 32 * 48,
     });
   });
 

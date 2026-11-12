@@ -1,6 +1,6 @@
 /**
- * Headless core of the image SDK: contracts, errors, the document session and
- * operations.
+ * Headless core of the image SDK: contracts, errors, the document session,
+ * operations and the image engine, whose worker loads only on its first call.
  *
  * @remarks
  * This entry is server-safe: it has no React and touches no DOM on import, so
@@ -9,6 +9,8 @@
  * @packageDocumentation
  */
 
+export type { ImageEngineOptions } from "./adapters/image-engine.js";
+export { createImageEngine } from "./adapters/image-engine.js";
 export type { ImageErrorCode } from "./core/errors/image-error.js";
 export { ImageError, isImageError } from "./core/errors/image-error.js";
 export type {

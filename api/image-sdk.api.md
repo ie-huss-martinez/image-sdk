@@ -16,6 +16,9 @@ export function compositionSize(plan: ImagePlan, source: ImageSize): ImageSize;
 // @public
 export function compositionToSource(point: ImagePoint, crop: ImageCrop, orientation: ImageOrientation_2): ImagePoint;
 
+// @public
+export function createImageEngine(options?: ImageEngineOptions): ImageEngine;
+
 // Warning: (ae-forgotten-export) The symbol "Reducer" needs to be exported by the entry point index.d.ts
 //
 // @public
@@ -71,6 +74,11 @@ export interface ImageEngine {
     register(id: string, file: Blob, probe: ImageProbe, options?: ImageProgressOptions): Promise<ImageSourceInfo>;
     release(id: string): Promise<void>;
     thumbnail(id: string, maxSize: number, options?: ImageCallOptions): Promise<ImageThumbnail>;
+}
+
+// @public
+export interface ImageEngineOptions {
+    readonly assetsUrl?: string | URL;
 }
 
 // @public

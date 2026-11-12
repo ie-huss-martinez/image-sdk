@@ -73,6 +73,8 @@ export interface ImageProbe {
    * The most pixels the decoder can produce for the file: frames × the
    * oriented size for most formats, and for AVIF and HEIF the sum over every
    * item decoded with the primary, such as grid tiles and auxiliary planes.
+   * A file with an orientation counts one more oriented frame, which the
+   * worker needs when it applies the orientation itself (ADR 0005).
    * Never a count declared by one header (ADR 0001).
    */
   readonly decodedPixelBound: number;
