@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { isImageError } from "../errors/image-error.js";
-import { createPlan, type ImagePlan } from "../model/plan.js";
+import { createPlan, DEVELOP_ADJUSTMENTS, FILTER_PRESETS, type ImagePlan } from "../model/plan.js";
 import { MAX_METADATA_LENGTH } from "../model/source.js";
 import { createImageReducer, type ImageCommand } from "./commands.js";
 import { applyCommands } from "./reducer-types.js";
@@ -52,8 +52,26 @@ const field = fc.constantFrom(
   "copyright" as const,
 );
 
-/** Any valid command of the four base types. */
+const level = fc.integer({ min: -100, max: 100 });
+const developValues = fc.record(
+  Object.fromEntries(DEVELOP_ADJUSTMENTS.map((name) => [name, level])) as Record<
+    (typeof DEVELOP_ADJUSTMENTS)[number],
+    typeof level
+  >,
+  { requiredKeys: [] },
+);
+const filter = fc.option(
+  fc.record({
+    preset: fc.constantFrom(...FILTER_PRESETS),
+    strength: fc.integer({ min: 0, max: 100 }),
+  }),
+  { nil: null },
+);
+
+/** Any valid command. */
 const command: fc.Arbitrary<ImageCommand> = fc.oneof(
+  developValues.map((values) => ({ type: "image.setDevelop" as const, values })),
+  filter.map((value) => ({ type: "image.setFilter" as const, filter: value })),
   crop.map((value) => ({ type: "image.setCrop" as const, crop: value })),
   orientation.map((value) => ({ type: "image.setOrientation" as const, orientation: value })),
   output.map((value) => ({ type: "image.setOutput" as const, output: value })),
@@ -68,6 +86,48 @@ const plan: fc.Arbitrary<ImagePlan> = fc
   .map((commands) => applyCommands(reducer, createPlan("s"), commands).state);
 
 describe("the image reducer", () => {
+  it("sets some develop values, and its inverse restores exactly those", () => {
+    const start = createPlan("s");
+    const { state, inverse } = reducer(start, {
+      type: "image.setDevelop",
+      values: { exposure: 40, contrast: -10 },
+    });
+    expect(state.base.develop).toMatchObject({ exposure: 40, contrast: -10, saturation: 0 });
+    expect(inverse).toEqual({ type: "image.setDevelop", values: { exposure: 0, contrast: 0 } });
+    expect(reducer(state, inverse).state).toEqual(start);
+  });
+
+  it("sets and removes a filter, and restores the absence of one", () => {
+    const start = createPlan("s");
+    const set = reducer(start, {
+      type: "image.setFilter",
+      filter: { preset: "noir", strength: 70 },
+    });
+    expect(set.inverse).toEqual({ type: "image.setFilter", filter: null });
+    expect(reducer(set.state, set.inverse).state).toEqual(start);
+    const removed = reducer(set.state, { type: "image.setFilter", filter: null });
+    expect(removed.inverse).toEqual({
+      type: "image.setFilter",
+      filter: { preset: "noir", strength: 70 },
+    });
+  });
+
+  it.each([
+    ["a fractional value", { type: "image.setDevelop", values: { exposure: 1.5 } }],
+    ["a value over 100", { type: "image.setDevelop", values: { contrast: 101 } }],
+    ["a value under -100", { type: "image.setDevelop", values: { tint: -101 } }],
+    ["an unknown adjustment", { type: "image.setDevelop", values: { clarity: 10 } }],
+    ["a non-number", { type: "image.setDevelop", values: { exposure: "10" } }],
+    ["an unknown preset", { type: "image.setFilter", filter: { preset: "lomo", strength: 50 } }],
+    [
+      "a fractional strength",
+      { type: "image.setFilter", filter: { preset: "mono", strength: 0.5 } },
+    ],
+    ["a strength over 100", { type: "image.setFilter", filter: { preset: "mono", strength: 101 } }],
+  ])("rejects %s with INVALID_COMMAND", (_, bad) => {
+    expect(invalid(() => reducer(createPlan("s"), bad as ImageCommand))).toBe(true);
+  });
+
   it("undoes any command with its inverse, back to the original plan", () => {
     fc.assert(
       fc.property(plan, command, (before, edit) => {

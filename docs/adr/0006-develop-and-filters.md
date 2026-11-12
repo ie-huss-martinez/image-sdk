@@ -25,7 +25,8 @@ Develop and filters are **our own code**, applied to the rendered base's pixels 
 - **Where:** after the base is drawn at the size being rendered, and before any layer is drawn over it. Layers, such as text, shapes and redactions, are never developed. A redaction drawn over a developed base stays exactly as opaque as it was drawn.
 - **At the size being rendered:** the preview develops the stage-sized render, and an export develops the output-sized one, with the same code. Every adjustment is per pixel, with no neighbourhood, so the result doesn't depend on the scale it's computed at, beyond resampling.
 - **In strips:** the worker reads, adjusts and writes back the canvas in bands of rows with `getImageData` and `putImageData`, so the extra memory is one band, at most 4 MB, not a second full-size copy. Between bands it checks the call's `AbortSignal` and reports progress.
-- **Fast paths:** adjustments that act on each channel alone are combined into lookup tables built once per render. Only the cross-channel steps, saturation, vibrance and the highlights and shadows masks, compute per pixel.
+- **Fast paths:** the neutral develop and a filter at strength 0 cost nothing, and tone curves are lookup tables. The rest computes per pixel; combining the per-channel steps into tables is an optimisation the golden tests allow, if measurements call for it.
+- **The read-back canvas** is created with `willReadFrequently: true` and `colorSpace: "srgb"`, so engines keep it where the CPU reads it quickly, and `getImageData` asks for sRGB explicitly.
 - **Deterministic:** the math uses only integer lookups and `Math` functions, with results rounded to 8 bits the same way everywhere. Given the same rendered base, every engine produces the same developed pixels. Browsers' decoders and resampling may still differ slightly, which the export tests' tolerances cover.
 
 ### The adjustments
@@ -43,8 +44,8 @@ Each is an integer from −100 to 100, 0 meaning unchanged, applied in this fixe
 | `saturation` | Scales every pixel's distance from its own luminance | linear light, Rec. 709 luminance |
 | `vibrance` | Saturation weighted toward the least saturated pixels | linear light, Rec. 709 luminance |
 
-- **Linear light** uses the sRGB transfer function both ways, through a 256-entry table in and a 4,096-entry table out. Pixels are clamped to the sRGB gamut on the way out, never wrapped.
-- **Alpha is untouched.** The math works on the unpremultiplied values `getImageData` returns.
+- **Linear light** uses the sRGB transfer function both ways: computed on the way in, and through a 4,096-entry table on the way out. Pixels are clamped to the sRGB gamut on the way out, never wrapped.
+- **Alpha is untouched.** The math works on the unpremultiplied values `getImageData` returns. A canvas with alpha stores premultiplied 8-bit values, so a pixel with alpha *a* keeps only about *a* levels per channel: at alpha 10, every engine in the matrix returns a developed channel up to 18 levels from the reference, and the tests allow 255 / *a*. Opaque pixels are exact. Develop runs once per render, on a canvas nothing has read back, so the loss never compounds.
 - **The formulas are the code,** in one pure module the core's tests cover with golden values: for each adjustment, the extremes and a midpoint, applied to a fixed set of colours. Changing a formula changes those values, so it's a visible, reviewed change to how documents render.
 - **Out-of-range or non-integer values** are `INVALID_COMMAND` when an `image.setDevelop` command runs ([ADR 0003](0003-layer-plan-document-model.md)), never clamped by the renderer.
 
@@ -57,6 +58,7 @@ Each is an integer from −100 to 100, 0 meaning unchanged, applied in this fixe
 ### Limits and cost
 
 - **No new limit.** The strip is bounded, so a develop adds at most 4 MB to an export's peak ([ADR 0004](0004-image-limits.md)).
+- **Superseded renders stop early:** a render checks its `AbortSignal` between strips, so the preview renderer, which coalesces frames to the latest plan, can abandon a stale render mid-way. Its own tests, with the preview renderer, show that a burst of slider changes ends in one final render.
 - **Time:** develop is linear in the pixels rendered. An export runs under the file policy's `maxProcessingTime`, so a slow device fails with `PROCESSING_TIME_EXCEEDED` rather than hanging. The preview only develops the stage-sized render, and coalesces frames ([ADR 0002](0002-workers-and-assets.md)).
 - **Worker size:** the module is small, plain arithmetic and tables. The worker's size budget is raised in the implementation pull request, from the measured size.
 

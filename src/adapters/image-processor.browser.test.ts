@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { describeImageProcessorContract } from "../../test/contracts/image-processor.contract.js";
 import { concat, exif, pngChunk } from "../../test/fixtures/image-writers.js";
 import { isImageError } from "../core/errors/image-error.js";
-import { createPlan } from "../core/model/plan.js";
+import { createPlan, NEUTRAL_DEVELOP } from "../core/model/plan.js";
+import { developPixels } from "./export/develop.js";
 import { encodePlan } from "./export/encode.js";
+import { renderPlan } from "./export/render.js";
 import { createImageEngine } from "./image-engine.js";
 import { createImageProcessor } from "./image-processor.js";
 import { probeImage } from "./probe/probe.js";
@@ -211,5 +213,54 @@ describe("exports from the real engine (docs/adr/0005)", () => {
 
   it("needs an engine from createImageEngine", () => {
     expect(() => createImageProcessor({} as never)).toThrow(TypeError);
+  });
+});
+
+describe("develop in the renderer (docs/adr/0006)", () => {
+  async function bitmapOf(width: number, height: number, rgba: readonly number[]) {
+    const canvas = new OffscreenCanvas(width, height);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("no 2D canvas");
+    const image = context.createImageData(width, height);
+    for (let i = 0; i < width * height; i += 1) image.data.set(rgba, i * 4);
+    context.putImageData(image, 0, 0);
+    return createImageBitmap(canvas, { premultiplyAlpha: "none" });
+  }
+
+  const read = (canvas: OffscreenCanvas) =>
+    Array.from(
+      canvas
+        .getContext("2d", { willReadFrequently: true })
+        ?.getImageData(0, 0, 1, 1, { colorSpace: "srgb" }).data ?? [],
+    );
+
+  it("keeps semi-transparent pixels within a known tolerance of the reference", async () => {
+    // Alpha 10 passes through premultiplied storage once on drawing and once
+    // per read-back; develop reads back once, so the error stays bounded.
+    const colour = [200, 120, 60, 10];
+    const develop = { ...NEUTRAL_DEVELOP, exposure: 30, saturation: 40 };
+    const plan = { ...createPlan("s"), base: { ...createPlan("s").base, develop } };
+    const canvas = renderPlan(await bitmapOf(4, 4, colour), plan, false);
+    const expected = Uint8ClampedArray.from(colour);
+    developPixels(expected, develop, null);
+    const actual = read(canvas);
+    expect(actual[3]).toBe(10);
+    for (let channel = 0; channel < 3; channel += 1) {
+      // Premultiplied 8-bit storage at alpha 10 keeps about 255 / 10 levels.
+      expect(
+        Math.abs((actual[channel] ?? 0) - (expected[channel] ?? 0)),
+        `channel ${channel}`,
+      ).toBeLessThanOrEqual(26);
+    }
+  });
+
+  it("stops between strips when the render is cancelled", async () => {
+    const develop = { ...NEUTRAL_DEVELOP, contrast: 10 };
+    const plan = { ...createPlan("s"), base: { ...createPlan("s").base, develop } };
+    const controller = new AbortController();
+    controller.abort(new DOMException("superseded", "AbortError"));
+    expect(() =>
+      renderPlan(new OffscreenCanvas(1, 1) as never, plan, true, controller.signal),
+    ).toThrow("superseded");
   });
 });

@@ -43,10 +43,16 @@ export function createPlan(source: string): ImagePlan;
 export function cropRect(crop: ImageCrop | null, source: ImageSize): ImageCrop;
 
 // @public
+export const DEVELOP_ADJUSTMENTS: readonly ["temperature", "tint", "exposure", "highlights", "shadows", "contrast", "saturation", "vibrance"];
+
+// @public
 export const EMPTY_KEEPABLE_METADATA: ImageKeepableMetadata;
 
 // @public
 export type ExifOrientation = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+// @public
+export const FILTER_PRESETS: readonly ["vivid", "warm", "cool", "fade", "mono", "noir", "sepia"];
 
 // @public
 export const FULL_SIZE: ImageOutput;
@@ -54,6 +60,9 @@ export const FULL_SIZE: ImageOutput;
 // @public
 export interface ImageBase {
     readonly crop: ImageCrop | null;
+    // (undocumented)
+    readonly develop: ImageDevelop;
+    readonly filter: ImageFilter | null;
     // (undocumented)
     readonly orientation: ImageOrientation_2;
     readonly source: string;
@@ -65,7 +74,7 @@ export interface ImageCallOptions {
 }
 
 // @public
-export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand;
+export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand;
 
 // @public
 export interface ImageCrop {
@@ -77,6 +86,22 @@ export interface ImageCrop {
     readonly x: number;
     // (undocumented)
     readonly y: number;
+}
+
+// @public
+export interface ImageDevelop {
+    // (undocumented)
+    readonly contrast: number;
+    readonly exposure: number;
+    // (undocumented)
+    readonly highlights: number;
+    // (undocumented)
+    readonly saturation: number;
+    // (undocumented)
+    readonly shadows: number;
+    readonly temperature: number;
+    readonly tint: number;
+    readonly vibrance: number;
 }
 
 // @public
@@ -130,6 +155,17 @@ export type ImageFilePolicy = FilePolicy<ImageLimitDefinitions>;
 
 // @public
 export type ImageFilePolicyOverrides = FilePolicyOverrides<ImageLimitDefinitions>;
+
+// @public
+export interface ImageFilter {
+    // (undocumented)
+    readonly preset: ImageFilterPreset;
+    // (undocumented)
+    readonly strength: number;
+}
+
+// @public
+export type ImageFilterPreset = (typeof FILTER_PRESETS)[number];
 
 // @public
 export type ImageFormat = "png" | "jpeg" | "webp" | "gif" | "avif" | "heif" | "bmp";
@@ -403,6 +439,9 @@ export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value
 export const MAX_METADATA_LENGTH = 2000;
 
 // @public
+export const NEUTRAL_DEVELOP: ImageDevelop;
+
+// @public
 export const NO_METADATA: ImageMetadataPresence;
 
 // @public
@@ -423,6 +462,22 @@ export interface SetCropCommand {
     readonly crop: ImageCrop | null;
     // (undocumented)
     readonly type: "image.setCrop";
+}
+
+// @public
+export interface SetDevelopCommand {
+    // (undocumented)
+    readonly type: "image.setDevelop";
+    // (undocumented)
+    readonly values: Partial<ImageDevelop>;
+}
+
+// @public
+export interface SetFilterCommand {
+    // (undocumented)
+    readonly filter: ImageFilter | null;
+    // (undocumented)
+    readonly type: "image.setFilter";
 }
 
 // @public
