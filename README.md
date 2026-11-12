@@ -31,8 +31,8 @@ Browser tests need Playwright's browsers once: `pnpm exec playwright install chr
 | Build | `build` | Vite, then api-extractor for the type declarations |
 | Unit tests | `test` | Vitest |
 | Browser tests | `test:browser` | Vitest in Chromium, and in Firefox and WebKit too in CI |
-| Examples | `build:examples` | Vite, building `examples/vite` |
-| End-to-end tests | `test:e2e` | Playwright against the built example: the [browser capability matrix](docs/capabilities.md) and no requests to other origins |
+| Examples | `build:examples` | Vite, building `examples/vite` against the built package |
+| End-to-end tests | `test:e2e` | Playwright against the built example: the engine on every format it reads, upright, with the inlined worker under `worker-src blob:` and the self-hosted one under `worker-src 'self'`; the [browser capability matrix](docs/capabilities.md); and no requests to other origins |
 | Size budgets | `check:size` | size-limit, brotli size of each entry point |
 | API reports | `check:api` | api-extractor, one report per entry point in [`api`](api) |
 | Package checks | `check:package` | publint and Are the Types Wrong? |

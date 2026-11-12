@@ -1,13 +1,16 @@
 {
   "name": "@hussmartinez/image-sdk-example-vite",
   "private": true,
-  "description": "A Vite page, with no framework, that measures what each browser decodes, draws and encodes in a worker, for the end-to-end capability matrix.",
+  "description": "Vite pages, with no framework, that run the built @hussmartinez/image-sdk engine inline and self-hosted under Content Security Policies, and measure what each browser decodes, draws and encodes in a worker, for the end-to-end tests.",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "start": "vite preview --port 4320 --strictPort"
+  },
+  "dependencies": {
+    "@hussmartinez/image-sdk": "workspace:*"
   },
   "devDependencies": {
     "@hussmartinez/sdk-config": "catalog:",
