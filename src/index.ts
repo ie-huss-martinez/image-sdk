@@ -12,6 +12,7 @@
 export type { ImageEngineOptions } from "./adapters/image-engine.js";
 export { createImageEngine } from "./adapters/image-engine.js";
 export { createImageProcessor } from "./adapters/image-processor.js";
+export { createImageRenderer } from "./adapters/image-renderer.js";
 export type { ImageErrorCode } from "./core/errors/image-error.js";
 export { ImageError, isImageError } from "./core/errors/image-error.js";
 export type {
@@ -83,6 +84,13 @@ export type {
   ImageExportJob,
   ImageProcessor,
 } from "./core/ports/image-processor.js";
+export type {
+  ImageRenderer,
+  ImageRenderOptions,
+  ImageRenderOutcome,
+  ImageView,
+} from "./core/ports/image-renderer.js";
+export { backingSize, fittedView, MAX_PIXEL_RATIO } from "./core/ports/image-renderer.js";
 export type {
   ImageCallOptions,
   ImageExportOptions,

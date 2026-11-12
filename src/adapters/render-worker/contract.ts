@@ -2,6 +2,7 @@ import type { OUTPUT_LIMITS, PER_FILE_LIMITS } from "../../core/errors/image-lim
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageProbe, ImageSize } from "../../core/model/source.js";
 import type { ImageExportFormat } from "../../core/ports/image-processor.js";
+import type { ImageView } from "../../core/ports/image-renderer.js";
 
 /**
  * The render worker's RPC contract (docs/adr/0002), shared by the page and
@@ -51,6 +52,26 @@ export interface RenderWorkerContract {
     };
     readonly output: Blob;
   };
+  /** Takes a canvas the page transferred, for the preview (docs/adr/0002). */
+  readonly attachCanvas: {
+    readonly input: { readonly id: string; readonly canvas: OffscreenCanvas };
+    readonly output: undefined;
+  };
+  /** Draws a plan into an attached canvas for a view; a cancelled render draws nothing. */
+  readonly render: {
+    readonly input: {
+      readonly id: string;
+      readonly plan: ImagePlan;
+      readonly view: ImageView;
+      /** The maximum of each output limit, for the canvas's backing size. */
+      readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number], number>>;
+    };
+    readonly output: undefined;
+  };
+  /** Forgets an attached canvas. */
+  readonly detachCanvas: { readonly input: { readonly id: string }; readonly output: undefined };
+  /** A copy of an attached canvas's pixels, for tests: the page can't read a transferred canvas. */
+  readonly snapshot: { readonly input: { readonly id: string }; readonly output: ImageBitmap };
   /** Closes a source's bitmap. */
   readonly release: { readonly input: { readonly id: string }; readonly output: undefined };
 }

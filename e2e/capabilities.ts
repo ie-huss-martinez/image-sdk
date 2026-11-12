@@ -159,6 +159,7 @@ export const DECODE_CASES: readonly DecodeCase[] = [
 /** The rows of the worker canvas table, in order. */
 export const FEATURES = [
   "OffscreenCanvas 2D context",
+  "Page canvas transferred with transferControlToOffscreen",
   "convertToBlob, image/png",
   "convertToBlob, image/jpeg",
   "convertToBlob, image/webp",
@@ -184,6 +185,7 @@ export function featureCells(features: Features): Record<(typeof FEATURES)[numbe
   const draws = (key: string) => (features.draws[key] ? "draws" : "doesn't draw");
   return {
     "OffscreenCanvas 2D context": features.offscreen2d ? "available" : "not available",
+    "Page canvas transferred with transferControlToOffscreen": features.transferredCanvas,
     "convertToBlob, image/png": encodes("image/png"),
     "convertToBlob, image/jpeg": encodes("image/jpeg"),
     "convertToBlob, image/webp": encodes("image/webp"),

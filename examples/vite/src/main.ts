@@ -14,7 +14,9 @@ function inWorker<T>(request: Request, timeout: number, onTimeout: T): Promise<T
       clearTimeout(timer);
       resolve(event.data);
     });
-    worker.postMessage(request, request.kind === "decode" ? [request.bytes] : []);
+    const transfer: Transferable[] =
+      request.kind === "decode" ? [request.bytes] : request.canvas ? [request.canvas] : [];
+    worker.postMessage(request, transfer);
   }).finally(() => worker.terminate());
 }
 
@@ -23,8 +25,22 @@ const decode = (bytes: ArrayBuffer, imageOrientation: "from-image" | "none" = "f
     status: "timeout",
   });
 
-const features = () =>
-  inWorker<FeatureOutcome | undefined>({ kind: "features" }, 60_000, undefined);
+/** A page canvas handed to the worker, as the preview is, where the browser can. */
+function transferredCanvas(): OffscreenCanvas | undefined {
+  const canvas = document.createElement("canvas");
+  return typeof canvas.transferControlToOffscreen === "function"
+    ? canvas.transferControlToOffscreen()
+    : undefined;
+}
+
+const features = () => {
+  const canvas = transferredCanvas();
+  return inWorker<FeatureOutcome | undefined>(
+    canvas ? { kind: "features", canvas } : { kind: "features" },
+    60_000,
+    undefined,
+  );
+};
 
 declare global {
   interface Window {

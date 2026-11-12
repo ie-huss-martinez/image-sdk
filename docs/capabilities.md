@@ -54,6 +54,7 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 
 ## Canvas and encoding in a worker
 
+- **Page canvas transferred:** whether a page `<canvas>` handed to the worker with `transferControlToOffscreen`, as the preview is (ADR 0002), draws and reads back there.
 - **convertToBlob:** `encodes` when the blob has the requested type. A browser that can't encode a type returns PNG instead, which is why the SDK checks the returned type (ADR 0001).
 - **2D context filter:** whether the 2D context has a `filter` property, and whether drawing through `brightness(50%)` halves red.
 - **Display-P3 2D context:** whether `getContext("2d", { colorSpace: "display-p3" })` gives a Display-P3 context.
@@ -63,6 +64,7 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 | Feature | Chromium | Firefox | WebKit |
 |---|---|---|---|
 | OffscreenCanvas 2D context | available | available | available |
+| Page canvas transferred with transferControlToOffscreen | draws | draws | draws |
 | convertToBlob, image/png | encodes | encodes | encodes |
 | convertToBlob, image/jpeg | encodes | encodes | encodes |
 | convertToBlob, image/webp | encodes | encodes | encodes |

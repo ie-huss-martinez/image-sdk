@@ -6,6 +6,22 @@ import { createDeveloper, needsDevelop } from "./develop.js";
 /** The most bytes one develop strip reads back at once (docs/adr/0006). */
 const STRIP_BYTES = 4_000_000;
 
+/**
+ * Lets the worker handle its other messages, such as a cancellation from
+ * the page, before the next strip: a message rather than a timer, which
+ * engines delay by several milliseconds.
+ */
+function yieldToMessages(): Promise<void> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(undefined);
+  });
+}
+
 /** The size a plan renders at over a source of this size (ADR 0003). */
 export function renderSize(plan: ImagePlan, source: ImageSize): ImageSize {
   return outputSize(plan.output, compositionSize(plan, source));
@@ -17,14 +33,16 @@ export function renderSize(plan: ImagePlan, source: ImageSize): ImageSize {
  * then the flips, scaled to the output. The same transform as
  * `compositionToSource`, applied by the canvas. JPEG has no alpha, so its
  * canvas starts white rather than transparent, which encoders would turn
- * black.
+ * black. Develop runs in strips, and the render yields to the worker's
+ * messages between them, so a cancelled render stops at the next strip
+ * (docs/adr/0006).
  */
-export function renderPlan(
+export async function renderPlan(
   source: ImageBitmap,
   plan: ImagePlan,
   opaque: boolean,
   signal?: AbortSignal,
-): OffscreenCanvas {
+): Promise<OffscreenCanvas> {
   const { develop, filter } = plan.base;
   const developing = needsDevelop(develop, filter);
   const crop = cropRect(plan.base.crop, source);
@@ -65,7 +83,10 @@ export function renderPlan(
     const developStrip = createDeveloper(develop, filter);
     const rows = Math.max(1, Math.floor(STRIP_BYTES / (size.width * 4)));
     for (let y = 0; y < size.height; y += rows) {
-      if (signal?.aborted) throw signal.reason;
+      if (signal) {
+        await yieldToMessages();
+        if (signal.aborted) throw signal.reason;
+      }
       const strip = context.getImageData(0, y, size.width, Math.min(rows, size.height - y), {
         colorSpace: "srgb",
       });

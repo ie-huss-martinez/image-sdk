@@ -20,6 +20,8 @@ export interface FeatureOutcome {
   /** The type `convertToBlob` returned for each requested type, or `fails`. */
   readonly encodes: Readonly<Record<string, string>>;
   readonly displayP3: boolean;
+  /** Whether a page canvas transferred with `transferControlToOffscreen` draws in the worker. */
+  readonly transferredCanvas: "draws" | "doesn't draw" | "not available";
   /** Whether the 2D context's `filter` property exists, and whether drawing applies it. */
   readonly contextFilter: "applies" | "ignored" | "not available";
   /** Whether a canvas of each size drew, keyed `W×H`. */
@@ -30,7 +32,7 @@ export interface FeatureOutcome {
 
 export type Request =
   | { kind: "decode"; bytes: ArrayBuffer; imageOrientation: "from-image" | "none" }
-  | { kind: "features" };
+  | { kind: "features"; canvas?: OffscreenCanvas };
 
 export const ENCODED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/avif"] as const;
 /** The longest side the search tries; a result of one less means "at least that". */

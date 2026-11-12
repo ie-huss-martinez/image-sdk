@@ -240,7 +240,7 @@ describe("develop in the renderer (docs/adr/0006)", () => {
     const colour = [200, 120, 60, 10];
     const develop = { ...NEUTRAL_DEVELOP, exposure: 30, saturation: 40 };
     const plan = { ...createPlan("s"), base: { ...createPlan("s").base, develop } };
-    const canvas = renderPlan(await bitmapOf(4, 4, colour), plan, false);
+    const canvas = await renderPlan(await bitmapOf(4, 4, colour), plan, false);
     const expected = Uint8ClampedArray.from(colour);
     developPixels(expected, develop, null);
     const actual = read(canvas);
@@ -254,13 +254,12 @@ describe("develop in the renderer (docs/adr/0006)", () => {
     }
   });
 
-  it("stops between strips when the render is cancelled", async () => {
+  it("stops at the next strip when the render is cancelled", async () => {
     const develop = { ...NEUTRAL_DEVELOP, contrast: 10 };
     const plan = { ...createPlan("s"), base: { ...createPlan("s").base, develop } };
     const controller = new AbortController();
     controller.abort(new DOMException("superseded", "AbortError"));
-    expect(() =>
-      renderPlan(new OffscreenCanvas(1, 1) as never, plan, true, controller.signal),
-    ).toThrow("superseded");
+    const source = await bitmapOf(8, 8, [10, 20, 30, 255]);
+    await expect(renderPlan(source, plan, true, controller.signal)).rejects.toThrow("superseded");
   });
 });

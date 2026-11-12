@@ -115,7 +115,24 @@ function displayP3(): boolean {
   }
 }
 
-async function features(): Promise<FeatureOutcome> {
+/** Draws red into the page's transferred canvas and reads it back. */
+function transferred(canvas: OffscreenCanvas | undefined): FeatureOutcome["transferredCanvas"] {
+  if (!canvas) return "not available";
+  try {
+    canvas.width = 2;
+    canvas.height = 2;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return "doesn't draw";
+    context.fillStyle = "#ff0000";
+    context.fillRect(0, 0, 2, 2);
+    const [r, g, b, a] = context.getImageData(1, 1, 1, 1).data;
+    return r === 255 && g === 0 && b === 0 && a === 255 ? "draws" : "doesn't draw";
+  } catch {
+    return "doesn't draw";
+  }
+}
+
+async function features(canvas?: OffscreenCanvas): Promise<FeatureOutcome> {
   let offscreen2d = false;
   try {
     offscreen2d = new OffscreenCanvas(1, 1).getContext("2d") !== null;
@@ -138,6 +155,7 @@ async function features(): Promise<FeatureOutcome> {
     offscreen2d,
     encodes,
     displayP3: displayP3(),
+    transferredCanvas: transferred(canvas),
     contextFilter: contextFilter(),
     draws: sizes,
     longestSide: low,
@@ -149,6 +167,6 @@ self.addEventListener("message", async (event: MessageEvent<Request>) => {
   self.postMessage(
     request.kind === "decode"
       ? await decode(request.bytes, request.imageOrientation)
-      : await features(),
+      : await features(request.canvas),
   );
 });

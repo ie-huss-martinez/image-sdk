@@ -11,6 +11,12 @@ import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
 
 // @public
+export function backingSize(view: ImageView): {
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
 export function checkFileLimits(policy: ImageFilePolicy, fileSize: number, probe: ImageProbe): ImageLimitName[];
 
 // @public
@@ -37,6 +43,9 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor;
 export function createImageReducer(sourceSize: (id: string) => ImageSize | undefined): Reducer<ImagePlan, ImageCommand>;
 
 // @public
+export function createImageRenderer(engine: ImageEngine): ImageRenderer;
+
+// @public
 export function createPlan(source: string): ImagePlan;
 
 // @public
@@ -53,6 +62,9 @@ export type ExifOrientation = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 // @public
 export const FILTER_PRESETS: readonly ["vivid", "warm", "cool", "fade", "mono", "noir", "sepia"];
+
+// @public
+export function fittedView(width: number, height: number, pixelRatio?: number): ImageView;
 
 // @public
 export const FULL_SIZE: ImageOutput;
@@ -393,6 +405,21 @@ export interface ImageRegisterOptions extends ImageProgressOptions {
 }
 
 // @public
+export interface ImageRenderer {
+    attach(canvas: HTMLCanvasElement): Promise<void>;
+    destroy(): Promise<void>;
+    render(plan: ImagePlan, view: ImageView, options?: ImageRenderOptions): Promise<ImageRenderOutcome>;
+}
+
+// @public
+export interface ImageRenderOptions extends ImageCallOptions {
+    readonly filePolicy?: ImageFilePolicy;
+}
+
+// @public
+export type ImageRenderOutcome = "drawn" | "superseded";
+
+// @public
 export type ImageRotation = 0 | 90 | 180 | 270;
 
 // @public
@@ -431,12 +458,30 @@ export interface ImageThumbnail {
 }
 
 // @public
+export interface ImageView {
+    // (undocumented)
+    readonly height: number;
+    // (undocumented)
+    readonly pan: {
+        readonly x: number;
+        readonly y: number;
+    };
+    readonly pixelRatio: number;
+    // (undocumented)
+    readonly width: number;
+    readonly zoom: number;
+}
+
+// @public
 export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value: unknown, code?: Code): value is ImageError & {
     readonly code: Code;
 };
 
 // @public
 export const MAX_METADATA_LENGTH = 2000;
+
+// @public
+export const MAX_PIXEL_RATIO = 4;
 
 // @public
 export const NEUTRAL_DEVELOP: ImageDevelop;

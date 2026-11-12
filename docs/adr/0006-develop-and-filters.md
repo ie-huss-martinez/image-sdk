@@ -59,7 +59,7 @@ Each is an integer from −100 to 100, 0 meaning unchanged, applied in this fixe
 ### Limits and cost
 
 - **No new limit.** The strip is bounded, so a develop adds at most 4 MB to an export's peak ([ADR 0004](0004-image-limits.md)).
-- **Superseded renders stop early:** a render checks its `AbortSignal` between strips, so the preview renderer, which coalesces frames to the latest plan, can abandon a stale render mid-way. Its own tests, with the preview renderer, show that a burst of slider changes ends in one final render.
+- **Superseded renders stop early:** a render checks its `AbortSignal` between strips, so the preview renderer, which coalesces frames to the latest plan, can abandon a stale render mid-way. The renderer's tests show that a burst of 25 develop changes ends in exactly one drawn render, of the last plan, in every engine. Develop yields to the worker's messages between strips, so a cancellation from the page can arrive while a render is in progress.
 - **Time:** develop is linear in the pixels rendered. Measured with `pnpm bench` in Node, which runs V8 as Chromium does, on 4 megapixels, the median of ten runs on a shared 12-core machine:
 
   | Case | Before tables | Now |
