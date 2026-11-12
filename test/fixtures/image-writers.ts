@@ -1,0 +1,203 @@
+/**
+ * Writers for the generated fixtures the probes are tested on: headers
+ * written by hand, never real photos (ADR 0001, CONTRIBUTING.md).
+ */
+
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+
+function crc32(bytes: Uint8Array): number {
+  let c = 0xffffffff;
+  for (const byte of bytes) c = (CRC_TABLE[(c ^ byte) & 0xff] ?? 0) ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function be32(value: number): number[] {
+  return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff];
+}
+
+function be16(value: number): number[] {
+  return [(value >>> 8) & 0xff, value & 0xff];
+}
+
+const latin1 = (text: string) => Array.from(text, (c) => c.charCodeAt(0) & 0xff);
+
+export function concat(parts: readonly (readonly number[] | Uint8Array)[]): Uint8Array {
+  return Uint8Array.from(parts.flatMap((part) => Array.from(part)));
+}
+
+export function pngChunk(type: string, data: readonly number[] | Uint8Array = []): Uint8Array {
+  const typed = concat([latin1(type), data]);
+  return concat([be32(data.length), typed, be32(crc32(typed))]);
+}
+
+export interface PngSpec {
+  width: number;
+  height: number;
+  colourType?: number;
+  /** Frames for APNG: each `{ width, height, x, y }`. */
+  frames?: readonly { width: number; height: number; x?: number; y?: number }[];
+  /** What `acTL` declares; defaults to the number of frames. */
+  declaredFrames?: number;
+  exif?: Uint8Array;
+  text?: Record<string, string>;
+  extraChunks?: readonly Uint8Array[];
+}
+
+export function png(spec: PngSpec): Uint8Array {
+  const ihdr = pngChunk("IHDR", [
+    ...be32(spec.width),
+    ...be32(spec.height),
+    8,
+    spec.colourType ?? 2,
+    0,
+    0,
+    0,
+  ]);
+  const chunks: Uint8Array[] = [ihdr];
+  if (spec.frames !== undefined) {
+    chunks.push(pngChunk("acTL", [...be32(spec.declaredFrames ?? spec.frames.length), ...be32(0)]));
+  }
+  if (spec.exif !== undefined) chunks.push(pngChunk("eXIf", spec.exif));
+  for (const [keyword, value] of Object.entries(spec.text ?? {})) {
+    chunks.push(pngChunk("tEXt", [...latin1(keyword), 0, ...latin1(value)]));
+  }
+  chunks.push(...(spec.extraChunks ?? []));
+  (spec.frames ?? [undefined]).forEach((frame, index) => {
+    if (frame !== undefined) {
+      chunks.push(
+        pngChunk("fcTL", [
+          ...be32(index),
+          ...be32(frame.width),
+          ...be32(frame.height),
+          ...be32(frame.x ?? 0),
+          ...be32(frame.y ?? 0),
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+        ]),
+      );
+    }
+    chunks.push(pngChunk("IDAT", [0x78, 0x9c, 0x63, 0, 0, 0, 1, 0, 1]));
+  });
+  chunks.push(pngChunk("IEND"));
+  return concat([[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], ...chunks]);
+}
+
+export function jpegSegment(marker: number, data: readonly number[] | Uint8Array): Uint8Array {
+  return concat([[0xff, marker, ...be16(data.length + 2)], data]);
+}
+
+export interface JpegSpec {
+  width: number;
+  height: number;
+  exif?: Uint8Array;
+  iccProfile?: boolean;
+  /** Segments placed before the frame header, such as APP13. */
+  before?: readonly Uint8Array[];
+}
+
+export function jpeg(spec: JpegSpec): Uint8Array {
+  const parts: Uint8Array[] = [Uint8Array.of(0xff, 0xd8)];
+  parts.push(jpegSegment(0xe0, [...latin1("JFIF"), 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]));
+  if (spec.exif !== undefined)
+    parts.push(jpegSegment(0xe1, concat([latin1("Exif\0\0"), spec.exif])));
+  if (spec.iccProfile) parts.push(jpegSegment(0xe2, [...latin1("ICC_PROFILE\0"), 1, 1, 0, 0]));
+  parts.push(...(spec.before ?? []));
+  parts.push(
+    jpegSegment(0xc0, [
+      8,
+      ...be16(spec.height),
+      ...be16(spec.width),
+      3,
+      1,
+      0x22,
+      0,
+      2,
+      0x11,
+      1,
+      3,
+      0x11,
+      1,
+    ]),
+  );
+  parts.push(jpegSegment(0xda, [3, 1, 0, 2, 0x11, 3, 0x11, 0, 63, 0]));
+  parts.push(Uint8Array.of(0x12, 0x34, 0x56, 0xff, 0xd9));
+  return concat(parts);
+}
+
+export interface ExifSpec {
+  orientation?: number;
+  description?: string;
+  artist?: string;
+  copyright?: string;
+  make?: string;
+  dateTime?: string;
+  gps?: boolean;
+  thumbnail?: boolean;
+  littleEndian?: boolean;
+}
+
+/** A TIFF-structured EXIF block, as in JPEG's APP1 after `Exif\0\0` or PNG's eXIf. */
+export function exif(spec: ExifSpec): Uint8Array {
+  const le = spec.littleEndian ?? false;
+  const u16 = (v: number) => (le ? [v & 0xff, (v >>> 8) & 0xff] : be16(v));
+  const u32 = (v: number) =>
+    le ? [v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff] : be32(v);
+  type Entry = { tag: number; type: number; count: number; value: number[] };
+  const entries: Entry[] = [];
+  const strings: { entry: Entry; bytes: number[] }[] = [];
+  const addText = (tag: number, text: string | undefined) => {
+    if (text === undefined) return;
+    const bytes = [...latin1(text), 0];
+    const entry: Entry = { tag, type: 2, count: bytes.length, value: [] };
+    entries.push(entry);
+    strings.push({ entry, bytes });
+  };
+  if (spec.orientation !== undefined)
+    entries.push({ tag: 0x0112, type: 3, count: 1, value: [...u16(spec.orientation), 0, 0] });
+  addText(0x010e, spec.description);
+  addText(0x010f, spec.make);
+  addText(0x0132, spec.dateTime);
+  addText(0x013b, spec.artist);
+  addText(0x8298, spec.copyright);
+  const gpsEntry: Entry | undefined = spec.gps
+    ? { tag: 0x8825, type: 4, count: 1, value: [] }
+    : undefined;
+  if (gpsEntry) entries.push(gpsEntry);
+  entries.sort((a, b) => a.tag - b.tag);
+
+  const ifd0At = 8;
+  const ifd0Size = 2 + entries.length * 12 + 4;
+  let cursor = ifd0At + ifd0Size;
+  for (const s of strings) {
+    if (s.bytes.length <= 4) {
+      s.entry.value = [...s.bytes, 0, 0, 0, 0].slice(0, 4);
+    } else {
+      s.entry.value = u32(cursor);
+      cursor += s.bytes.length;
+    }
+  }
+  const gpsAt = cursor;
+  if (gpsEntry) {
+    gpsEntry.value = u32(gpsAt);
+    cursor += 2 + 12 + 4;
+  }
+  const thumbAt = spec.thumbnail ? cursor : 0;
+  const out: number[] = [...(le ? latin1("II") : latin1("MM")), ...u16(42), ...u32(ifd0At)];
+  out.push(...u16(entries.length));
+  for (const e of entries) out.push(...u16(e.tag), ...u16(e.type), ...u32(e.count), ...e.value);
+  out.push(...u32(thumbAt));
+  for (const s of strings) if (s.bytes.length > 4) out.push(...s.bytes);
+  if (gpsEntry)
+    out.push(...u16(1), ...u16(1), ...u16(2), ...u32(2), ...latin1("N\0"), 0, 0, ...u32(0));
+  if (spec.thumbnail)
+    out.push(...u16(1), ...u16(0x0201), ...u16(4), ...u32(1), ...u32(0), ...u32(0));
+  return Uint8Array.from(out);
+}
