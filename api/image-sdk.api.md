@@ -4,4 +4,156 @@
 
 ```ts
 
+import { FilePolicy } from '@hussmartinez/sdk-core';
+import { FilePolicyOverrides } from '@hussmartinez/sdk-core';
+import { Limits } from '@hussmartinez/sdk-core';
+import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
+import { SdkError } from '@hussmartinez/sdk-core';
+
+// @public
+export class ImageError extends SdkError<ImageErrorCode> {
+    readonly name = "ImageError";
+}
+
+// @public
+export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS";
+
+// @public
+export type ImageFilePolicy = FilePolicy<ImageLimitDefinitions>;
+
+// @public
+export type ImageFilePolicyOverrides = FilePolicyOverrides<ImageLimitDefinitions>;
+
+// @public
+export type ImageLimitDefinitions = typeof imageLimitDefinitions;
+
+// @public
+export const imageLimitDefinitions: {
+    readonly maxDecodedSize: {
+        readonly default: 1000000000;
+        readonly warning: 400000000;
+        readonly code: "DECODED_SIZE_TOO_LARGE";
+        readonly unit: "bytes";
+    };
+    readonly maxImagePixels: {
+        readonly code: "IMAGE_TOO_LARGE";
+        readonly unit: "pixels";
+        readonly default: 50000000;
+        readonly warning: 24000000;
+    };
+    readonly maxImageDimension: {
+        readonly code: "IMAGE_DIMENSION_TOO_LARGE";
+        readonly unit: "pixels";
+        readonly default: 16384;
+    };
+    readonly maxFrames: {
+        readonly code: "TOO_MANY_FRAMES";
+        readonly unit: "count";
+        readonly default: 300;
+        readonly warning: 100;
+    };
+    readonly maxSessionSize: {
+        readonly code: "SESSION_TOO_LARGE";
+        readonly unit: "bytes";
+        readonly default: 1000000000;
+        readonly warning: 500000000;
+    };
+    readonly maxLayers: {
+        readonly code: "TOO_MANY_LAYERS";
+        readonly unit: "count";
+        readonly default: 256;
+    };
+    readonly maxFileSize: {
+        readonly code: "FILE_TOO_LARGE";
+        readonly unit: "bytes";
+        readonly default: 100000000;
+        readonly warning: 50000000;
+    };
+    readonly maxFiles: {
+        readonly code: "TOO_MANY_FILES";
+        readonly unit: "count";
+        readonly default: 20;
+    };
+    readonly maxProcessingTime: {
+        readonly code: "PROCESSING_TIME_EXCEEDED";
+        readonly unit: "milliseconds";
+        readonly default: 120000;
+    };
+};
+
+// @public
+export type ImageLimitName = keyof ImageLimitDefinitions;
+
+// @public
+export const imageLimits: Limits<ImageLimitDefinitions>;
+
+// @public
+export type ImageMessageCatalogue = typeof imageMessages;
+
+// @public
+export const imageMessages: {
+    readonly "errors.INVALID_IMAGE": "This file isn't a valid image, or it's too damaged to open.";
+    readonly "errors.UNSUPPORTED_FORMAT": "This image format isn't supported. Try converting the file to PNG or JPEG, then open it again.";
+    readonly "errors.DECODE_FAILED": "This browser can't open this kind of image. Try another browser, or convert the file to PNG or JPEG.";
+    readonly "errors.INVALID_COMMAND": "This edit couldn't be made. Please try again.";
+    readonly "errors.IMAGE_TOO_LARGE": "This image has more pixels than the editor can handle. Try a smaller version of it.";
+    readonly "errors.IMAGE_DIMENSION_TOO_LARGE": "This image is {actual, number} pixels across, which is over the {maximum, number}-pixel limit.";
+    readonly "errors.TOO_MANY_FRAMES": {
+        readonly $plural: "maximum";
+    } & {
+        readonly one: "This animation has {actual, number} frames, which is over the {maximum}-frame limit.";
+        readonly other: "This animation has {actual, number} frames, which is over the {maximum, number}-frame limit.";
+    };
+    readonly "errors.SESSION_TOO_LARGE": "The open images would use {actual, fileSize} of memory, which is over the {maximum, fileSize} limit. Close an image, or clear the undo history, and try again.";
+    readonly "errors.TOO_MANY_LAYERS": {
+        readonly $plural: "maximum";
+    } & {
+        readonly one: "An image can have {maximum} layer. Merge or delete layers, and try again.";
+        readonly other: "An image can have up to {maximum, number} layers. Merge or delete layers, and try again.";
+    };
+    readonly "warnings.maxImagePixels": "This image is large, and may be slow to edit on some devices.";
+    readonly "warnings.maxImageDimension": "This image is very wide or tall, and may be slow to edit.";
+    readonly "warnings.maxFrames": {
+        readonly $plural: "actual";
+    } & {
+        readonly one: "This animation has {actual} frame.";
+        readonly other: "This animation has {actual, number} frames, and may be slow to edit and export.";
+    };
+    readonly "warnings.maxSessionSize": "The open images use {actual, fileSize} of memory. Clearing the undo history frees memory.";
+    readonly "warnings.maxLayers": {
+        readonly $plural: "actual";
+    } & {
+        readonly one: "This image has {actual} layer.";
+        readonly other: "This image has {actual, number} layers, and may be slow to edit and export.";
+    };
+    readonly "errors.UNKNOWN": "Something went wrong. Please try again.";
+    readonly "errors.ABORTED": "The operation was cancelled.";
+    readonly "errors.TIMEOUT": "The operation took too long and was stopped.";
+    readonly "errors.WORKER_START_FAILED": "The file processor couldn't start. Reload the page and try again.";
+    readonly "errors.WORKER_PROTOCOL_MISMATCH": "The file processor is out of date. Reload the page to update it.";
+    readonly "errors.WORKER_CRASHED": "The file processor stopped unexpectedly. Please try again.";
+    readonly "errors.WORKER_TERMINATED": "The operation was stopped before it finished. Please try again.";
+    readonly "errors.WORKER_METHOD_NOT_FOUND": "This operation isn't available. Reload the page and try again.";
+    readonly "errors.WORKER_DATA_NOT_CLONEABLE": "Something went wrong while processing the file. Please try again.";
+    readonly "errors.UNSUPPORTED_ENVIRONMENT": "This browser doesn't support a feature this tool needs. Update your browser, or try another one.";
+    readonly "errors.FILE_TOO_LARGE": "This file is {actual, fileSize}, which is over the {maximum, fileSize} limit.";
+    readonly "errors.TOO_MANY_FILES": {
+        readonly $plural: "maximum";
+    } & {
+        readonly one: "You can add {maximum} file at a time.";
+        readonly other: "You can add up to {maximum} files at a time.";
+    };
+    readonly "errors.DECODED_SIZE_TOO_LARGE": "This file expands to more than {maximum, fileSize} when opened, which is over the limit.";
+    readonly "errors.PROCESSING_TIME_EXCEEDED": "Processing this file took too long and was stopped.";
+    readonly "warnings.maxFileSize": "This file is {actual, fileSize}. Large files may be slow to process.";
+    readonly "warnings.maxFiles": "Adding {actual} files at once may be slow.";
+    readonly "warnings.maxDecodedSize": "This file is very large once opened and may be slow to process.";
+    readonly "warnings.maxProcessingTime": "This is taking longer than usual.";
+};
+
+// @public
+export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value: unknown, code?: Code): value is ImageError & {
+    readonly code: Code;
+};
+
 ```
