@@ -29,18 +29,18 @@ The package is pre-1.0. Security fixes go into the latest release only. No versi
 
 In scope is everything in this repository: `@hussmartinez/image-sdk`, its workers and its own parsers and encoders, the workflows that verify and release it, and the published package. Examples:
 
-- an image that runs script in the host page or a worker, or makes the SDK insert file-derived text, such as metadata or a file name, as HTML; or an SVG that the SDK renders inline, rather than refusing it or showing it only through `<img>`;
-- a **decompression bomb**: an image that declares or decodes to far more pixels or frames than the file policy's limits allow and still reaches a decoder, for example a small file whose decoded pixels take gigabytes; a header that claims fewer pixels than the decoder produces; or a file that the SDK parses outside a worker;
+- an image that runs script in the host page or a worker, or makes the SDK insert file-derived text, such as metadata or a file name, as HTML; or an SVG that the SDK renders inline, rather than refusing it or showing it only through `<img>` ([ADR 0001](docs/adr/0001-image-engines.md));
+- a **decompression bomb**: an image that declares or decodes to far more pixels or frames than the file policy's limits allow ([ADR 0004](docs/adr/0004-image-limits.md)) and still reaches a decoder, for example a small file whose decoded pixels take gigabytes; a header that claims fewer pixels than the decoder produces; or a file that the SDK parses outside a worker;
 - an image that freezes or crashes the page, hangs a header reader, or exhausts memory despite the limits;
-- any network request the SDK makes, including for workers, decoders, colour profiles, fonts or models;
-- **metadata and location leaks:** an exported image that keeps metadata the user didn't choose to keep, such as GPS coordinates, camera serial numbers, timestamps or embedded thumbnails; an export that writes a location at all; or an editor that says metadata was removed when it wasn't;
-- an exported image that keeps pixels the user removed or redacted, such as a cropped-away area, a pixelated or blurred region that can be recovered, or an original embedded alongside the edit;
+- any network request the SDK makes, including for workers, decoders, colour profiles, fonts or models ([ADR 0002](docs/adr/0002-workers-and-assets.md));
+- **metadata and location leaks:** an exported image that keeps metadata the user didn't choose to keep, such as GPS coordinates, camera serial numbers, timestamps or embedded thumbnails; an export that writes a location at all; or an editor that says metadata was removed when it wasn't ([ADR 0005](docs/adr/0005-colour-orientation-and-metadata.md));
+- an exported image that keeps pixels the user removed or redacted, such as a cropped-away area, a pixelated or blurred region that can be recovered, or an original embedded alongside the edit ([ADR 0003](docs/adr/0003-layer-plan-document-model.md));
 - file names, pixels or metadata reaching the host's `onEvent`, or anything else that leaks an image's data;
 - styles from the standalone script that change the host page outside the editor;
 - anything that requires a weaker Content Security Policy than documented, such as `unsafe-eval`;
 - weaknesses in the build, release or publishing workflows, such as unpinned actions, excessive permissions, or a bundled dependency that doesn't match its pinned version.
 
-The SDK reads file headers and metadata with its own code, and it decodes images with the browser's built-in decoders, in a worker. **A known vulnerability in any third-party code that the SDK bundles is in scope** when the SDK's latest release still ships the affected version, because applications can only get the fix from us.
+The SDK reads file headers and metadata with its own code, and it decodes images with the browser's built-in decoders, in a worker ([ADR 0001](docs/adr/0001-image-engines.md)). **A known vulnerability in any third-party code that the SDK bundles is in scope** when the SDK's latest release still ships the affected version, because applications can only get the fix from us.
 
 Out of scope:
 
