@@ -201,3 +201,146 @@ export function exif(spec: ExifSpec): Uint8Array {
     out.push(...u16(1), ...u16(0x0201), ...u16(4), ...u32(1), ...u32(0), ...u32(0));
   return Uint8Array.from(out);
 }
+
+function le16(value: number): number[] {
+  return [value & 0xff, (value >>> 8) & 0xff];
+}
+
+function le24(value: number): number[] {
+  return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff];
+}
+
+function le32(value: number): number[] {
+  return [...le16(value & 0xffff), ...le16((value >>> 16) & 0xffff)];
+}
+
+export function webpChunk(type: string, data: readonly number[] | Uint8Array = []): Uint8Array {
+  return concat([latin1(type), le32(data.length), data, data.length % 2 === 1 ? [0] : []]);
+}
+
+/** A VP8 key frame header and a byte of bitstream. */
+export function vp8(width: number, height: number): Uint8Array {
+  return webpChunk("VP8 ", [0x10, 0x02, 0, 0x9d, 0x01, 0x2a, ...le16(width), ...le16(height), 0]);
+}
+
+/** A VP8L header and a byte of bitstream. */
+export function vp8l(width: number, height: number, alpha = false): Uint8Array {
+  const bits = (width - 1) | ((height - 1) << 14) | (alpha ? 1 << 28 : 0);
+  return webpChunk("VP8L", [0x2f, ...le32(bits >>> 0), 0]);
+}
+
+export interface WebpSpec {
+  /** A simple file: one `VP8 ` or `VP8L` chunk and nothing else. */
+  simple?: Uint8Array;
+  /** An extended file's canvas. */
+  canvas?: { width: number; height: number; alpha?: boolean; animated?: boolean };
+  chunks?: readonly Uint8Array[];
+}
+
+export function webp(spec: WebpSpec): Uint8Array {
+  const chunks: Uint8Array[] = [];
+  if (spec.simple !== undefined) chunks.push(spec.simple);
+  if (spec.canvas !== undefined) {
+    const flags = (spec.canvas.alpha ? 0x10 : 0) | (spec.canvas.animated ? 0x02 : 0);
+    chunks.push(
+      webpChunk("VP8X", [
+        flags,
+        0,
+        0,
+        0,
+        ...le24(spec.canvas.width - 1),
+        ...le24(spec.canvas.height - 1),
+      ]),
+    );
+  }
+  chunks.push(...(spec.chunks ?? []));
+  const body = concat([latin1("WEBP"), ...chunks]);
+  return concat([latin1("RIFF"), le32(body.length), body]);
+}
+
+/** An animation frame wrapping a VP8L bitstream. */
+export function anmf(frame: { x?: number; y?: number; width: number; height: number }): Uint8Array {
+  return webpChunk(
+    "ANMF",
+    concat([
+      le24((frame.x ?? 0) / 2),
+      le24((frame.y ?? 0) / 2),
+      le24(frame.width - 1),
+      le24(frame.height - 1),
+      le24(100),
+      [0],
+      vp8l(frame.width, frame.height),
+    ]),
+  );
+}
+
+export interface GifSpec {
+  width: number;
+  height: number;
+  frames: readonly { width: number; height: number; x?: number; y?: number }[];
+  transparent?: boolean;
+  comment?: string;
+  /** Overrides each frame's LZW minimum code size. */
+  codeSize?: number;
+}
+
+export function gif(spec: GifSpec): Uint8Array {
+  const parts: (number[] | Uint8Array)[] = [
+    latin1("GIF89a"),
+    [...le16(spec.width), ...le16(spec.height), 0x80, 0, 0],
+    [0, 0, 0, 255, 255, 255],
+  ];
+  if (spec.frames.length > 1) {
+    parts.push([0x21, 0xff, 11, ...latin1("NETSCAPE2.0"), 3, 1, 0, 0, 0]);
+  }
+  if (spec.comment !== undefined) {
+    parts.push([0x21, 0xfe, spec.comment.length, ...latin1(spec.comment), 0]);
+  }
+  for (const frame of spec.frames) {
+    parts.push([0x21, 0xf9, 4, spec.transparent ? 1 : 0, 10, 0, 0, 0]);
+    parts.push([
+      0x2c,
+      ...le16(frame.x ?? 0),
+      ...le16(frame.y ?? 0),
+      ...le16(frame.width),
+      ...le16(frame.height),
+      0,
+      spec.codeSize ?? 2,
+      2,
+      0x4c,
+      0x01,
+      0,
+    ]);
+  }
+  parts.push([0x3b]);
+  return concat(parts);
+}
+
+export interface BmpSpec {
+  width: number;
+  /** Negative for top-down rows. */
+  height: number;
+  bitCount?: number;
+  /** 12 for `BITMAPCOREHEADER`, 40 for `BITMAPINFOHEADER`, 124 for V5. */
+  headerSize?: number;
+  /** Overrides where the pixel data starts. */
+  dataOffset?: number;
+  embeddedProfile?: boolean;
+}
+
+export function bmp(spec: BmpSpec): Uint8Array {
+  const headerSize = spec.headerSize ?? 40;
+  const bitCount = spec.bitCount ?? 24;
+  const header: number[] = [...le32(headerSize)];
+  if (headerSize === 12) {
+    header.push(...le16(spec.width), ...le16(spec.height), ...le16(1), ...le16(bitCount));
+  } else {
+    header.push(...le32(spec.width), ...le32(spec.height >>> 0), ...le16(1), ...le16(bitCount));
+    while (header.length < headerSize) header.push(0);
+    if (headerSize === 124 && spec.embeddedProfile) header.splice(56, 4, ...le32(0x4d424544));
+  }
+  const pixels = [0, 0, 0, 0];
+  const dataOffset = spec.dataOffset ?? 14 + headerSize;
+  const fileSize = 14 + headerSize + pixels.length;
+  return concat([latin1("BM"), le32(fileSize), [0, 0, 0, 0], le32(dataOffset), header, pixels]);
+}
