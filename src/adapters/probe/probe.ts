@@ -17,6 +17,18 @@ import type { WindowReader } from "./window-reader.js";
  * @internal
  */
 export async function probeImage(reader: WindowReader): Promise<ImageProbe> {
+  const probe = await probeFormat(reader);
+  if (probe.orientation === 1) return probe;
+  // Where the browser doesn't apply the orientation, the worker draws the
+  // stored bitmap upright into a second one, so the peak holds one more
+  // oriented frame (docs/adr/0005), which the bound counts.
+  return {
+    ...probe,
+    decodedPixelBound: probe.decodedPixelBound + probe.oriented.width * probe.oriented.height,
+  };
+}
+
+async function probeFormat(reader: WindowReader): Promise<ImageProbe> {
   const head = await reader.bytes(0, 16);
   if (startsWith(head, PNG_SIGNATURE)) {
     return probePng(reader);

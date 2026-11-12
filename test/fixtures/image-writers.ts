@@ -141,6 +141,8 @@ export interface ExifSpec {
   dateTime?: string;
   gps?: boolean;
   thumbnail?: boolean;
+  /** Windows' XPTitle, UCS-2: the EXIF title the probe reads. */
+  xpTitle?: string;
   littleEndian?: boolean;
 }
 
@@ -160,6 +162,16 @@ export function exif(spec: ExifSpec): Uint8Array {
     entries.push(entry);
     strings.push({ entry, bytes });
   };
+  if (spec.xpTitle !== undefined) {
+    const bytes = [
+      ...Array.from(spec.xpTitle, (c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >>> 8]).flat(),
+      0,
+      0,
+    ];
+    const entry: Entry = { tag: 0x9c9b, type: 1, count: bytes.length, value: [] };
+    entries.push(entry);
+    strings.push({ entry, bytes });
+  }
   if (spec.orientation !== undefined)
     entries.push({ tag: 0x0112, type: 3, count: 1, value: [...u16(spec.orientation), 0, 0] });
   addText(0x010e, spec.description);
