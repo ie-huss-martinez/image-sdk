@@ -21,7 +21,9 @@ export interface FeatureOutcome {
   readonly longestSide: number;
 }
 
-export type Request = { kind: "decode"; bytes: ArrayBuffer } | { kind: "features" };
+export type Request =
+  | { kind: "decode"; bytes: ArrayBuffer; imageOrientation: "from-image" | "none" }
+  | { kind: "features" };
 
 export const ENCODED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/avif"] as const;
 /** The longest side the search tries; a result of one less means "at least that". */

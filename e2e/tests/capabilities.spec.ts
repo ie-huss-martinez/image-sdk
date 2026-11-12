@@ -68,7 +68,9 @@ for (const decodeCase of DECODE_CASES) {
       expect(isImageError(error, "INVALID_IMAGE"), String(error)).toBe(true);
     }
     if (decodeCase.probe === "accepts") {
-      expect(probed?.oriented).toEqual(decodeCase.primary);
+      expect(decodeCase.imageOrientation === "none" ? probed?.stored : probed?.oriented).toEqual(
+        decodeCase.primary,
+      );
     } else {
       expect(probed).toBeUndefined();
     }
@@ -76,8 +78,9 @@ for (const decodeCase of DECODE_CASES) {
     const foreign = foreignRequests(page);
     await page.goto("/");
     const outcome = await page.evaluate(
-      (data) => window.imageCapabilities.decode(new Uint8Array(data).buffer),
-      Array.from(bytes),
+      ([data, imageOrientation]) =>
+        window.imageCapabilities.decode(new Uint8Array(data).buffer, imageOrientation),
+      [Array.from(bytes), decodeCase.imageOrientation ?? "from-image"] as const,
     );
     expect(foreign).toEqual([]);
     check(

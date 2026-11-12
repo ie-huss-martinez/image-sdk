@@ -18,8 +18,10 @@ function inWorker<T>(request: Request, timeout: number, onTimeout: T): Promise<T
   }).finally(() => worker.terminate());
 }
 
-const decode = (bytes: ArrayBuffer) =>
-  inWorker<DecodeOutcome>({ kind: "decode", bytes }, DECODE_TIMEOUT, { status: "timeout" });
+const decode = (bytes: ArrayBuffer, imageOrientation: "from-image" | "none" = "from-image") =>
+  inWorker<DecodeOutcome>({ kind: "decode", bytes, imageOrientation }, DECODE_TIMEOUT, {
+    status: "timeout",
+  });
 
 const features = () =>
   inWorker<FeatureOutcome | undefined>({ kind: "features" }, 60_000, undefined);
@@ -28,7 +30,7 @@ declare global {
   interface Window {
     /** The hooks the end-to-end tests call. */
     imageCapabilities: {
-      decode(bytes: ArrayBuffer): Promise<DecodeOutcome>;
+      decode(bytes: ArrayBuffer, imageOrientation?: "from-image" | "none"): Promise<DecodeOutcome>;
       features(): Promise<FeatureOutcome | undefined>;
     };
   }

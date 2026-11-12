@@ -15,10 +15,13 @@ import {
  */
 declare const self: DedicatedWorkerGlobalScope;
 
-async function decode(bytes: ArrayBuffer): Promise<DecodeOutcome> {
+async function decode(
+  bytes: ArrayBuffer,
+  imageOrientation: "from-image" | "none",
+): Promise<DecodeOutcome> {
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(new Blob([bytes]), { imageOrientation: "from-image" });
+    bitmap = await createImageBitmap(new Blob([bytes]), { imageOrientation });
   } catch (error) {
     return { status: "rejected", error: error instanceof Error ? error.name : String(error) };
   }
@@ -106,5 +109,9 @@ async function features(): Promise<FeatureOutcome> {
 
 self.addEventListener("message", async (event: MessageEvent<Request>) => {
   const request = event.data;
-  self.postMessage(request.kind === "decode" ? await decode(request.bytes) : await features());
+  self.postMessage(
+    request.kind === "decode"
+      ? await decode(request.bytes, request.imageOrientation)
+      : await features(),
+  );
 });
