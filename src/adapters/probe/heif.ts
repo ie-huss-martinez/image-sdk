@@ -209,13 +209,44 @@ function compose(current: ExifOrientation, next: ExifOrientation): ExifOrientati
   return match?.[0] ?? 1;
 }
 
+/**
+ * The size of a `clap` clean aperture: the part of the coded image the
+ * decoder returns, as encoders that pad to whole coding blocks declare. Its
+ * width and height must be whole pixels, and it must lie inside the coded
+ * image, whose `ispe` still bounds the decode.
+ */
+function cleanAperture(format: ImageFormat, c: Cursor, coded: Size): Size {
+  const fraction = (signed: boolean) => {
+    const numerator = c.u32();
+    const denominator = c.u32();
+    if (denominator === 0) {
+      throw invalid(format, "a clean aperture divides by zero");
+    }
+    return (signed ? numerator | 0 : numerator) / denominator;
+  };
+  const width = fraction(false);
+  const height = fraction(false);
+  const horizontalOffset = fraction(true);
+  const verticalOffset = fraction(true);
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw invalid(format, "a clean aperture isn't a whole number of pixels");
+  }
+  // The aperture is centred on the image's centre plus the offset.
+  const left = (coded.width - width) / 2 + horizontalOffset;
+  const top = (coded.height - height) / 2 + verticalOffset;
+  if (left < 0 || top < 0 || left + width > coded.width || top + height > coded.height) {
+    throw invalid(format, "a clean aperture lies outside the image");
+  }
+  return { width, height };
+}
+
 /** `irot` turns anticlockwise in quarter turns. */
 const ROTATIONS: readonly ExifOrientation[] = [1, 8, 3, 6];
 
 /**
  * Probes an AVIF or HEIF file from its `meta` box (ADR 0001). The size is the
- * primary item's `ispe`, turned by its `irot` and `imir` in the order
- * `ipma` lists them. The decoded bound is the sum of the `ispe` pixels of the
+ * primary item's `ispe`, cropped by its `clap` clean aperture, then turned by
+ * its `irot` and `imir` in the order `ipma` lists them. The decoded bound is the sum of the `ispe` pixels of the
  * primary and every item a `dimg`, `auxl` or `thmb` reference reaches from
  * or to it, such as grid tiles, alpha planes, gain maps and thumbnails. A
  * grid's output must equal its `ispe` and fit its tiles, which must all be
@@ -589,13 +620,24 @@ export async function probeHeif(reader: WindowReader): Promise<ImageProbe> {
     }
   }
 
-  // Orientation, in the order the primary's properties are listed.
+  // The clean aperture, then the orientation, in the order the primary's
+  // properties are listed; the specification puts `clap` first.
+  const coded = sizeOf(primaryId);
+  let stored: Size = coded;
   let orientation: ExifOrientation = 1;
+  let transformed = false;
   for (const property of associations.get(primaryId) ?? []) {
-    if (property.type === "irot") {
+    if (property.type === "clap") {
+      if (transformed || stored !== coded) {
+        throw invalid(format, "a clean aperture follows a transformation");
+      }
+      stored = cleanAperture(format, cursor(format, bytes, property.start, property.end), coded);
+    } else if (property.type === "irot") {
+      transformed = true;
       const c = cursor(format, bytes, property.start, property.end);
       orientation = compose(orientation, ROTATIONS[c.u8() & 0x03] ?? 1);
     } else if (property.type === "imir") {
+      transformed = true;
       const c = cursor(format, bytes, property.start, property.end);
       orientation = compose(orientation, (c.u8() & 0x01) === 0 ? 2 : 4);
     }
@@ -626,7 +668,6 @@ export async function probeHeif(reader: WindowReader): Promise<ImageProbe> {
   const other =
     exif.other || [...items.values()].some((item) => item.type === "mime" || item.type === "uri ");
 
-  const stored = sizeOf(primaryId);
   return {
     format,
     stored,

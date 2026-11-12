@@ -370,6 +370,19 @@ export const ispe = (width: number, height: number) =>
   fullBox("ispe", 0, 0, be32(width), be32(height));
 export const irot = (quarterTurns: number) => box("irot", [quarterTurns]);
 export const imir = (axis: number) => box("imir", [axis]);
+/** A clean aperture of `width × height`, offset from the centre by whole pixels. */
+export const clap = (width: number, height: number, dx = 0, dy = 0) =>
+  box(
+    "clap",
+    be32(width),
+    be32(1),
+    be32(height),
+    be32(1),
+    be32(dx >>> 0),
+    be32(1),
+    be32(dy >>> 0),
+    be32(1),
+  );
 export const auxC = (type: string) => fullBox("auxC", 0, 0, latin1(type), [0]);
 export const ALPHA_AUX = "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha";
 export const GAIN_MAP_AUX = "urn:com:apple:photo:2020:aux:hdrgainmap";

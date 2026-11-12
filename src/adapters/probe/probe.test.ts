@@ -6,6 +6,7 @@ import {
   auxC,
   bmp,
   box,
+  clap,
   concat,
   exif,
   GAIN_MAP_AUX,
@@ -472,6 +473,66 @@ describe("probing AVIF and HEIF", () => {
     );
   });
 
+  it("crops the size to the clean aperture, and bounds by the coded size", async () => {
+    // As libheif writes a 48 × 32 HEIC: coded at 64 × 64, cropped by clap.
+    const result = await probe(
+      heif({
+        brand: "heic",
+        primary: 1,
+        items: [
+          {
+            id: 1,
+            type: "hvc1",
+            size: { width: 64, height: 64 },
+            properties: [clap(48, 32, -8, -16), irot(1)],
+          },
+        ],
+      }),
+    );
+    expect(result).toMatchObject({
+      stored: { width: 48, height: 32 },
+      oriented: { width: 32, height: 48 },
+      orientation: 8,
+      decodedPixelBound: 64 * 64,
+    });
+  });
+
+  it.each([
+    ["larger than the image", [clap(80, 32)]],
+    ["outside the image", [clap(48, 32, 20, 0)]],
+    [
+      "of a fractional size",
+      [
+        box(
+          "clap",
+          [
+            0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+            0, 0, 1,
+          ],
+        ),
+      ],
+    ],
+    [
+      "dividing by zero",
+      [
+        box(
+          "clap",
+          [
+            0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+            0, 0, 1,
+          ],
+        ),
+      ],
+    ],
+    ["after a rotation", [irot(1), clap(48, 32)]],
+  ])("rejects a clean aperture %s", async (_, properties) => {
+    const bytes = heif({
+      primary: 1,
+      items: [{ id: 1, type: "av01", size: { width: 64, height: 64 }, properties }],
+    });
+    expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
+  });
+
   it("bounds a grid by its output and every tile", async () => {
     const result = await probe(
       grid({
@@ -798,7 +859,7 @@ describe("the probes are hostile-input code", () => {
           type: "grid",
           size: { width: 20, height: 10 },
           data: gridData(1, 2, 20, 10),
-          properties: [irot(1), imir(0)],
+          properties: [clap(18, 10, -1, 0), irot(1), imir(0)],
         },
         { id: 2, type: "av01", size: { width: 10, height: 10 } },
         { id: 3, type: "av01", size: { width: 10, height: 10 } },
