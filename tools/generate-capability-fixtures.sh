@@ -48,6 +48,25 @@ docker run --rm \
     heif-enc --avif --quality 90 --thumb 48 large.png -o /out/thumbnail.avif >/dev/null
     # A quarter turn anticlockwise in irot: upright, it is 32 x 48.
     avifenc --speed 8 -q 92 --irot 1 primary.png /out/rotated.avif >/dev/null
+    # Four coloured quadrants, so the pixels show how a decode was oriented:
+    # red, green, blue and yellow, from the top left, reading across.
+    magick -size 48x32 xc:black \
+      -fill "#ff0000" -draw "rectangle 0,0 23,15" -fill "#00ff00" -draw "rectangle 24,0 47,15" \
+      -fill "#0000ff" -draw "rectangle 0,16 23,31" -fill "#ffff00" -draw "rectangle 24,16 47,31" \
+      -strip quadrants.ppm
+    magick quadrants.ppm -strip -define png:exclude-chunks=date,time quadrants.png
+    cp quadrants.png /out/quadrants.png
+    cjpeg -quality 95 -sample 1x1 -baseline quadrants.ppm > /out/quadrants.jpg
+    cwebp -quiet -lossless quadrants.png -o /out/quadrants.webp
+    avifenc --speed 8 --lossless --irot 1 quadrants.png /out/quadrants-irot1.avif >/dev/null
+    avifenc --speed 8 --lossless --imir 0 quadrants.png /out/quadrants-imir0.avif >/dev/null
+    avifenc --speed 8 --lossless --imir 1 quadrants.png /out/quadrants-imir1.avif >/dev/null
+    avifenc --speed 8 --lossless --irot 1 --imir 0 quadrants.png /out/quadrants-irot1-imir0.avif >/dev/null
+    # An Exif item with orientation 6 and an irot of a half turn, which
+    # disagree; avifenc otherwise turns the Exif orientation into irot.
+    printf "MM\0*\0\0\0\10\0\1\1\22\0\3\0\0\0\1\0\6\0\0\0\0\0\0" > orientation6.exif
+    avifenc --speed 8 --lossless --exif orientation6.exif --irot 2 quadrants.png /out/quadrants-exif6-irot2.avif >/dev/null
+    heif-enc --quality 90 --rotate-cw 90 quadrants.png -o /out/quadrants-rotate-cw90.heic >/dev/null
     chown -R '"$(id -u):$(id -g)"' /out
   '
 ls -l e2e/fixtures

@@ -639,7 +639,9 @@ export async function probeHeif(reader: WindowReader): Promise<ImageProbe> {
     } else if (property.type === "imir") {
       transformed = true;
       const c = cursor(format, bytes, property.start, property.end);
-      orientation = compose(orientation, (c.u8() & 0x01) === 0 ? 2 : 4);
+      // Axis 0 mirrors top to bottom and axis 1 left to right, as libavif
+      // writes them and every engine in docs/capabilities.md decodes them.
+      orientation = compose(orientation, (c.u8() & 0x01) === 0 ? 4 : 2);
     }
   }
 

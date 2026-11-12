@@ -6,6 +6,11 @@ export interface DecodeOutcome {
   readonly height?: number;
   /** The centre pixel as `[r, g, b, a]`, when a worker canvas could read it. */
   readonly centre?: readonly number[];
+  /**
+   * The centres of the four quadrants, top left, top right, bottom left and
+   * bottom right, as `[r, g, b, a]`, which show how a decode was oriented.
+   */
+  readonly quadrants?: readonly (readonly number[])[];
   readonly error?: string;
 }
 

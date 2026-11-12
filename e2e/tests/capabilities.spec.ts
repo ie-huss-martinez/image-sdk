@@ -71,6 +71,9 @@ for (const decodeCase of DECODE_CASES) {
       expect(decodeCase.imageOrientation === "none" ? probed?.stored : probed?.oriented).toEqual(
         decodeCase.primary,
       );
+      if (decodeCase.orientation !== undefined) {
+        expect(probed?.orientation).toBe(decodeCase.orientation);
+      }
     } else {
       expect(probed).toBeUndefined();
     }
@@ -88,7 +91,7 @@ for (const decodeCase of DECODE_CASES) {
       browserName,
       browser.version(),
       decodeCase.name,
-      decodeCell(outcome, decodeCase.primary),
+      decodeCell(outcome, decodeCase.primary, decodeCase.orientation),
     );
   });
 }

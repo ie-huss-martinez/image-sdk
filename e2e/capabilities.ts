@@ -7,8 +7,12 @@ import {
   jpegWithExifThumbnail,
   jpegWithMpfPreview,
   pngRotated,
+  quadrantsJpeg,
+  quadrantsPng,
+  quadrantsWebp,
   webpRotated,
 } from "./fixtures.js";
+import { classify } from "./orientation.js";
 
 export const BROWSERS = ["chromium", "firefox", "webkit"] as const;
 export type Browser = (typeof BROWSERS)[number];
@@ -36,6 +40,11 @@ export interface DecodeCase {
    * decode is the stored size, which the probe's oriented size then isn't.
    */
   readonly imageOrientation?: "none";
+  /**
+   * For the four-colour files: the orientation the probe reads, which the
+   * pixels of the decode must show.
+   */
+  readonly orientation?: number;
 }
 
 const SMALL = { width: 48, height: 32 };
@@ -49,19 +58,7 @@ const LARGE = { width: 96, height: 64 };
  */
 export const DECODE_CASES: readonly DecodeCase[] = [
   { name: "PNG", bytes: () => fixture("primary.png"), primary: SMALL, probe: "accepts" },
-  {
-    name: "PNG, eXIf orientation 6",
-    bytes: pngRotated,
-    primary: { width: 32, height: 48 },
-    probe: "accepts",
-  },
   { name: "JPEG", bytes: () => fixture("primary.jpg"), primary: SMALL, probe: "accepts" },
-  {
-    name: "JPEG, EXIF orientation 6",
-    bytes: jpegRotated,
-    primary: { width: 32, height: 48 },
-    probe: "accepts",
-  },
   {
     name: "JPEG with a larger EXIF thumbnail",
     bytes: jpegWithExifThumbnail,
@@ -92,12 +89,6 @@ export const DECODE_CASES: readonly DecodeCase[] = [
     primary: SMALL,
     probe: "accepts",
   },
-  {
-    name: "WebP, EXIF orientation 6",
-    bytes: webpRotated,
-    primary: { width: 32, height: 48 },
-    probe: "accepts",
-  },
   { name: "GIF", bytes: () => fixture("primary.gif"), primary: SMALL, probe: "accepts" },
   {
     name: "GIF, frame outside the screen",
@@ -107,12 +98,6 @@ export const DECODE_CASES: readonly DecodeCase[] = [
   },
   { name: "BMP", bytes: () => fixture("primary.bmp"), primary: SMALL, probe: "accepts" },
   { name: "AVIF", bytes: () => fixture("primary.avif"), primary: SMALL, probe: "accepts" },
-  {
-    name: "AVIF, irot quarter turn",
-    bytes: () => fixture("rotated.avif"),
-    primary: { width: 32, height: 48 },
-    probe: "accepts",
-  },
   {
     name: "AVIF with a thumbnail item",
     bytes: () => fixture("thumbnail.avif"),
@@ -126,6 +111,33 @@ export const DECODE_CASES: readonly DecodeCase[] = [
     primary: LARGE,
     probe: "accepts",
   },
+  // Four-colour files: the pixels show the exact transform each browser
+  // applied, which the engine's calibration relies on (ADR 0005).
+  ...(
+    [
+      ["PNG, eXIf orientation 7 before IDAT", () => quadrantsPng(7, "before IDAT"), 7],
+      ["PNG, eXIf orientation 7 after IDAT", () => quadrantsPng(7, "after IDAT"), 1],
+      ["JPEG, EXIF orientation 7", () => quadrantsJpeg(7), 7],
+      ["JPEG, EXIF orientation 3", () => quadrantsJpeg(3), 3],
+      ["WebP, EXIF orientation 7", () => quadrantsWebp(7), 1],
+      ["AVIF, irot 1", () => fixture("quadrants-irot1.avif"), 8],
+      ["AVIF, imir 0", () => fixture("quadrants-imir0.avif"), 4],
+      ["AVIF, imir 1", () => fixture("quadrants-imir1.avif"), 2],
+      ["AVIF, irot 1 then imir 0", () => fixture("quadrants-irot1-imir0.avif"), 5],
+      [
+        "AVIF, irot 2 and an Exif item with orientation 6",
+        () => fixture("quadrants-exif6-irot2.avif"),
+        3,
+      ],
+      ["HEIC, irot from heif-enc --rotate-cw 90", () => fixture("quadrants-rotate-cw90.heic"), 6],
+    ] as const
+  ).map(([name, bytes, orientation]) => ({
+    name,
+    bytes,
+    primary: orientation >= 5 ? { width: 32, height: 48 } : { width: 48, height: 32 },
+    probe: "accepts" as const,
+    orientation,
+  })),
   // The same oriented files, decoded without their orientation: the engine
   // applies it itself where browsers disagree.
   ...(
@@ -191,9 +203,16 @@ export function featureCells(features: Features): Record<(typeof FEATURES)[numbe
 export function decodeCell(
   outcome: Awaited<ReturnType<Window["imageCapabilities"]["decode"]>>,
   primary: DecodeCase["primary"],
+  orientation?: number,
 ): string {
   if (outcome.status === "timeout") return "never settles";
   if (outcome.status !== "decoded") return "doesn't decode";
+  if (orientation !== undefined) {
+    const shown = classify(outcome.width ?? 0, outcome.height ?? 0, outcome.quadrants);
+    if (shown === orientation) return "decodes";
+    if (shown === undefined) return `decodes ${outcome.width} × ${outcome.height}, unrecognised`;
+    return shown === 1 ? "decodes as stored" : `decodes as orientation ${shown}`;
+  }
   const [r = 0, g = 0, b = 0] = outcome.centre ?? [];
   const colour =
     outcome.centre === undefined

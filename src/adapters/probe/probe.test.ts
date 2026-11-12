@@ -101,6 +101,20 @@ describe("probing PNG", () => {
     ).toBe(true);
   });
 
+  it("ignores the orientation of an eXIf after the image data, as browsers do, but keeps its flags", async () => {
+    const still = png({ width: 40, height: 30 });
+    const bytes = concat([
+      still.subarray(0, still.length - 12),
+      pngChunk("eXIf", exif({ orientation: 6, gps: true })),
+      still.subarray(still.length - 12),
+    ]);
+    expect(await probe(bytes)).toMatchObject({
+      oriented: { width: 40, height: 30 },
+      orientation: 1,
+      metadata: { location: true },
+    });
+  });
+
   it("takes the orientation and presence flags from eXIf, and keepable text from tEXt", async () => {
     const result = await probe(
       png({
@@ -235,7 +249,7 @@ describe("probing WebP", () => {
     expect(result).toMatchObject({ stored: { width: 7, height: 5 }, hasAlpha: true });
   });
 
-  it("takes an extended file's size from the canvas, and orientation and flags from EXIF", async () => {
+  it("takes an extended file's size from the canvas, and flags but not orientation from EXIF", async () => {
     const result = await probe(
       webp({
         canvas: { width: 30, height: 20, alpha: true },
@@ -254,8 +268,8 @@ describe("probing WebP", () => {
     );
     expect(result).toMatchObject({
       stored: { width: 30, height: 20 },
-      oriented: { width: 20, height: 30 },
-      orientation: 6,
+      oriented: { width: 30, height: 20 },
+      orientation: 1,
       hasAlpha: true,
       metadata: { location: true, colourProfile: true },
       keepable: { artist: "Ana" },
@@ -461,10 +475,10 @@ describe("probing AVIF and HEIF", () => {
     ["a quarter turn anticlockwise", [irot(1)], 8],
     ["a half turn", [irot(2)], 3],
     ["three quarter turns", [irot(3)], 6],
-    ["a mirror about the vertical axis", [imir(0)], 2],
-    ["a mirror about the horizontal axis", [imir(1)], 4],
-    ["a turn, then a mirror", [irot(1), imir(0)], 7],
-    ["a mirror, then a turn", [imir(0), irot(1)], 5],
+    ["a top-to-bottom mirror (axis 0)", [imir(0)], 4],
+    ["a left-to-right mirror (axis 1)", [imir(1)], 2],
+    ["a turn, then a mirror", [irot(1), imir(0)], 5],
+    ["a mirror, then a turn", [imir(0), irot(1)], 7],
   ] as const)("maps %s to EXIF orientation %i", async (_, properties, orientation) => {
     const result = await probe(still(properties));
     expect(result.orientation).toBe(orientation);

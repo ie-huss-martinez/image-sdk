@@ -1,4 +1,3 @@
-import { orientedSize } from "../../core/model/geometry.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { ascii, exact, invalid, u24le, u32le } from "./bytes.js";
 import { emptyExif, readExif } from "./exif.js";
@@ -18,7 +17,7 @@ export function isWebp(head: Uint8Array): boolean {
  * Probes a WebP file by walking its RIFF chunks (ADR 0001): the size from
  * `VP8 `, `VP8L` or the `VP8X` canvas; for animations, every `ANMF` frame,
  * each of which must fit inside the canvas, and whose count must agree with
- * `VP8X`'s animation flag; orientation and flags from `EXIF`, profiles from
+ * `VP8X`'s animation flag; presence flags from `EXIF`, profiles from
  * `ICCP`. Compressed bitstreams are never decoded.
  *
  * @internal
@@ -164,8 +163,10 @@ export async function probeWebp(reader: WindowReader): Promise<ImageProbe> {
   return {
     format: "webp",
     stored,
-    oriented: orientedSize(stored, exif.orientation),
-    orientation: exif.orientation,
+    // No engine applies a WebP's EXIF orientation (docs/capabilities.md),
+    // so the probe ignores it too, and the file opens as browsers show it.
+    oriented: stored,
+    orientation: 1,
     frames,
     hasAlpha,
     decodedPixelBound: frames * width * height,

@@ -23,7 +23,12 @@ Three properties of image files are easy to get subtly wrong, and each has cause
 
 ### Orientation: sources are oriented once, at decode
 
-- **The probe reads the orientation** from EXIF in JPEG, from the `eXIf` chunk in PNG and WebP's `EXIF` chunk, and from `irot` and `imir` in HEIF and AVIF, with our own reader. It reports the stored size and the oriented size.
+- **The probe reads the orientation** with our own reader, from the same carriers browsers read, as the [capability matrix](../capabilities.md) measures them:
+  - EXIF in a JPEG's `APP1` segment;
+  - a PNG's `eXIf` chunk, only before `IDAT`;
+  - `irot` and `imir` in HEIF and AVIF, in `ipma` order, where `imir` axis 0 mirrors top to bottom and axis 1 left to right, as libavif writes them.
+
+  It ignores what every engine there ignores, so a file opens as browsers show it: a WebP's `EXIF` orientation, an `eXIf` after `IDAT`, and the Exif item of a HEIF or AVIF, whose `irot` and `imir` win. It still reads their presence flags and keepable fields. It reports the stored size and the oriented size.
 - **The decoder applies it:** `createImageBitmap` with `imageOrientation: "from-image"` returns the oriented bitmap, and the worker checks that its size equals the probe's oriented size ([ADR 0001](0001-image-engines.md)). A mismatch, such as a browser that ignores the tag for some format, fails with `INVALID_IMAGE` rather than producing a sideways image with a misplaced crop.
 - **Everything after decode works in oriented pixels:** the source's size, the crop and the layer geometry ([ADR 0003](0003-layer-plan-document-model.md)). The file's orientation tag is never written to an export, because the exported pixels are already upright. The plan's own `rotate` and flips are separate, user-made edits.
 

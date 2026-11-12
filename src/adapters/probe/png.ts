@@ -25,8 +25,9 @@ const KEEPABLE_TEXT: Record<string, "title" | "description" | "artist" | "copyri
  * Probes a PNG or APNG file by walking every chunk header (ADR 0001):
  * dimensions from `IHDR`, which must come first; frames from `acTL`,
  * cross-checked against every `fcTL`, each of which must fit inside
- * `IHDR`; orientation and presence flags from `eXIf`, text chunks, `iCCP`
- * and `tIME`. Image data is never decompressed.
+ * `IHDR`; presence flags from `eXIf`, text chunks, `iCCP` and `tIME`, and
+ * the orientation from an `eXIf` before `IDAT` only, as browsers read it.
+ * Image data is never decompressed.
  *
  * @internal
  */
@@ -129,6 +130,9 @@ export async function probePng(reader: WindowReader): Promise<ImageProbe> {
         const parsed = readExif(await read(), "png");
         Object.assign(exif, {
           ...parsed,
+          // Browsers apply an eXIf orientation only before the image data
+          // (docs/capabilities.md), so the probe does the same.
+          orientation: sawData ? exif.orientation : parsed.orientation,
           title: exif.title || parsed.title,
           description: exif.description || parsed.description,
           artist: exif.artist || parsed.artist,

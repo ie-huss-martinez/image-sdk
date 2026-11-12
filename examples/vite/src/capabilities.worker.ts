@@ -27,21 +27,32 @@ async function decode(
   }
   const { width, height } = bitmap;
   let centre: number[] | undefined;
+  let quadrants: number[][] | undefined;
   try {
     const context = new OffscreenCanvas(width, height).getContext("2d");
     if (context) {
       context.drawImage(bitmap, 0, 0);
-      centre = Array.from(
-        context.getImageData(Math.floor(width / 2), Math.floor(height / 2), 1, 1).data,
-      );
+      const pixel = (x: number, y: number) =>
+        Array.from(context.getImageData(Math.floor(x), Math.floor(y), 1, 1).data);
+      centre = pixel(width / 2, height / 2);
+      quadrants = [
+        pixel(width / 4, height / 4),
+        pixel((3 * width) / 4, height / 4),
+        pixel(width / 4, (3 * height) / 4),
+        pixel((3 * width) / 4, (3 * height) / 4),
+      ];
     }
   } catch {
     // The size is still worth reporting without the colour.
   }
   bitmap.close();
-  return centre === undefined
-    ? { status: "decoded", width, height }
-    : { status: "decoded", width, height, centre };
+  return {
+    status: "decoded",
+    width,
+    height,
+    ...(centre === undefined ? {} : { centre }),
+    ...(quadrants === undefined ? {} : { quadrants }),
+  };
 }
 
 /** Whether a canvas of this size really draws: some engines hand out a context that doesn't. */
