@@ -65,6 +65,7 @@ Each file is a generated solid colour (\`tools/generate-capability-fixtures.sh\`
 
 - **decodes:** the browser returned the primary image, red, at its upright size: the size the engine's check against the probe expects (ADR 0001). For the rows decoded with \`imageOrientation: "none"\`, it's the stored size instead, without the orientation.
 - **decodes W × H, colour:** the browser returned something else, such as a secondary image, or the stored size without its orientation.
+- **Four-colour rows** (named by their orientation carrier): the decode's pixels are read at the centre of each quadrant. **decodes** means they show exactly the orientation the SDK's probe reads; **decodes as stored** that the browser ignored it; **decodes as orientation N** that it applied another; and **unrecognised** that the pixels match none of the eight. The engine calibrates on this (ADR 0005).
 - **doesn't decode:** \`createImageBitmap\` rejected the file. The engine reports that as \`DECODE_FAILED\`.
 - **never settles:** the decode didn't finish within 10 seconds.
 

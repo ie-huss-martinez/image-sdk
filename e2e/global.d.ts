@@ -9,6 +9,7 @@ interface Window {
       width?: number;
       height?: number;
       centre?: readonly number[];
+      quadrants?: readonly (readonly number[])[];
       error?: string;
     }>;
     features(): Promise<

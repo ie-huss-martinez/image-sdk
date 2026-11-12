@@ -12,6 +12,7 @@ Each file is a generated solid colour (`tools/generate-capability-fixtures.sh`, 
 
 - **decodes:** the browser returned the primary image, red, at its upright size: the size the engine's check against the probe expects (ADR 0001). For the rows decoded with `imageOrientation: "none"`, it's the stored size instead, without the orientation.
 - **decodes W × H, colour:** the browser returned something else, such as a secondary image, or the stored size without its orientation.
+- **Four-colour rows** (named by their orientation carrier): the decode's pixels are read at the centre of each quadrant. **decodes** means they show exactly the orientation the SDK's probe reads; **decodes as stored** that the browser ignored it; **decodes as orientation N** that it applied another; and **unrecognised** that the pixels match none of the eight. The engine calibrates on this (ADR 0005).
 - **doesn't decode:** `createImageBitmap` rejected the file. The engine reports that as `DECODE_FAILED`.
 - **never settles:** the decode didn't finish within 10 seconds.
 
@@ -22,23 +23,30 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 | File | Chromium | Firefox | WebKit |
 |---|---|---|---|
 | PNG | decodes | decodes | decodes |
-| PNG, eXIf orientation 6 | decodes | decodes | decodes 48 × 32, red |
 | JPEG | decodes | decodes | decodes |
-| JPEG, EXIF orientation 6 | decodes | decodes | decodes |
 | JPEG with a larger EXIF thumbnail | decodes | decodes | decodes |
 | JPEG with an MPF preview image | decodes | decodes | decodes |
 | JPEG, Ultra HDR with a gain map | decodes | decodes | decodes |
 | WebP, lossy | decodes | decodes | decodes |
 | WebP, lossless | decodes | decodes | decodes |
-| WebP, EXIF orientation 6 | decodes 48 × 32, red | decodes 48 × 32, red | decodes 48 × 32, red |
 | GIF | decodes | decodes | decodes |
 | GIF, frame outside the screen | decodes 96 × 64, red | decodes 96 × 64, red | decodes 96 × 64, red |
 | BMP | decodes | decodes | decodes |
 | AVIF | decodes | decodes | decodes |
-| AVIF, irot quarter turn | decodes | decodes | decodes 48 × 32, red |
 | AVIF with a thumbnail item | decodes | decodes | decodes |
 | HEIC | doesn't decode | doesn't decode | doesn't decode |
 | HEIC with a thumbnail item | doesn't decode | doesn't decode | doesn't decode |
+| PNG, eXIf orientation 7 before IDAT | decodes | decodes | decodes as stored |
+| PNG, eXIf orientation 7 after IDAT | decodes | decodes | decodes |
+| JPEG, EXIF orientation 7 | decodes | decodes | decodes |
+| JPEG, EXIF orientation 3 | decodes | decodes | decodes |
+| WebP, EXIF orientation 7 | decodes | decodes | decodes |
+| AVIF, irot 1 | decodes | decodes | decodes as stored |
+| AVIF, imir 0 | decodes | decodes | decodes as stored |
+| AVIF, imir 1 | decodes | decodes | decodes as stored |
+| AVIF, irot 1 then imir 0 | decodes | decodes | decodes as stored |
+| AVIF, irot 2 and an Exif item with orientation 6 | decodes | decodes | decodes as stored |
+| HEIC, irot from heif-enc --rotate-cw 90 | doesn't decode | doesn't decode | doesn't decode |
 | PNG, eXIf orientation 6, imageOrientation none | decodes 32 × 48, red | decodes 32 × 48, red | decodes |
 | JPEG, EXIF orientation 6, imageOrientation none | decodes 32 × 48, red | decodes 32 × 48, red | decodes 32 × 48, red |
 | WebP, EXIF orientation 6, imageOrientation none | decodes | decodes | decodes |

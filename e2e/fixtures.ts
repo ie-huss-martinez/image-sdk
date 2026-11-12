@@ -151,3 +151,27 @@ export function webpRotated(): Uint8Array {
     chunks: [simple.subarray(12), webpChunk("EXIF", exif({ orientation: 6 }))],
   });
 }
+
+/** The four-colour PNG with an `eXIf` chunk, before or after `IDAT`. */
+export function quadrantsPng(orientation: number, place: "before IDAT" | "after IDAT"): Uint8Array {
+  const png = fixture("quadrants.png");
+  const chunk = pngChunk("eXIf", exif({ orientation }));
+  // IEND is the last 12 bytes; the encoder writes IHDR and then IDAT.
+  const at = place === "before IDAT" ? 8 + 8 + 13 + 4 : png.length - 12;
+  return concat([png.subarray(0, at), chunk, png.subarray(at)]);
+}
+
+/** The four-colour JPEG with EXIF orientation in APP1. */
+export function quadrantsJpeg(orientation: number): Uint8Array {
+  return afterSoi(fixture("quadrants.jpg"), [
+    segment(0xe1, concat([latin1("Exif\0\0"), exif({ orientation })])),
+  ]);
+}
+
+/** The four-colour lossless WebP in an extended file with an EXIF orientation. */
+export function quadrantsWebp(orientation: number): Uint8Array {
+  return webp({
+    canvas: { width: 48, height: 32 },
+    chunks: [fixture("quadrants.webp").subarray(12), webpChunk("EXIF", exif({ orientation }))],
+  });
+}
