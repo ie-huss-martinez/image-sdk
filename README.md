@@ -8,7 +8,7 @@ This repository will publish **`@hussmartinez/image-sdk`**. It follows the famil
 
 ## Development
 
-The repository root is the published package, laid out as in the family's [standard layout](https://github.com/ie-huss-martinez/sdk-core/blob/main/STANDARDS.md#repository-layout): the source is in [`src`](src), and the examples and end-to-end tests will join the pnpm workspace as `examples/` and `e2e/`.
+The repository root is the published package, laid out as in the family's [standard layout](https://github.com/ie-huss-martinez/sdk-core/blob/main/STANDARDS.md#repository-layout): the source is in [`src`](src), and the pnpm workspace adds [`examples/`](examples), pages that run in the browser as hosts do, and [`e2e/`](e2e), the end-to-end suite.
 
 You need Node 24 (see [`.node-version`](.node-version)) and pnpm. The exact pnpm version is pinned in `package.json`, and pnpm switches to it automatically.
 
@@ -31,6 +31,8 @@ Browser tests need Playwright's browsers once: `pnpm exec playwright install chr
 | Build | `build` | Vite, then api-extractor for the type declarations |
 | Unit tests | `test` | Vitest |
 | Browser tests | `test:browser` | Vitest in Chromium, and in Firefox and WebKit too in CI |
+| Examples | `build:examples` | Vite, building `examples/vite` |
+| End-to-end tests | `test:e2e` | Playwright against the built example: the [browser capability matrix](docs/capabilities.md) and no requests to other origins |
 | Size budgets | `check:size` | size-limit, brotli size of each entry point |
 | API reports | `check:api` | api-extractor, one report per entry point in [`api`](api) |
 | Package checks | `check:package` | publint and Are the Types Wrong? |

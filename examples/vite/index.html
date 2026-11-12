@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>image-sdk browser capabilities</title>
+  </head>
+  <body>
+    <main>
+      <h1>image-sdk browser capabilities</h1>
+      <p>
+        Choose an image to decode it in a worker on this device, as the SDK will. Nothing is
+        uploaded.
+      </p>
+      <label>Image <input id="file" type="file" accept="image/*" /></label>
+      <button id="features" type="button">Measure this browser's worker canvas</button>
+      <output id="result" aria-live="polite"></output>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
