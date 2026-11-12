@@ -3,6 +3,7 @@ import type { ImageProbe } from "../../core/model/source.js";
 import { isBmp, probeBmp } from "./bmp.js";
 import { startsWith } from "./bytes.js";
 import { isGif, probeGif } from "./gif.js";
+import { isHeif, probeHeif } from "./heif.js";
 import { JPEG_SIGNATURE, probeJpeg } from "./jpeg.js";
 import { PNG_SIGNATURE, probePng } from "./png.js";
 import { isWebp, probeWebp } from "./webp.js";
@@ -10,8 +11,8 @@ import type { WindowReader } from "./window-reader.js";
 
 /**
  * Probes a file by its signature bytes, never its name or MIME type, and
- * fails closed on anything it doesn't recognise (ADR 0001). PNG, JPEG, WebP,
- * GIF and BMP are read so far; AVIF and HEIF join in their own pull request.
+ * fails closed on anything it doesn't recognise (ADR 0001). It reads PNG,
+ * JPEG, WebP, GIF, AVIF, HEIF and BMP.
  *
  * @internal
  */
@@ -28,6 +29,9 @@ export async function probeImage(reader: WindowReader): Promise<ImageProbe> {
   }
   if (isGif(head)) {
     return probeGif(reader);
+  }
+  if (isHeif(head)) {
+    return probeHeif(reader);
   }
   if (isBmp(head)) {
     return probeBmp(reader);

@@ -344,3 +344,145 @@ export function bmp(spec: BmpSpec): Uint8Array {
   const fileSize = 14 + headerSize + pixels.length;
   return concat([latin1("BM"), le32(fileSize), [0, 0, 0, 0], le32(dataOffset), header, pixels]);
 }
+
+export function box(
+  type: string,
+  ...payload: readonly (readonly number[] | Uint8Array)[]
+): Uint8Array {
+  const body = concat(payload);
+  return concat([be32(body.length + 8), latin1(type), body]);
+}
+
+export function fullBox(
+  type: string,
+  version: number,
+  flags: number,
+  ...payload: readonly (readonly number[] | Uint8Array)[]
+): Uint8Array {
+  return box(
+    type,
+    [version, (flags >>> 16) & 0xff, (flags >>> 8) & 0xff, flags & 0xff],
+    ...payload,
+  );
+}
+
+export const ispe = (width: number, height: number) =>
+  fullBox("ispe", 0, 0, be32(width), be32(height));
+export const irot = (quarterTurns: number) => box("irot", [quarterTurns]);
+export const imir = (axis: number) => box("imir", [axis]);
+export const auxC = (type: string) => fullBox("auxC", 0, 0, latin1(type), [0]);
+export const ALPHA_AUX = "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha";
+export const GAIN_MAP_AUX = "urn:com:apple:photo:2020:aux:hdrgainmap";
+
+/** An `ImageGrid` payload, with 32-bit output sizes when either exceeds 16 bits. */
+export function gridData(rows: number, columns: number, width: number, height: number): Uint8Array {
+  const wide = width > 0xffff || height > 0xffff;
+  return concat([
+    [0, wide ? 1 : 0, rows - 1, columns - 1],
+    wide ? [...be32(width), ...be32(height)] : [...be16(width), ...be16(height)],
+  ]);
+}
+
+export interface HeifItem {
+  id: number;
+  type: string;
+  /** Omit for an item without an `ispe`. */
+  size?: { width: number; height: number };
+  /** More properties, associated after `ispe` in this order. */
+  properties?: readonly Uint8Array[];
+  /** Data stored in `idat`, as a grid's payload is. */
+  data?: Uint8Array;
+  /** Data stored in `mdat`, as an EXIF item's is. */
+  mdat?: Uint8Array;
+}
+
+export interface HeifSpec {
+  brand?: string;
+  primary: number;
+  items: readonly HeifItem[];
+  references?: readonly { type: string; from: number; to: readonly number[] }[];
+  /** Top-level boxes after `meta`, such as `moov`. */
+  after?: readonly Uint8Array[];
+}
+
+/**
+ * An AVIF or HEIF file: `ftyp`, then a `meta` box with every item, its
+ * properties and locations, then `mdat`. Coded items carry no data, since
+ * the probe never reads it.
+ */
+export function heif(spec: HeifSpec): Uint8Array {
+  const brand = spec.brand ?? "avif";
+  const ftyp = box("ftyp", latin1(brand), be32(0), latin1("mif1"), latin1(brand));
+  const properties: Uint8Array[] = [];
+  const ipmaEntries: number[] = [];
+  const propertyCount = spec.items.reduce(
+    (sum, item) => sum + (item.size ? 1 : 0) + (item.properties?.length ?? 0),
+    0,
+  );
+  // Indices take 7 bits, or 15 when the flag says so.
+  const wide = propertyCount > 127;
+  for (const item of spec.items) {
+    const own = [
+      ...(item.size ? [ispe(item.size.width, item.size.height)] : []),
+      ...(item.properties ?? []),
+    ];
+    ipmaEntries.push(...be16(item.id), own.length);
+    for (const property of own) {
+      properties.push(property);
+      ipmaEntries.push(...(wide ? be16(properties.length) : [properties.length]));
+    }
+  }
+  const idatParts = spec.items.filter((item) => item.data !== undefined);
+  const mdatParts = spec.items.filter((item) => item.mdat !== undefined);
+  const iref = (spec.references ?? []).map((reference) =>
+    box(reference.type, be16(reference.from), be16(reference.to.length), ...reference.to.map(be16)),
+  );
+  const build = (mdatAt: number) => {
+    const ilocEntries: number[] = [];
+    let idatOffset = 0;
+    for (const item of idatParts) {
+      const length = item.data?.length ?? 0;
+      ilocEntries.push(...be16(item.id), 0, 1, 0, 0, 0, 1, ...be32(idatOffset), ...be32(length));
+      idatOffset += length;
+    }
+    let mdatOffset = mdatAt + 8;
+    for (const item of mdatParts) {
+      const length = item.mdat?.length ?? 0;
+      ilocEntries.push(...be16(item.id), 0, 0, 0, 0, 0, 1, ...be32(mdatOffset), ...be32(length));
+      mdatOffset += length;
+    }
+    return fullBox(
+      "meta",
+      0,
+      0,
+      fullBox("hdlr", 0, 0, be32(0), latin1("pict"), new Array(12).fill(0), [0]),
+      fullBox("pitm", 0, 0, be16(spec.primary)),
+      fullBox(
+        "iinf",
+        0,
+        0,
+        be16(spec.items.length),
+        ...spec.items.map((item) =>
+          fullBox("infe", 2, 0, be16(item.id), be16(0), latin1(item.type), [0]),
+        ),
+      ),
+      ...(iref.length > 0 ? [fullBox("iref", 0, 0, ...iref)] : []),
+      box(
+        "iprp",
+        box("ipco", ...properties),
+        fullBox("ipma", 0, wide ? 1 : 0, be32(spec.items.length), ipmaEntries),
+      ),
+      fullBox("iloc", 1, 0, [0x44, 0x00], be16(idatParts.length + mdatParts.length), ilocEntries),
+      ...(idatParts.length > 0 ? [box("idat", ...idatParts.map((item) => item.data ?? []))] : []),
+    );
+  };
+  // The meta box's size doesn't depend on where mdat starts, so build it twice.
+  const meta = build(ftyp.length + build(0).length);
+  const mdat = box("mdat", ...mdatParts.map((item) => item.mdat ?? []));
+  return concat([ftyp, meta, mdat, ...(spec.after ?? [])]);
+}
+
+/** An EXIF item's payload: the TIFF header offset, `Exif\0\0`, then the block. */
+export function heifExif(block: Uint8Array): Uint8Array {
+  return concat([be32(6), latin1("Exif\0\0"), block]);
+}

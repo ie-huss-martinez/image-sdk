@@ -1,11 +1,20 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  ALPHA_AUX,
   anmf,
+  auxC,
   bmp,
+  box,
   concat,
   exif,
+  GAIN_MAP_AUX,
   gif,
+  gridData,
+  heif,
+  heifExif,
+  imir,
+  irot,
   jpeg,
   jpegSegment,
   png,
@@ -387,6 +396,349 @@ describe("probing BMP", () => {
   });
 });
 
+describe("probing AVIF and HEIF", () => {
+  const still = (properties: readonly Uint8Array[] = []) =>
+    heif({
+      primary: 1,
+      items: [{ id: 1, type: "av01", size: { width: 40, height: 30 }, properties }],
+    });
+
+  /** A grid primary over `rows × columns` tiles of one size. */
+  const grid = (options: {
+    rows: number;
+    columns: number;
+    output: { width: number; height: number };
+    tile: { width: number; height: number };
+    declared?: { width: number; height: number };
+    tileSizes?: readonly { width: number; height: number }[];
+  }) => {
+    const count = options.rows * options.columns;
+    const tiles = Array.from({ length: count }, (_, i) => ({
+      id: 2 + i,
+      type: "av01",
+      size: options.tileSizes?.[i] ?? options.tile,
+    }));
+    const declared = options.declared ?? options.output;
+    return heif({
+      primary: 1,
+      items: [
+        {
+          id: 1,
+          type: "grid",
+          size: options.output,
+          data: gridData(options.rows, options.columns, declared.width, declared.height),
+        },
+        ...tiles,
+      ],
+      references: [{ type: "dimg", from: 1, to: tiles.map((tile) => tile.id) }],
+    });
+  };
+
+  it("reads a still image's size from the primary item's ispe", async () => {
+    expect(await probe(still())).toMatchObject({
+      format: "avif",
+      stored: { width: 40, height: 30 },
+      oriented: { width: 40, height: 30 },
+      orientation: 1,
+      frames: 1,
+      hasAlpha: false,
+      decodedPixelBound: 1200,
+    });
+  });
+
+  it("names HEIC files heif", async () => {
+    const bytes = heif({
+      brand: "heic",
+      primary: 1,
+      items: [{ id: 1, type: "hvc1", size: { width: 2, height: 2 } }],
+    });
+    expect((await probe(bytes)).format).toBe("heif");
+  });
+
+  it.each([
+    ["no transform", [], 1],
+    ["a quarter turn anticlockwise", [irot(1)], 8],
+    ["a half turn", [irot(2)], 3],
+    ["three quarter turns", [irot(3)], 6],
+    ["a mirror about the vertical axis", [imir(0)], 2],
+    ["a mirror about the horizontal axis", [imir(1)], 4],
+    ["a turn, then a mirror", [irot(1), imir(0)], 7],
+    ["a mirror, then a turn", [imir(0), irot(1)], 5],
+  ] as const)("maps %s to EXIF orientation %i", async (_, properties, orientation) => {
+    const result = await probe(still(properties));
+    expect(result.orientation).toBe(orientation);
+    expect(result.oriented).toEqual(
+      orientation >= 5 ? { width: 30, height: 40 } : { width: 40, height: 30 },
+    );
+  });
+
+  it("bounds a grid by its output and every tile", async () => {
+    const result = await probe(
+      grid({
+        rows: 2,
+        columns: 3,
+        output: { width: 300, height: 120 },
+        tile: { width: 100, height: 64 },
+      }),
+    );
+    expect(result).toMatchObject({
+      stored: { width: 300, height: 120 },
+      decodedPixelBound: 300 * 120 + 6 * 100 * 64,
+    });
+  });
+
+  it("counts oversized tiles under a small grid output, rather than the output alone", async () => {
+    const result = await probe(
+      grid({
+        rows: 1,
+        columns: 2,
+        output: { width: 8, height: 8 },
+        tile: { width: 16000, height: 16000 },
+      }),
+    );
+    expect(result.decodedPixelBound).toBe(64 + 2 * 16000 * 16000);
+  });
+
+  it("allows a grid of 1,024 tiles and rejects 1,025", async () => {
+    const tile = { width: 1, height: 1 };
+    expect(
+      (await probe(grid({ rows: 32, columns: 32, output: { width: 32, height: 32 }, tile })))
+        .decodedPixelBound,
+    ).toBe(2048);
+    const tooMany = grid({ rows: 25, columns: 41, output: { width: 41, height: 25 }, tile });
+    expect(isImageError(await failure(tooMany), "INVALID_IMAGE")).toBe(true);
+  });
+
+  it.each([
+    [
+      "tiles of unequal sizes",
+      grid({
+        rows: 1,
+        columns: 2,
+        output: { width: 20, height: 10 },
+        tile: { width: 10, height: 10 },
+        tileSizes: [
+          { width: 10, height: 10 },
+          { width: 12, height: 10 },
+        ],
+      }),
+    ],
+    [
+      "an output larger than its tiles",
+      grid({
+        rows: 1,
+        columns: 2,
+        output: { width: 21, height: 10 },
+        tile: { width: 10, height: 10 },
+      }),
+    ],
+    [
+      "a declared output that differs from the ispe",
+      grid({
+        rows: 1,
+        columns: 2,
+        output: { width: 20, height: 10 },
+        declared: { width: 20, height: 9 },
+        tile: { width: 10, height: 10 },
+      }),
+    ],
+    [
+      "fewer tiles than rows × columns",
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "grid", size: { width: 20, height: 10 }, data: gridData(1, 2, 20, 10) },
+          { id: 2, type: "av01", size: { width: 10, height: 10 } },
+        ],
+        references: [{ type: "dimg", from: 1, to: [2] }],
+      }),
+    ],
+    [
+      "a tile without an ispe",
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "grid", size: { width: 10, height: 10 }, data: gridData(1, 1, 10, 10) },
+          { id: 2, type: "av01" },
+        ],
+        references: [{ type: "dimg", from: 1, to: [2] }],
+      }),
+    ],
+    [
+      "a grid whose tile is a grid",
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "grid", size: { width: 10, height: 10 }, data: gridData(1, 1, 10, 10) },
+          { id: 2, type: "grid", size: { width: 10, height: 10 }, data: gridData(1, 1, 10, 10) },
+          { id: 3, type: "av01", size: { width: 10, height: 10 } },
+        ],
+        references: [
+          { type: "dimg", from: 1, to: [2] },
+          { type: "dimg", from: 2, to: [3] },
+        ],
+      }),
+    ],
+    [
+      "a reference cycle",
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "grid", size: { width: 10, height: 10 }, data: gridData(1, 1, 10, 10) },
+          { id: 2, type: "av01", size: { width: 10, height: 10 } },
+        ],
+        references: [
+          { type: "dimg", from: 1, to: [2] },
+          { type: "auxl", from: 2, to: [1] },
+        ],
+      }),
+    ],
+    [
+      "a reference to an undeclared item",
+      heif({
+        primary: 1,
+        items: [{ id: 1, type: "av01", size: { width: 10, height: 10 } }],
+        references: [{ type: "auxl", from: 9, to: [1] }],
+      }),
+    ],
+    ["a primary item without an ispe", heif({ primary: 1, items: [{ id: 1, type: "av01" }] })],
+    [
+      "a primary item that isn't declared",
+      heif({ primary: 2, items: [{ id: 1, type: "av01", size: { width: 1, height: 1 } }] }),
+    ],
+  ])("rejects %s", async (_, bytes) => {
+    expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
+  });
+
+  it("counts an alpha plane, a gain map and a thumbnail, and flags alpha and the thumbnail", async () => {
+    const result = await probe(
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "av01", size: { width: 10, height: 10 } },
+          {
+            id: 2,
+            type: "av01",
+            size: { width: 4000, height: 4000 },
+            properties: [auxC(ALPHA_AUX)],
+          },
+          {
+            id: 3,
+            type: "av01",
+            size: { width: 5000, height: 5000 },
+            properties: [auxC(GAIN_MAP_AUX)],
+          },
+          { id: 4, type: "av01", size: { width: 3, height: 3 } },
+        ],
+        references: [
+          { type: "auxl", from: 2, to: [1] },
+          { type: "auxl", from: 3, to: [1] },
+          { type: "thmb", from: 4, to: [1] },
+        ],
+      }),
+    );
+    expect(result).toMatchObject({
+      hasAlpha: true,
+      decodedPixelBound: 100 + 4000 * 4000 + 5000 * 5000 + 9,
+      metadata: { thumbnail: true },
+    });
+  });
+
+  it("counts an ISO gain map reached through a tone-map item that derives from the primary", async () => {
+    const result = await probe(
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "av01", size: { width: 10, height: 10 } },
+          { id: 2, type: "tmap", size: { width: 10, height: 10 } },
+          { id: 3, type: "av01", size: { width: 3000, height: 3000 } },
+        ],
+        references: [{ type: "dimg", from: 2, to: [1, 3] }],
+      }),
+    );
+    expect(result.decodedPixelBound).toBe(100 + 100 + 3000 * 3000);
+  });
+
+  it("counts an alpha grid's own tiles", async () => {
+    const result = await probe(
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "av01", size: { width: 10, height: 10 } },
+          {
+            id: 2,
+            type: "grid",
+            size: { width: 10, height: 10 },
+            data: gridData(1, 2, 10, 10),
+            properties: [auxC(ALPHA_AUX)],
+          },
+          { id: 3, type: "av01", size: { width: 5, height: 10 } },
+          { id: 4, type: "av01", size: { width: 5, height: 10 } },
+        ],
+        references: [
+          { type: "auxl", from: 2, to: [1] },
+          { type: "dimg", from: 2, to: [3, 4] },
+        ],
+      }),
+    );
+    expect(result).toMatchObject({ hasAlpha: true, decodedPixelBound: 100 + 100 + 50 + 50 });
+  });
+
+  it("reads EXIF presence flags and keepable fields, but not its orientation", async () => {
+    const result = await probe(
+      heif({
+        primary: 1,
+        items: [
+          { id: 1, type: "av01", size: { width: 10, height: 20 }, properties: [irot(3)] },
+          {
+            id: 2,
+            type: "Exif",
+            mdat: heifExif(exif({ orientation: 8, gps: true, copyright: "CC" })),
+          },
+          { id: 3, type: "mime" },
+        ],
+        references: [{ type: "cdsc", from: 2, to: [1] }],
+      }),
+    );
+    expect(result).toMatchObject({
+      orientation: 6,
+      metadata: { location: true, other: true },
+      keepable: { copyright: "CC" },
+    });
+  });
+
+  it("refuses image sequences", async () => {
+    const bytes = heif({
+      brand: "avis",
+      primary: 1,
+      items: [{ id: 1, type: "av01", size: { width: 10, height: 10 } }],
+      after: [box("moov")],
+    });
+    expect(isImageError(await failure(bytes), "UNSUPPORTED_FORMAT")).toBe(true);
+  });
+
+  it("refuses a primary item of a type it doesn't bound", async () => {
+    const bytes = heif({
+      primary: 1,
+      items: [{ id: 1, type: "iovl", size: { width: 10, height: 10 } }],
+    });
+    expect(isImageError(await failure(bytes), "UNSUPPORTED_FORMAT")).toBe(true);
+  });
+
+  it("rejects an EXIF item whose data lies past the end of the file", async () => {
+    const bytes = heif({
+      primary: 1,
+      items: [
+        { id: 1, type: "av01", size: { width: 10, height: 10 } },
+        { id: 2, type: "Exif", mdat: heifExif(exif({})) },
+      ],
+    });
+    expect(isImageError(await failure(bytes.subarray(0, bytes.length - 4)), "INVALID_IMAGE")).toBe(
+      true,
+    );
+  });
+});
+
 describe("unknown formats", () => {
   it.each([
     ["TIFF", [0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0]],
@@ -438,6 +790,27 @@ describe("the probes are hostile-input code", () => {
       ],
     }),
     bmp: bmp({ width: 4, height: -2, headerSize: 124, embeddedProfile: true }),
+    "AVIF grid with alpha": heif({
+      primary: 1,
+      items: [
+        {
+          id: 1,
+          type: "grid",
+          size: { width: 20, height: 10 },
+          data: gridData(1, 2, 20, 10),
+          properties: [irot(1), imir(0)],
+        },
+        { id: 2, type: "av01", size: { width: 10, height: 10 } },
+        { id: 3, type: "av01", size: { width: 10, height: 10 } },
+        { id: 4, type: "av01", size: { width: 20, height: 10 }, properties: [auxC(ALPHA_AUX)] },
+        { id: 5, type: "Exif", mdat: heifExif(exif({ gps: true, artist: "a" })) },
+      ],
+      references: [
+        { type: "dimg", from: 1, to: [2, 3] },
+        { type: "auxl", from: 4, to: [1] },
+        { type: "cdsc", from: 5, to: [1] },
+      ],
+    }),
   };
 
   it.each(Object.entries(fixtures))(
@@ -475,6 +848,7 @@ describe("the probes are hostile-input code", () => {
           fixtures.webp.subarray(0, 12),
           fixtures.gif.subarray(0, 6),
           fixtures.bmp.subarray(0, 2),
+          fixtures["AVIF grid with alpha"].subarray(0, 12),
         ),
         fc.uint8Array({ maxLength: 512 }),
         async (signature, tail) => {
