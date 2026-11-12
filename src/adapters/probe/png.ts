@@ -26,7 +26,8 @@ const KEEPABLE_TEXT: Record<string, "title" | "description" | "artist" | "copyri
  * dimensions from `IHDR`, which must come first; frames from `acTL`,
  * cross-checked against every `fcTL`, each of which must fit inside
  * `IHDR`; presence flags from `eXIf`, text chunks, `iCCP` and `tIME`, and
- * the orientation from an `eXIf` before `IDAT` only, as browsers read it. Image data is never decompressed.
+ * the orientation from an `eXIf` before `IDAT` only, as browsers read it.
+ * Image data is never decompressed.
  *
  * @internal
  */
