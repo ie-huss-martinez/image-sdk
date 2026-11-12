@@ -63,3 +63,29 @@ export function ascii(bytes: Uint8Array, at: number, length: number): string {
 export function startsWith(bytes: Uint8Array, prefix: readonly number[]): boolean {
   return prefix.every((value, i) => bytes[i] === value);
 }
+
+/** @internal */
+export function u16le(bytes: Uint8Array, at: number): number {
+  return (bytes[at] ?? 0) | ((bytes[at + 1] ?? 0) << 8);
+}
+
+/** @internal */
+export function u24le(bytes: Uint8Array, at: number): number {
+  return (bytes[at] ?? 0) | ((bytes[at + 1] ?? 0) << 8) | ((bytes[at + 2] ?? 0) << 16);
+}
+
+/** @internal */
+export function u32le(bytes: Uint8Array, at: number): number {
+  return (
+    ((bytes[at] ?? 0) |
+      ((bytes[at + 1] ?? 0) << 8) |
+      ((bytes[at + 2] ?? 0) << 16) |
+      ((bytes[at + 3] ?? 0) << 24)) >>>
+    0
+  );
+}
+
+/** @internal */
+export function i32le(bytes: Uint8Array, at: number): number {
+  return u32le(bytes, at) | 0;
+}

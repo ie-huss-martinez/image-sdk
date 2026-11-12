@@ -1,12 +1,19 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  anmf,
+  bmp,
   concat,
   exif,
+  gif,
   jpeg,
   jpegSegment,
   png,
   pngChunk,
+  vp8,
+  vp8l,
+  webp,
+  webpChunk,
 } from "../../../test/fixtures/image-writers.js";
 import { isImageError } from "../../core/errors/image-error.js";
 import { probeImage } from "./probe.js";
@@ -201,9 +208,188 @@ describe("probing JPEG", () => {
   });
 });
 
+describe("probing WebP", () => {
+  it("reads a lossy file's size from the VP8 frame header", async () => {
+    const result = await probe(webp({ simple: vp8(30, 20) }));
+    expect(result).toMatchObject({
+      format: "webp",
+      stored: { width: 30, height: 20 },
+      frames: 1,
+      hasAlpha: false,
+      decodedPixelBound: 600,
+    });
+  });
+
+  it("reads a lossless file's size and alpha from the VP8L header", async () => {
+    const result = await probe(webp({ simple: vp8l(7, 5, true) }));
+    expect(result).toMatchObject({ stored: { width: 7, height: 5 }, hasAlpha: true });
+  });
+
+  it("takes an extended file's size from the canvas, and orientation and flags from EXIF", async () => {
+    const result = await probe(
+      webp({
+        canvas: { width: 30, height: 20, alpha: true },
+        chunks: [
+          webpChunk("ICCP", [0, 0, 0, 0]),
+          vp8(30, 20),
+          webpChunk(
+            "EXIF",
+            concat([
+              Array.from("Exif\0\0", (c) => c.charCodeAt(0)),
+              exif({ orientation: 6, gps: true, artist: "Ana" }),
+            ]),
+          ),
+        ],
+      }),
+    );
+    expect(result).toMatchObject({
+      stored: { width: 30, height: 20 },
+      oriented: { width: 20, height: 30 },
+      orientation: 6,
+      hasAlpha: true,
+      metadata: { location: true, colourProfile: true },
+      keepable: { artist: "Ana" },
+    });
+  });
+
+  it("rejects a bitstream whose size differs from the canvas", async () => {
+    const bytes = webp({ canvas: { width: 30, height: 20 }, chunks: [vp8(31, 20)] });
+    expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
+  });
+
+  it("counts every animation frame, and bounds by frames × canvas", async () => {
+    const result = await probe(
+      webp({
+        canvas: { width: 10, height: 10, animated: true },
+        chunks: [anmf({ width: 10, height: 10 }), anmf({ width: 4, height: 4, x: 6, y: 6 })],
+      }),
+    );
+    expect(result).toMatchObject({ frames: 2, decodedPixelBound: 200 });
+  });
+
+  it.each([
+    [
+      "a frame outside the canvas",
+      webp({
+        canvas: { width: 10, height: 10, animated: true },
+        chunks: [anmf({ width: 4, height: 4, x: 8 })],
+      }),
+    ],
+    [
+      "a frame without the animation flag",
+      webp({ canvas: { width: 10, height: 10 }, chunks: [anmf({ width: 10, height: 10 })] }),
+    ],
+    ["an animation without frames", webp({ canvas: { width: 10, height: 10, animated: true } })],
+    ["an extended file without image data", webp({ canvas: { width: 10, height: 10 } })],
+    [
+      "a first chunk that isn't an image header",
+      webp({ chunks: [webpChunk("ICCP", [0, 0]), vp8(2, 2)] }),
+    ],
+    [
+      "a VP8 chunk without its start code",
+      webp({ simple: webpChunk("VP8 ", new Array(10).fill(0)) }),
+    ],
+  ])("rejects %s", async (_, bytes) => {
+    expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
+  });
+
+  it("rejects a RIFF size larger than the file", async () => {
+    const bytes = webp({ simple: vp8(2, 2) });
+    bytes[4] = 0xff;
+    expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
+  });
+});
+
+describe("probing GIF", () => {
+  it("reads the logical screen, counts frames, and bounds by frames × screen", async () => {
+    const result = await probe(
+      gif({
+        width: 12,
+        height: 8,
+        transparent: true,
+        frames: [
+          { width: 12, height: 8 },
+          { width: 2, height: 2, x: 10, y: 6 },
+          { width: 1, height: 1 },
+        ],
+      }),
+    );
+    expect(result).toMatchObject({
+      format: "gif",
+      stored: { width: 12, height: 8 },
+      orientation: 1,
+      frames: 3,
+      hasAlpha: true,
+      decodedPixelBound: 288,
+      metadata: { other: false },
+    });
+  });
+
+  it("flags comments as other metadata", async () => {
+    const result = await probe(
+      gif({ width: 1, height: 1, comment: "hi", frames: [{ width: 1, height: 1 }] }),
+    );
+    expect(result.metadata.other).toBe(true);
+  });
+
+  it.each([
+    [
+      "a frame outside the screen",
+      gif({ width: 4, height: 4, frames: [{ width: 2, height: 2, x: 3 }] }),
+    ],
+    ["no frames", gif({ width: 4, height: 4, frames: [] })],
+    [
+      "an LZW code size above 8",
+      gif({ width: 4, height: 4, codeSize: 9, frames: [{ width: 4, height: 4 }] }),
+    ],
+    ["an empty screen", gif({ width: 0, height: 4, frames: [] })],
+  ])("rejects %s", async (_, bytes) => {
+    expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
+  });
+
+  it("rejects a file without its trailer", async () => {
+    const bytes = gif({ width: 4, height: 4, frames: [{ width: 4, height: 4 }] });
+    expect(isImageError(await failure(bytes.subarray(0, bytes.length - 1)), "INVALID_IMAGE")).toBe(
+      true,
+    );
+  });
+});
+
+describe("probing BMP", () => {
+  it("reads the size from BITMAPINFOHEADER, with top-down rows", async () => {
+    const result = await probe(bmp({ width: 5, height: -3, bitCount: 32 }));
+    expect(result).toMatchObject({
+      format: "bmp",
+      stored: { width: 5, height: 3 },
+      frames: 1,
+      hasAlpha: true,
+      decodedPixelBound: 15,
+    });
+  });
+
+  it("reads BITMAPCOREHEADER and a V5 header's embedded profile", async () => {
+    expect((await probe(bmp({ width: 4, height: 2, headerSize: 12 }))).stored).toEqual({
+      width: 4,
+      height: 2,
+    });
+    const v5 = await probe(bmp({ width: 4, height: 2, headerSize: 124, embeddedProfile: true }));
+    expect(v5.metadata.colourProfile).toBe(true);
+  });
+
+  it.each([
+    ["pixel data past the end of the file", bmp({ width: 4, height: 2, dataOffset: 4096 })],
+    ["pixel data inside the headers", bmp({ width: 4, height: 2, dataOffset: 20 })],
+    ["an unknown header size", bmp({ width: 4, height: 2, headerSize: 64 })],
+    ["a zero width", bmp({ width: 0, height: 2 })],
+    ["an unsupported bit depth", bmp({ width: 4, height: 2, bitCount: 7 })],
+  ])("rejects %s", async (_, bytes) => {
+    expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
+  });
+});
+
 describe("unknown formats", () => {
   it.each([
-    ["GIF", [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]],
+    ["TIFF", [0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0]],
     ["SVG", Array.from("<svg xmlns='http://www.w3.org/2000/svg'/>", (c) => c.charCodeAt(0))],
     ["empty", []],
   ])("fail closed with UNSUPPORTED_FORMAT: %s", async (_, bytes) => {
@@ -234,6 +420,24 @@ describe("the probes are hostile-input code", () => {
       iccProfile: true,
       exif: exif({ orientation: 6, thumbnail: true, artist: "a" }),
     }),
+    webp: webp({
+      canvas: { width: 10, height: 10, alpha: true },
+      chunks: [vp8(10, 10), webpChunk("EXIF", exif({ orientation: 3, gps: true }))],
+    }),
+    "animated WebP": webp({
+      canvas: { width: 10, height: 10, animated: true },
+      chunks: [anmf({ width: 10, height: 10 }), anmf({ width: 4, height: 4, x: 6, y: 6 })],
+    }),
+    gif: gif({
+      width: 6,
+      height: 6,
+      comment: "c",
+      frames: [
+        { width: 6, height: 6 },
+        { width: 2, height: 2, x: 4, y: 4 },
+      ],
+    }),
+    bmp: bmp({ width: 4, height: -2, headerSize: 124, embeddedProfile: true }),
   };
 
   it.each(Object.entries(fixtures))(
@@ -265,7 +469,13 @@ describe("the probes are hostile-input code", () => {
   it("settles safely on random bytes behind a valid signature", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.constantFrom(fixtures.png.subarray(0, 8), Uint8Array.of(0xff, 0xd8, 0xff)),
+        fc.constantFrom(
+          fixtures.png.subarray(0, 8),
+          Uint8Array.of(0xff, 0xd8, 0xff),
+          fixtures.webp.subarray(0, 12),
+          fixtures.gif.subarray(0, 6),
+          fixtures.bmp.subarray(0, 2),
+        ),
         fc.uint8Array({ maxLength: 512 }),
         async (signature, tail) => {
           await settlesSafely(concat([signature, tail]));
