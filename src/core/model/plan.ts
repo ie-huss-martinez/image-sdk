@@ -36,7 +36,86 @@ export interface ImageOrientation {
 }
 
 /**
- * The image being edited: a source, its crop and its orientation.
+ * The base's tonal and colour adjustments (ADR 0006). Each is an integer
+ * from -100 to 100, where 0 is unchanged, applied in this order.
+ *
+ * @public
+ */
+export interface ImageDevelop {
+  /** Warmer (positive) or cooler (negative). */
+  readonly temperature: number;
+  /** Toward magenta (positive) or green (negative). */
+  readonly tint: number;
+  /** In fiftieths of a stop: 100 is two stops brighter. */
+  readonly exposure: number;
+  readonly highlights: number;
+  readonly shadows: number;
+  readonly contrast: number;
+  readonly saturation: number;
+  /** Saturation weighted toward the least saturated colours. */
+  readonly vibrance: number;
+}
+
+/**
+ * The names of the develop adjustments, in the order they're applied.
+ *
+ * @public
+ */
+export const DEVELOP_ADJUSTMENTS = [
+  "temperature",
+  "tint",
+  "exposure",
+  "highlights",
+  "shadows",
+  "contrast",
+  "saturation",
+  "vibrance",
+] as const satisfies readonly (keyof ImageDevelop)[];
+
+/**
+ * Every adjustment at 0: the base as it was decoded.
+ *
+ * @public
+ */
+export const NEUTRAL_DEVELOP: ImageDevelop = Object.freeze({
+  temperature: 0,
+  tint: 0,
+  exposure: 0,
+  highlights: 0,
+  shadows: 0,
+  contrast: 0,
+  saturation: 0,
+  vibrance: 0,
+});
+
+/**
+ * The filter presets (ADR 0006). Names are part of the document format:
+ * presets are only ever added.
+ *
+ * @public
+ */
+export const FILTER_PRESETS = ["vivid", "warm", "cool", "fade", "mono", "noir", "sepia"] as const;
+
+/**
+ * A filter preset's name.
+ *
+ * @public
+ */
+export type ImageFilterPreset = (typeof FILTER_PRESETS)[number];
+
+/**
+ * A filter preset and its strength, an integer from 0 (no effect) to 100.
+ *
+ * @public
+ */
+export interface ImageFilter {
+  readonly preset: ImageFilterPreset;
+  readonly strength: number;
+}
+
+/**
+ * The image being edited: a source, its crop and orientation, and its
+ * develop adjustments and filter.
  *
  * @public
  */
@@ -46,6 +125,9 @@ export interface ImageBase {
   /** The crop, or `null` for the whole image. */
   readonly crop: ImageCrop | null;
   readonly orientation: ImageOrientation;
+  readonly develop: ImageDevelop;
+  /** The filter, or `null` for none. */
+  readonly filter: ImageFilter | null;
 }
 
 /**
@@ -86,14 +168,14 @@ export const UPRIGHT: ImageOrientation = Object.freeze({ rotate: 0, flipX: false
 export const FULL_SIZE: ImageOutput = Object.freeze({ kind: "scale", scale: 1 });
 
 /**
- * The plan for a newly opened source: the whole image, upright, at full
- * size, keeping no metadata.
+ * The plan for a newly opened source: the whole image, upright, undeveloped
+ * and unfiltered, at full size, keeping no metadata.
  *
  * @public
  */
 export function createPlan(source: string): ImagePlan {
   return {
-    base: { source, crop: null, orientation: UPRIGHT },
+    base: { source, crop: null, orientation: UPRIGHT, develop: NEUTRAL_DEVELOP, filter: null },
     output: FULL_SIZE,
     metadata: { title: "", description: "", artist: "", copyright: "" },
   };

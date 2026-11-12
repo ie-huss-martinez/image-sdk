@@ -37,10 +37,12 @@ export default [
   {
     // The render worker, inlined as a minified string and loaded on the first
     // call (docs/adr/0002): the probes, the decoder and its orientation
-    // calibration.
+    // calibration, the renderer, the encoders' metadata rewrite, and develop
+    // and filters (docs/adr/0006). Measured at 15.7 kB with develop; the
+    // layers and redaction will join it.
     name: "Render worker, inlined (lazy)",
     path: "dist/lazy/inline-worker-*.js",
     brotli: true,
-    limit: "15 kB",
+    limit: "20 kB",
   },
 ];

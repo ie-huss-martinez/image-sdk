@@ -40,12 +40,22 @@ export {
 export type {
   ImageBase,
   ImageCrop,
+  ImageDevelop,
+  ImageFilter,
+  ImageFilterPreset,
   ImageOrientation,
   ImageOutput,
   ImagePlan,
   ImageRotation,
 } from "./core/model/plan.js";
-export { createPlan, FULL_SIZE, UPRIGHT } from "./core/model/plan.js";
+export {
+  createPlan,
+  DEVELOP_ADJUSTMENTS,
+  FILTER_PRESETS,
+  FULL_SIZE,
+  NEUTRAL_DEVELOP,
+  UPRIGHT,
+} from "./core/model/plan.js";
 export type {
   ExifOrientation,
   ImageFormat,
@@ -60,6 +70,8 @@ export { EMPTY_KEEPABLE_METADATA, MAX_METADATA_LENGTH, NO_METADATA } from "./cor
 export type {
   ImageCommand,
   SetCropCommand,
+  SetDevelopCommand,
+  SetFilterCommand,
   SetMetadataCommand,
   SetOrientationCommand,
   SetOutputCommand,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { developPixels } from "../../src/adapters/export/develop.js";
 import {
   createPlan,
   type ExifOrientation,
@@ -7,6 +8,7 @@ import {
   type ImageProcessor,
   imageLimits,
   isImageError,
+  NEUTRAL_DEVELOP,
 } from "../../src/index.js";
 import { aborted, type InspectedExport, rejection, type TestImageSpec } from "./harness-types.js";
 
@@ -172,6 +174,39 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
       await processor.destroy();
       await engine.destroy();
     });
+
+    it.each([
+      [{ exposure: 40, contrast: 25 }, null],
+      [
+        { temperature: -30, saturation: 60 },
+        { preset: "sepia", strength: 70 },
+      ],
+      [{}, { preset: "fade", strength: 100 }],
+    ] as const)(
+      "develops %o with filter %o exactly as the reference math does (ADR 0006)",
+      async (develop, filter) => {
+        const { engine, processor, plan } = await open(harness, { width: 5, height: 4 });
+        const output = await harness.inspect(
+          await processor.export({
+            plan: {
+              ...plan,
+              base: { ...plan.base, develop: { ...NEUTRAL_DEVELOP, ...develop }, filter },
+            },
+            format: { type: "png" },
+          }),
+        );
+        for (let y = 0; y < 4; y += 1) {
+          for (let x = 0; x < 5; x += 1) {
+            const expected = Uint8ClampedArray.from(harness.storedColour(x, y));
+            developPixels(expected, { ...NEUTRAL_DEVELOP, ...develop }, filter);
+            // Opaque pixels round-trip exactly, so the result is exact.
+            expect(output.pixel(x, y), `${x},${y}`).toEqual(Array.from(expected));
+          }
+        }
+        await processor.destroy();
+        await engine.destroy();
+      },
+    );
 
     it("refuses an output over the file policy before drawing it", async () => {
       const { engine, processor, plan } = await open(harness, { width: 8, height: 4 });

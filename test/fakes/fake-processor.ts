@@ -1,3 +1,4 @@
+import { developPixels } from "../../src/adapters/export/develop.js";
 import { throwIfAborted } from "../../src/core/errors/error-helpers.js";
 import {
   compositionSize,
@@ -44,6 +45,10 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
           pixels.push(...source.pixels.subarray(s, s + 4));
         }
       }
+      // The same reference math as the SDK's renderer (ADR 0006).
+      const developed = Uint8ClampedArray.from(pixels);
+      developPixels(developed, plan.base.develop, plan.base.filter);
+      pixels.splice(0, pixels.length, ...developed);
       const metadata = Object.fromEntries(
         Object.entries(plan.metadata).filter(([, value]) => value !== ""),
       );

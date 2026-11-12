@@ -1,6 +1,10 @@
 import { ImageError } from "../errors/image-error.js";
 import {
+  DEVELOP_ADJUSTMENTS,
+  FILTER_PRESETS,
   type ImageCrop,
+  type ImageDevelop,
+  type ImageFilter,
   type ImageOrientation,
   type ImageOutput,
   type ImagePlan,
@@ -55,6 +59,27 @@ export interface SetMetadataCommand {
 }
 
 /**
+ * Sets some of the base's develop adjustments; the others keep their values
+ * (ADR 0006).
+ *
+ * @public
+ */
+export interface SetDevelopCommand {
+  readonly type: "image.setDevelop";
+  readonly values: Partial<ImageDevelop>;
+}
+
+/**
+ * Sets the base's filter preset and strength, or removes it with `null`.
+ *
+ * @public
+ */
+export interface SetFilterCommand {
+  readonly type: "image.setFilter";
+  readonly filter: ImageFilter | null;
+}
+
+/**
  * Every edit to an {@link ImagePlan}: plain, structured-cloneable data
  * (ADR 0003). Feature pull requests add their own commands to this union.
  *
@@ -64,7 +89,9 @@ export type ImageCommand =
   | SetCropCommand
   | SetOrientationCommand
   | SetOutputCommand
-  | SetMetadataCommand;
+  | SetMetadataCommand
+  | SetDevelopCommand
+  | SetFilterCommand;
 
 const METADATA_FIELDS: ReadonlySet<string> = new Set([
   "title",
@@ -86,6 +113,33 @@ function checkOrientation({ rotate, flipX, flipY }: ImageOrientation): void {
     throw invalid(
       "An orientation needs a rotation of 0, 90, 180 or 270 degrees and boolean flips.",
     );
+  }
+}
+
+const ADJUSTMENTS: ReadonlySet<string> = new Set(DEVELOP_ADJUSTMENTS);
+const PRESETS: ReadonlySet<string> = new Set(FILTER_PRESETS);
+const isLevel = (value: unknown, min: number, max: number) =>
+  Number.isInteger(value) && (value as number) >= min && (value as number) <= max;
+
+function checkDevelop(values: Partial<ImageDevelop>): void {
+  if (typeof values !== "object" || values === null) {
+    throw invalid("Develop values must be an object of adjustments.");
+  }
+  for (const [name, value] of Object.entries(values)) {
+    if (!ADJUSTMENTS.has(name)) throw invalid(`"${name}" isn't a develop adjustment.`);
+    if (!isLevel(value, -100, 100)) {
+      throw invalid(`${name} must be a whole number from -100 to 100.`);
+    }
+  }
+}
+
+function checkFilter(filter: ImageFilter | null): void {
+  if (filter === null) return;
+  if (typeof filter !== "object" || !PRESETS.has(filter.preset)) {
+    throw invalid(`A filter needs one of the presets: ${FILTER_PRESETS.join(", ")}.`);
+  }
+  if (!isLevel(filter.strength, 0, 100)) {
+    throw invalid("A filter's strength must be a whole number from 0 to 100.");
   }
 }
 
@@ -169,6 +223,35 @@ export function createImageReducer(
             field: command.field,
             value: plan.metadata[command.field],
           },
+        };
+      case "image.setDevelop": {
+        checkDevelop(command.values);
+        const previous: Partial<Record<keyof ImageDevelop, number>> = {};
+        for (const name of Object.keys(command.values) as (keyof ImageDevelop)[]) {
+          previous[name] = plan.base.develop[name];
+        }
+        return {
+          state: {
+            ...plan,
+            base: { ...plan.base, develop: { ...plan.base.develop, ...command.values } },
+          },
+          inverse: { type: "image.setDevelop", values: previous },
+        };
+      }
+      case "image.setFilter":
+        checkFilter(command.filter);
+        return {
+          state: {
+            ...plan,
+            base: {
+              ...plan.base,
+              filter:
+                command.filter === null
+                  ? null
+                  : { preset: command.filter.preset, strength: command.filter.strength },
+            },
+          },
+          inverse: { type: "image.setFilter", filter: plan.base.filter },
         };
       default:
         throw invalid(`Unknown command "${(command as { type?: unknown }).type}".`);
