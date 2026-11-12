@@ -82,6 +82,25 @@ async function encode(type: string): Promise<string> {
   }
 }
 
+/** Draws red through `brightness(50%)`: an engine that applies the filter halves it. */
+function contextFilter(): FeatureOutcome["contextFilter"] {
+  try {
+    const context = new OffscreenCanvas(1, 1).getContext("2d", { willReadFrequently: true });
+    if (!context || !("filter" in context)) return "not available";
+    const red = new OffscreenCanvas(1, 1);
+    const redContext = red.getContext("2d");
+    if (!redContext) return "not available";
+    redContext.fillStyle = "#ff0000";
+    redContext.fillRect(0, 0, 1, 1);
+    context.filter = "brightness(50%)";
+    context.drawImage(red, 0, 0);
+    const [r = 255] = context.getImageData(0, 0, 1, 1).data;
+    return r < 200 ? "applies" : "ignored";
+  } catch {
+    return "not available";
+  }
+}
+
 function displayP3(): boolean {
   try {
     const context = new OffscreenCanvas(1, 1).getContext("2d", { colorSpace: "display-p3" });
@@ -115,7 +134,14 @@ async function features(): Promise<FeatureOutcome> {
     if (draws(middle, 1)) low = middle;
     else high = middle;
   }
-  return { offscreen2d, encodes, displayP3: displayP3(), draws: sizes, longestSide: low };
+  return {
+    offscreen2d,
+    encodes,
+    displayP3: displayP3(),
+    contextFilter: contextFilter(),
+    draws: sizes,
+    longestSide: low,
+  };
 }
 
 self.addEventListener("message", async (event: MessageEvent<Request>) => {

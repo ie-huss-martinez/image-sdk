@@ -20,6 +20,8 @@ export interface FeatureOutcome {
   /** The type `convertToBlob` returned for each requested type, or `fails`. */
   readonly encodes: Readonly<Record<string, string>>;
   readonly displayP3: boolean;
+  /** Whether the 2D context's `filter` property exists, and whether drawing applies it. */
+  readonly contextFilter: "applies" | "ignored" | "not available";
   /** Whether a canvas of each size drew, keyed `W×H`. */
   readonly draws: Readonly<Record<string, boolean>>;
   /** The longest side of a one-pixel-high canvas that still draws. */

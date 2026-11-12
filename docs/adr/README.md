@@ -13,3 +13,4 @@ Use [`template.md`](template.md) for new records. Name files `NNNN-short-title.m
 | [0003](0003-layer-plan-document-model.md) | The layer plan: edits change a model, and pixels are rendered on export | Accepted |
 | [0004](0004-image-limits.md) | Image limits and session memory | Accepted |
 | [0005](0005-colour-orientation-and-metadata.md) | Colour, orientation and metadata: sRGB, oriented sources, and nothing kept by default | Accepted |
+| [0006](0006-develop-and-filters.md) | Develop adjustments and filter presets: our own pixel math in the render worker | Accepted |

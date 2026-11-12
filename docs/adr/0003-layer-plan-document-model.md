@@ -23,7 +23,7 @@ The session's document is a **layer plan** over immutable sources:
     - **`crop`:** `{ x, y, width, height }` in whole pixels of the oriented source, or none for the whole image;
     - **`orientation`:** `rotate` (0, 90, 180 or 270 degrees) and `flipX`, `flipY`, applied after the crop;
     - **`develop`:** exposure, contrast, saturation, temperature and the other adjustments, each a number in a fixed range, with 0 meaning unchanged;
-    - **`filter`:** a preset name and its strength, or none.
+    - **`filter`:** a preset name and its strength, or none. [ADR 0006](0006-develop-and-filters.md) defines the adjustments, the presets and how they're rendered.
   - **`canvas`:** the composition's size and background colour. By default it follows the cropped, oriented base.
   - **`layers`:** an ordered list, drawn bottom to top over the base. Each has a stable `key`, `visible`, `opacity` and a kind:
     - `text`: the text, a font from a fixed system-font list, size, colour, alignment and an optional outline;
