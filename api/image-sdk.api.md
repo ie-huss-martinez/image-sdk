@@ -46,6 +46,9 @@ export function createImageReducer(sourceSize: (id: string) => ImageSize | undef
 export function createImageRenderer(engine: ImageEngine): ImageRenderer;
 
 // @public
+export function createImageSession(options: ImageSessionOptions): ImageSession;
+
+// @public
 export function createPlan(source: string): ImagePlan;
 
 // @public
@@ -421,6 +424,76 @@ export type ImageRenderOutcome = "drawn" | "superseded";
 
 // @public
 export type ImageRotation = 0 | 90 | 180 | 270;
+
+// @public
+export interface ImageSession {
+    destroy(): Promise<void>;
+    execute(commands: ImageCommand | readonly ImageCommand[]): void;
+    export(format: ImageExportFormat, options?: {
+        readonly signal?: AbortSignal;
+        readonly onProgress?: (fraction: number) => void;
+    }): Promise<ImageSessionExport>;
+    // (undocumented)
+    getSnapshot(): ImageSessionSnapshot;
+    group<T>(fn: () => T): T;
+    open(file: Blob, options?: {
+        readonly signal?: AbortSignal;
+    }): Promise<ImageSessionSource>;
+    redo(): boolean;
+    subscribe(listener: () => void): () => void;
+    undo(): boolean;
+}
+
+// @public
+export interface ImageSessionEvent {
+    readonly commands: readonly ImageCommand["type"][];
+    // (undocumented)
+    readonly outcome: "done" | "failed" | "cancelled";
+    // (undocumented)
+    readonly type: "open" | "execute" | "undo" | "redo" | "export";
+}
+
+// @public
+export interface ImageSessionExport {
+    // (undocumented)
+    readonly blob: Blob;
+    // (undocumented)
+    readonly height: number;
+    readonly kept: readonly (keyof ImageKeepableMetadata)[];
+    readonly removed: readonly (keyof ImageMetadataPresence)[];
+    // (undocumented)
+    readonly width: number;
+}
+
+// @public
+export interface ImageSessionOptions {
+    readonly engine: ImageEngine;
+    readonly filePolicy?: ImageFilePolicyOverrides;
+    // (undocumented)
+    readonly onEvent?: (event: ImageSessionEvent) => void;
+    readonly processor: ImageProcessor;
+}
+
+// @public
+export interface ImageSessionSnapshot {
+    // (undocumented)
+    readonly canRedo: boolean;
+    // (undocumented)
+    readonly canUndo: boolean;
+    readonly error: ImageError | null;
+    readonly exporting: boolean;
+    readonly opening: boolean;
+    readonly plan: ImagePlan | null;
+    readonly source: ImageSessionSource | null;
+    readonly status: "empty" | "opening" | "ready";
+    readonly warnings: readonly ImageLimitName[];
+}
+
+// @public
+export interface ImageSessionSource extends ImageSourceInfo {
+    readonly keepable: ImageKeepableMetadata;
+    readonly metadata: ImageMetadataPresence;
+}
 
 // @public
 export interface ImageSize {

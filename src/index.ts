@@ -97,5 +97,14 @@ export type {
   ImageProgressOptions,
   ImageRegisterOptions,
 } from "./core/ports/options.js";
+export type {
+  ImageSession,
+  ImageSessionEvent,
+  ImageSessionExport,
+  ImageSessionOptions,
+  ImageSessionSnapshot,
+  ImageSessionSource,
+} from "./core/session/session.js";
+export { createImageSession } from "./core/session/session.js";
 export type { ImageMessageCatalogue } from "./messages/en.js";
 export { imageMessages } from "./messages/en.js";
