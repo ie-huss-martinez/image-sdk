@@ -1,9 +1,10 @@
 import { createWorkerClient, type WorkerClient, type WorkerLike } from "@hussmartinez/sdk-core";
 import { abortError, asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
 import { ImageError } from "../core/errors/image-error.js";
+import { imageLimits, PER_FILE_LIMITS } from "../core/errors/image-limits.js";
 import type { ImageProbe, ImageSourceInfo, ImageThumbnail } from "../core/model/source.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
-import type { ImageCallOptions, ImageProgressOptions } from "../core/ports/options.js";
+import type { ImageCallOptions, ImageRegisterOptions } from "../core/ports/options.js";
 import { assetsBase } from "./assets-url.js";
 import type { RenderWorkerContract } from "./render-worker/contract.js";
 
@@ -152,14 +153,30 @@ export function createEngine(environment: EngineEnvironment): ImageEngine {
       id: string,
       file: Blob,
       probe: ImageProbe,
-      options?: ImageProgressOptions,
+      options?: ImageRegisterOptions,
     ): Promise<ImageSourceInfo> {
       if (destroyed) throw new Error("The image engine has been destroyed.");
       if (ids.has(id)) throw new TypeError(`The source id "${id}" is already in use.`);
       ids.add(id);
       try {
         const size = await run(options?.signal, () =>
-          client.call("register", { id, file, probe }, callOptions(options)),
+          client.call(
+            "register",
+            {
+              id,
+              file,
+              probe,
+              // The maxima cross to the worker, which checks them against its
+              // own probe (docs/adr/0004).
+              limits: Object.fromEntries(
+                PER_FILE_LIMITS.map((limit) => [
+                  limit,
+                  (options?.filePolicy ?? imageLimits.resolve()).limits[limit].maximum,
+                ]),
+              ) as Record<(typeof PER_FILE_LIMITS)[number], number>,
+            },
+            callOptions(options),
+          ),
         );
         options?.onProgress?.(1);
         return {

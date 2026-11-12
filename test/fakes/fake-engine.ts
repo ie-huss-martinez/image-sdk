@@ -1,11 +1,13 @@
 import { throwIfAborted } from "../../src/core/errors/error-helpers.js";
 import { orientedSize } from "../../src/core/model/geometry.js";
 import {
+  checkFileLimits,
   type ImageEngine,
   ImageError,
   type ImageProbe,
   type ImageSourceInfo,
   type ImageThumbnail,
+  imageLimits,
 } from "../../src/index.js";
 import { decodeJson, type FakeImageFile, storedPixelFor } from "./fake-image.js";
 
@@ -48,7 +50,7 @@ export function createFakeEngine(): FakeEngine {
     }
   };
 
-  return {
+  const engine: FakeEngine = {
     sources,
     async probe(file, options) {
       alive();
@@ -83,6 +85,12 @@ export function createFakeEngine(): FakeEngine {
       if (sources.has(id)) {
         throw new TypeError(`Source "${id}" is already registered.`);
       }
+      // Its own probe, under the policy, before anything decodes.
+      checkFileLimits(
+        options?.filePolicy ?? imageLimits.resolve(),
+        file.size,
+        await engine.probe(file),
+      );
       const fake = await readFake(file);
       const decoded = fake.decodesAs ?? orientedSize(fake, fake.orientation);
       if (decoded.width !== probe.oriented.width || decoded.height !== probe.oriented.height) {
@@ -134,4 +142,5 @@ export function createFakeEngine(): FakeEngine {
       sources.clear();
     },
   };
+  return engine;
 }

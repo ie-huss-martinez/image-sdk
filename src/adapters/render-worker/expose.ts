@@ -1,5 +1,6 @@
 import { type ExposeWorkerOptions, exposeWorker } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
+import { checkFileLimits, imageLimits } from "../../core/errors/image-limits.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { decodeUpright } from "../decode/decode.js";
 import { probeImage } from "../probe/probe.js";
@@ -31,7 +32,7 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
     {
       version: () => __IMAGE_SDK_VERSION__,
       probe: ({ file }) => probeImage(createWindowReader(file)),
-      async register({ id, file, probe }, { signal }) {
+      async register({ id, file, probe, limits }, { signal }) {
         if (sources.has(id)) throw new TypeError(`The source id "${id}" is already in use.`);
         // The page's probe is input like any other: the worker probes the
         // file itself, and decodes only what its own probe bounds.
@@ -41,6 +42,7 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
             details: { format: own.format, problem: "the probe describes another file" },
           });
         }
+        checkFileLimits(imageLimits.resolve(limits), file.size, own);
         const bitmap = await decodeUpright(file, own);
         if (signal.aborted) {
           bitmap.close();

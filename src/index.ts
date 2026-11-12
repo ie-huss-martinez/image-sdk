@@ -19,7 +19,12 @@ export type {
   ImageLimitDefinitions,
   ImageLimitName,
 } from "./core/errors/image-limits.js";
-export { imageLimitDefinitions, imageLimits } from "./core/errors/image-limits.js";
+export {
+  checkFileLimits,
+  imageLimitDefinitions,
+  imageLimits,
+  PER_FILE_LIMITS,
+} from "./core/errors/image-limits.js";
 export type { ImagePoint } from "./core/model/geometry.js";
 export {
   compositionSize,
@@ -63,6 +68,10 @@ export type {
   ImageExportJob,
   ImageProcessor,
 } from "./core/ports/image-processor.js";
-export type { ImageCallOptions, ImageProgressOptions } from "./core/ports/options.js";
+export type {
+  ImageCallOptions,
+  ImageProgressOptions,
+  ImageRegisterOptions,
+} from "./core/ports/options.js";
 export type { ImageMessageCatalogue } from "./messages/en.js";
 export { imageMessages } from "./messages/en.js";

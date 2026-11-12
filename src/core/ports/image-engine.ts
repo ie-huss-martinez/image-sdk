@@ -1,5 +1,5 @@
 import type { ImageProbe, ImageSourceInfo, ImageThumbnail } from "../model/source.js";
-import type { ImageCallOptions, ImageProgressOptions } from "./options.js";
+import type { ImageCallOptions, ImageRegisterOptions } from "./options.js";
 
 /**
  * The port for reading images: probe a file's headers, decode it into a
@@ -9,8 +9,10 @@ import type { ImageCallOptions, ImageProgressOptions } from "./options.js";
  * hosts can pass their own to the editor's `engine` prop, and every
  * implementation must pass the engine's contract tests.
  *
- * The engine doesn't apply the file policy: the session checks the probe
- * against it between `probe` and `register` (ADR 0004).
+ * `register` checks a file's own limits, from `filePolicy`, against the
+ * engine's own probe before decoding it, so a host can't decode past them by
+ * passing a probe of another file. Session-wide limits, such as
+ * `maxSessionSize`, are the session's (ADR 0004).
  *
  * Failures reject with `ImageError`: `INVALID_IMAGE` for a malformed file,
  * one whose headers claim more than its data holds, or one whose decoded
@@ -26,14 +28,16 @@ export interface ImageEngine {
   /**
    * Decodes a probed file into a source with the given id, upright. The
    * decoded size must equal the probe's oriented size, or the call rejects
-   * with `INVALID_IMAGE` and keeps nothing. An id already in use is a
+   * with `INVALID_IMAGE` and keeps nothing. A file over one of
+   * `filePolicy`'s per-file limits rejects with that limit's code, before
+   * anything decodes it. An id already in use is a
    * `TypeError`.
    */
   register(
     id: string,
     file: Blob,
     probe: ImageProbe,
-    options?: ImageProgressOptions,
+    options?: ImageRegisterOptions,
   ): Promise<ImageSourceInfo>;
   /**
    * A rendering of a source that fits inside `maxSize` × `maxSize`, keeping

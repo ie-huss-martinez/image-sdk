@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type ImageEngine, isImageError } from "../../src/index.js";
+import { type ImageEngine, imageLimits, isImageError } from "../../src/index.js";
 import { aborted, rejection, type TestImageSpec } from "./harness-types.js";
 
 /**
@@ -112,6 +112,28 @@ export function describeImageEngineContract(name: string, harness: ImageEngineHa
       const large = await engine.thumbnail("a", 1_000);
       expect([large.width, large.height]).toEqual([40, 20]);
       large.close();
+      await engine.destroy();
+    });
+
+    it("refuses a file over a per-file limit before decoding it, and keeps nothing", async () => {
+      const engine = harness.createEngine();
+      const file = await harness.file({ width: 40, height: 20 });
+      const probe = await engine.probe(file);
+      const error = await rejection(
+        engine.register("a", file, probe, {
+          filePolicy: imageLimits.resolve({ maxImagePixels: 799 }),
+        }),
+      );
+      expect(isImageError(error, "IMAGE_TOO_LARGE")).toBe(true);
+      await expect(engine.thumbnail("a", 10)).rejects.toThrow(TypeError);
+      const tooWide = await rejection(
+        engine.register("b", file, probe, {
+          filePolicy: imageLimits.resolve({ maxImageDimension: 39 }),
+        }),
+      );
+      expect(isImageError(tooWide, "IMAGE_DIMENSION_TOO_LARGE")).toBe(true);
+      // The same file within the limits registers.
+      await engine.register("c", file, probe, { filePolicy: imageLimits.resolve() });
       await engine.destroy();
     });
 

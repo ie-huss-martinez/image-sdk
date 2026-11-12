@@ -5,6 +5,7 @@ import {
   type FilePolicyOverrides,
   type Limits,
 } from "@hussmartinez/sdk-core";
+import type { ImageProbe } from "../model/source.js";
 import { ImageError } from "./image-error.js";
 
 /**
@@ -106,3 +107,41 @@ export const imageLimits: Limits<ImageLimitDefinitions> = /* @__PURE__ */ define
   imageLimitDefinitions,
   { errorClass: ImageError },
 );
+
+/**
+ * The limits that apply to one file on its own, which the engine checks
+ * against its own probe before it decodes anything (ADR 0004).
+ *
+ * @public
+ */
+export const PER_FILE_LIMITS = [
+  "maxFileSize",
+  "maxImageDimension",
+  "maxImagePixels",
+  "maxFrames",
+  "maxDecodedSize",
+] as const satisfies readonly ImageLimitName[];
+
+/**
+ * Checks one probed file against a policy's per-file limits, in the order
+ * of {@link PER_FILE_LIMITS}, and throws the first violation as an
+ * `ImageError` with the limit's code (ADR 0004). Returns the limits whose
+ * warning threshold the file reaches.
+ *
+ * @public
+ */
+export function checkFileLimits(
+  policy: ImageFilePolicy,
+  fileSize: number,
+  probe: ImageProbe,
+): ImageLimitName[] {
+  const { width, height } = probe.oriented;
+  const actual: Record<(typeof PER_FILE_LIMITS)[number], number> = {
+    maxFileSize: fileSize,
+    maxImageDimension: Math.max(width, height),
+    maxImagePixels: width * height,
+    maxFrames: probe.frames,
+    maxDecodedSize: probe.decodedPixelBound * 4,
+  };
+  return PER_FILE_LIMITS.filter((limit) => policy.check(limit, actual[limit]) === "warning");
+}
