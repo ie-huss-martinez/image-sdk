@@ -22,7 +22,7 @@ export async function encodePlan(
   signal?: AbortSignal,
 ): Promise<Blob> {
   const type = MIME_TYPES[format.type];
-  const canvas = renderPlan(source, plan, format.type === "jpeg", signal);
+  const canvas = await renderPlan(source, plan, format.type === "jpeg", signal);
   const encoded = await canvas.convertToBlob({
     type,
     ...(format.type === "png" ? {} : { quality: format.quality ?? 0.92 }),

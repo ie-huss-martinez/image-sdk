@@ -37,6 +37,9 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor;
 export function createImageReducer(sourceSize: (id: string) => ImageSize | undefined): Reducer<ImagePlan, ImageCommand>;
 
 // @public
+export function createImageRenderer(engine: ImageEngine): ImageRenderer;
+
+// @public
 export function createPlan(source: string): ImagePlan;
 
 // @public
@@ -53,6 +56,9 @@ export type ExifOrientation = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 // @public
 export const FILTER_PRESETS: readonly ["vivid", "warm", "cool", "fade", "mono", "noir", "sepia"];
+
+// @public
+export function fittedView(width: number, height: number, pixelRatio?: number): ImageView;
 
 // @public
 export const FULL_SIZE: ImageOutput;
@@ -393,6 +399,16 @@ export interface ImageRegisterOptions extends ImageProgressOptions {
 }
 
 // @public
+export interface ImageRenderer {
+    attach(canvas: HTMLCanvasElement): Promise<void>;
+    destroy(): Promise<void>;
+    render(plan: ImagePlan, view: ImageView, options?: ImageCallOptions): Promise<ImageRenderOutcome>;
+}
+
+// @public
+export type ImageRenderOutcome = "drawn" | "superseded";
+
+// @public
 export type ImageRotation = 0 | 90 | 180 | 270;
 
 // @public
@@ -428,6 +444,21 @@ export interface ImageThumbnail {
     readonly height: number;
     // (undocumented)
     readonly width: number;
+}
+
+// @public
+export interface ImageView {
+    // (undocumented)
+    readonly height: number;
+    // (undocumented)
+    readonly pan: {
+        readonly x: number;
+        readonly y: number;
+    };
+    readonly pixelRatio: number;
+    // (undocumented)
+    readonly width: number;
+    readonly zoom: number;
 }
 
 // @public

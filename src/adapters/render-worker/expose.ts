@@ -4,6 +4,7 @@ import { checkFileLimits, checkOutputLimits, imageLimits } from "../../core/erro
 import type { ImageProbe } from "../../core/model/source.js";
 import { decodeUpright } from "../decode/decode.js";
 import { encodePlan } from "../export/encode.js";
+import { drawPreview } from "../export/preview.js";
 import { renderSize } from "../export/render.js";
 import { probeImage } from "../probe/probe.js";
 import { createWindowReader } from "../probe/window-reader.js";
@@ -30,6 +31,7 @@ function sameDecode(a: ImageProbe, b: ImageProbe): boolean {
  */
 export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
   const sources = new Map<string, ImageBitmap>();
+  const canvases = new Map<string, OffscreenCanvasRenderingContext2D>();
   exposeWorker<RenderWorkerContract>(
     {
       version: () => __IMAGE_SDK_VERSION__,
@@ -69,6 +71,36 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         // The output canvas is checked before it's allocated (docs/adr/0004).
         checkOutputLimits(imageLimits.resolve(limits), renderSize(plan, source));
         return encodePlan(source, plan, format, signal);
+      },
+      attachCanvas({ id, canvas }) {
+        // One context per canvas, for its life: Firefox refuses a second
+        // getContext on a transferred canvas.
+        const context = canvas.getContext("2d", { colorSpace: "srgb" });
+        if (!context) throw new Error("The worker has no 2D canvas.");
+        canvases.set(id, context);
+        return undefined;
+      },
+      async render({ id, plan, view }, { signal }) {
+        const context = canvases.get(id);
+        if (!context) throw new TypeError(`There's no canvas with the id "${id}".`);
+        const source = sources.get(plan.base.source);
+        if (!source) throw new TypeError(`There's no source with the id "${plan.base.source}".`);
+        await drawPreview(context, source, plan, view, signal);
+        return undefined;
+      },
+      detachCanvas({ id }) {
+        const context = canvases.get(id);
+        if (context) {
+          context.canvas.width = 0;
+          context.canvas.height = 0;
+        }
+        canvases.delete(id);
+        return undefined;
+      },
+      snapshot({ id }) {
+        const context = canvases.get(id);
+        if (!context) throw new TypeError(`There's no canvas with the id "${id}".`);
+        return createImageBitmap(context.canvas);
       },
       release({ id }) {
         sources.get(id)?.close();
