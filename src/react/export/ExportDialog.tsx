@@ -143,9 +143,27 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
     objectUrl.current = null;
   };
-  // A download's URL lives until the next one, the dialog closes, or this unmounts.
+  // Whatever closes the dialog, such as another image opening, ends its
+  // export and drops its choices and result, so it reopens fresh. The
+  // controller is cleared before the abort, so the export's own handlers
+  // know it was ended for them, unlike Stop.
+  useEffect(() => {
+    if (open) return;
+    const running = controller.current;
+    controller.current = null;
+    running?.abort();
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+    objectUrl.current = null;
+    setDraft(null);
+    setPhase((now) => (now.kind === "choose" ? now : { kind: "choose" }));
+    setError(null);
+  }, [open]);
+
+  // Unmounting ends an export too, and frees a download's URL.
   useEffect(
     () => () => {
+      controller.current?.abort();
+      controller.current = null;
       if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
     },
     [],
@@ -157,13 +175,8 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     if (done) downloadButton.current?.focus();
   }, [done]);
 
+  /** Asks the editor to close the dialog; the effect on `open` resets it. */
   const close = () => {
-    controller.current?.abort();
-    controller.current = null;
-    revoke();
-    setDraft(null);
-    setPhase({ kind: "choose" });
-    setError(null);
     editorStore.set((state) => (state.dialog === null ? state : { ...state, dialog: null }));
   };
 
@@ -192,7 +205,8 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
         onProgress: (progress) =>
           setPhase((now) => (now.kind === "exporting" ? { kind: "exporting", progress } : now)),
       });
-      if (running.signal.aborted) return;
+      // Closed while it ran: the result belongs to no one.
+      if (controller.current !== running) return;
       controller.current = null;
       announce(
         messages.t("export.done", { format: formatName(current.format), size: result.blob.size }),
@@ -204,7 +218,9 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
       }
       setPhase({ kind: "done", result, format: current.format });
     } catch (reason) {
-      if (controller.current === running) controller.current = null;
+      // Closed while it ran: the reset dialog shows nothing of it.
+      if (controller.current !== running) return;
+      controller.current = null;
       setPhase({ kind: "choose" });
       if (isImageError(reason) && reason.code === "ABORTED") {
         announce(messages.t("export.cancelled"));

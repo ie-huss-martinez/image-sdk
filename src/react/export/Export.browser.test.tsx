@@ -51,7 +51,7 @@ async function opened(props: Partial<ImageEditorProps> = {}) {
     if (!handle.current) throw new Error("no handle");
     return handle.current.session;
   };
-  return { session, changes, start: changes.length };
+  return { session, changes, start: changes.length, handle };
 }
 
 const exportButton = () => {
@@ -198,6 +198,47 @@ describe("the export dialog (docs/adr/0007)", () => {
     await until(() => announced("Export stopped."), "the announcement");
     expect(dialog()).not.toBeNull();
     expect(dialog()?.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it("starts fresh after something else closes it, ending its export", async () => {
+    const signals: AbortSignal[] = [];
+    const exports: Blob[] = [];
+    const processor: ImageProcessor = {
+      export: (_job, options) =>
+        new Promise((_resolve, reject) => {
+          if (options?.signal) signals.push(options.signal);
+          options?.signal?.addEventListener("abort", () =>
+            reject(new ImageError("ABORTED", "Stopped.")),
+          );
+        }),
+      destroy: async () => {},
+    };
+    const { handle } = await opened({ processor, onExport: (blob) => exports.push(blob) });
+    await openDialog();
+    await click(inDialog("Fit in a box"));
+    await click(inDialog("WebP"));
+    expect(inDialog("Largest width")).toBeDefined();
+    await click(inDialog("Export"));
+    await until(() => dialog()?.querySelector("progress") !== null, "the export");
+
+    // Another image opens through the handle, as a host's would: the editor
+    // closes the dialog from outside it.
+    const canvas = new OffscreenCanvas(40, 10);
+    canvas.getContext("2d")?.fillRect(0, 0, 40, 10);
+    const second = await canvas.convertToBlob();
+    await act(async () => handle.current?.open(second));
+    await until(() => handle.current?.session.getSnapshot().source?.width === 40, "the second");
+    await until(() => dialog() === null, "the dialog to close");
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(true);
+
+    await openDialog();
+    expect(summary()).toContain("40 × 10 pixels, PNG");
+    expect(inDialog("PNG").getAttribute("aria-checked")).toBe("true");
+    expect(inDialog("Scale, in percent")).toBeDefined();
+    expect(dialog()?.querySelector("progress")).toBeNull();
+    expect(dialog()?.textContent).not.toContain("Download");
+    expect(exports).toEqual([]);
   });
 
   it("keeps its keys from the editor's shortcuts", async () => {
