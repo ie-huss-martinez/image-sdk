@@ -175,7 +175,7 @@ describe("the self-hosted worker (docs/adr/0002)", () => {
     const { version } = JSON.parse(await readFile("package.json", "utf8")) as { version: string };
     // In any quotes: the minifier may write it as a template literal.
     const escaped = version.replaceAll(".", "\\.");
-    expect(selfHosted()).toMatch(new RegExp(`version:\\(\\)=>[\`"']${escaped}[\`"']`));
+    expect(selfHosted()).toMatch(new RegExp(`packageVersion:[\`"']${escaped}[\`"']`));
   });
 
   it("generates no code from strings, and makes no requests", () => {

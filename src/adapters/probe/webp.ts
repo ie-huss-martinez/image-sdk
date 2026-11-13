@@ -1,7 +1,7 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import type { ImageProbe } from "../../core/model/source.js";
 import { ascii, exact, invalid, u24le, u32le } from "./bytes.js";
 import { emptyExif, readExif } from "./exif.js";
-import type { WindowReader } from "./window-reader.js";
 
 /** The most chunks a file may have; an animation has one per frame, plus a few. */
 const MAX_CHUNKS = 100_000;

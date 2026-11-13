@@ -1,7 +1,7 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import type { ImageProbe } from "../../core/model/source.js";
 import { EMPTY_KEEPABLE_METADATA, NO_METADATA } from "../../core/model/source.js";
 import { ascii, exact, invalid, u16le } from "./bytes.js";
-import type { WindowReader } from "./window-reader.js";
 
 /** The most blocks a file may have: a few per frame, and frames are limited by `maxFrames`. */
 const MAX_BLOCKS = 1_000_000;

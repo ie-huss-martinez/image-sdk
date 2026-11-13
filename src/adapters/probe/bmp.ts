@@ -1,7 +1,7 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import type { ImageProbe } from "../../core/model/source.js";
 import { EMPTY_KEEPABLE_METADATA, NO_METADATA } from "../../core/model/source.js";
 import { ascii, exact, i32le, invalid, u16le, u32le } from "./bytes.js";
-import type { WindowReader } from "./window-reader.js";
 
 /** The DIB header sizes browsers decode: core, info, and V2 to V5. */
 const HEADER_SIZES = new Set([12, 40, 52, 56, 108, 124]);

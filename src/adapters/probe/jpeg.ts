@@ -1,8 +1,8 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import { orientedSize } from "../../core/model/geometry.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { ascii, exact, invalid, u16be } from "./bytes.js";
 import { emptyExif, readExif } from "./exif.js";
-import type { WindowReader } from "./window-reader.js";
 
 /** JPEG's start-of-image marker. */
 export const JPEG_SIGNATURE = [0xff, 0xd8, 0xff] as const;

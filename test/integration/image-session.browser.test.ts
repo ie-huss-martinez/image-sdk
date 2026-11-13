@@ -1,8 +1,8 @@
+import { createWindowReader } from "@hussmartinez/sdk-core";
 import { describe, expect, it } from "vitest";
 import { createImageEngine } from "../../src/adapters/image-engine.js";
 import { createImageProcessor } from "../../src/adapters/image-processor.js";
 import { probeImage } from "../../src/adapters/probe/probe.js";
-import { createWindowReader } from "../../src/adapters/probe/window-reader.js";
 import { createImageSession } from "../../src/core/session/session.js";
 import { concat, exif, pngChunk } from "../fixtures/image-writers.js";
 

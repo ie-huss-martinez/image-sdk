@@ -1,4 +1,4 @@
-import { type ExposeWorkerOptions, exposeWorker } from "@hussmartinez/sdk-core";
+import { createWindowReader, type ExposeWorkerOptions, exposeWorker } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
 import { checkFileLimits, checkOutputLimits, imageLimits } from "../../core/errors/image-limits.js";
 import type { ImageProbe } from "../../core/model/source.js";
@@ -8,7 +8,6 @@ import { encodePlan } from "../export/encode.js";
 import { drawPreview } from "../export/preview.js";
 import { renderSize } from "../export/render.js";
 import { probeImage } from "../probe/probe.js";
-import { createWindowReader } from "../probe/window-reader.js";
 import type { RenderWorkerContract } from "./contract.js";
 
 /** Whether two probes describe the same decode: what the worker checks before trusting the page's. */
@@ -35,7 +34,6 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
   const canvases = new Map<string, OffscreenCanvasRenderingContext2D>();
   exposeWorker<RenderWorkerContract>(
     {
-      version: () => __IMAGE_SDK_VERSION__,
       probe: ({ file }) => probeImage(createWindowReader(file)),
       async register({ id, file, probe, limits }, { signal }) {
         if (sources.has(id)) throw new TypeError(`The source id "${id}" is already in use.`);
@@ -111,6 +109,8 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         return undefined;
       },
     },
-    options,
+    // The worker announces the version it was built from, and the page
+    // refuses another (sdk-core ADR 0038).
+    { ...options, packageVersion: __IMAGE_SDK_VERSION__ },
   );
 }

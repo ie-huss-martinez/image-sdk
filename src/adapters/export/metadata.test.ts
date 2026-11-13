@@ -1,3 +1,4 @@
+import { createWindowReader } from "@hussmartinez/sdk-core";
 import { describe, expect, it } from "vitest";
 import {
   exif,
@@ -11,7 +12,6 @@ import {
 } from "../../../test/fixtures/image-writers.js";
 import { EMPTY_KEEPABLE_METADATA } from "../../core/model/source.js";
 import { probeImage } from "../probe/probe.js";
-import { createWindowReader } from "../probe/window-reader.js";
 import { keptExif, rewriteJpeg, rewritePng, rewriteWebp } from "./metadata.js";
 
 const probe = (bytes: Uint8Array) => probeImage(createWindowReader(new Blob([bytes.slice()])));

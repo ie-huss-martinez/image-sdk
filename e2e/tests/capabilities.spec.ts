@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createWindowReader } from "@hussmartinez/sdk-core";
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import { probeImage } from "../../src/adapters/probe/probe.js";
-import { createWindowReader } from "../../src/adapters/probe/window-reader.js";
 import { isImageError } from "../../src/core/errors/image-error.js";
 import {
   type Browser,

@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { type ImageDevelop, type ImageFilter, NEUTRAL_DEVELOP } from "../../core/model/plan.js";
-import { developPixels } from "./develop.js";
+import { developPixels } from "../../src/adapters/export/develop.js";
+import { type ImageDevelop, type ImageFilter, NEUTRAL_DEVELOP } from "../../src/core/model/plan.js";
 
 /**
  * How long develop takes on 4 megapixels (docs/adr/0006), with `pnpm bench`:
@@ -83,6 +83,7 @@ it("times develop on 4 MP", () => {
   const table = rows
     .map((row) => `${String(row["median ms"]).padStart(6)} ms  ${row.case}`)
     .join("\n");
-  writeFileSync(new URL("../../../test-results/develop-bench.txt", import.meta.url), `${table}\n`);
-  expect(rows).toHaveLength(CASES.length);
+  writeFileSync(new URL("../../test-results/develop-bench.txt", import.meta.url), `${table}\n`);
+  // One row per case, on each kind of pixels.
+  expect(rows).toHaveLength(CASES.length * 2);
 });

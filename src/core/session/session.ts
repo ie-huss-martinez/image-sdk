@@ -1,3 +1,9 @@
+import {
+  applyCommands,
+  createHistory,
+  createStore,
+  type HistoryStep,
+} from "@hussmartinez/sdk-core";
 import { asImageError, throwIfAborted } from "../errors/error-helpers.js";
 import { ImageError, isImageError } from "../errors/image-error.js";
 import {
@@ -17,11 +23,8 @@ import type {
   ImageSourceInfo,
 } from "../model/source.js";
 import { createImageReducer, type ImageCommand } from "../operations/commands.js";
-import { applyCommands } from "../operations/reducer-types.js";
 import type { ImageEngine } from "../ports/image-engine.js";
 import type { ImageExportFormat, ImageProcessor } from "../ports/image-processor.js";
-import { createHistory, type HistoryStep } from "./history.js";
-import { createStore } from "./store.js";
 
 /**
  * The document's source, as the editor shows it: its size and format, and

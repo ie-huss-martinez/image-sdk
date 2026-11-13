@@ -1,10 +1,10 @@
+import { applyCommands } from "@hussmartinez/sdk-core";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { isImageError } from "../errors/image-error.js";
 import { createPlan, DEVELOP_ADJUSTMENTS, FILTER_PRESETS, type ImagePlan } from "../model/plan.js";
 import { MAX_METADATA_LENGTH } from "../model/source.js";
 import { createImageReducer, type ImageCommand } from "./commands.js";
-import { applyCommands } from "./reducer-types.js";
 
 const SIZE = { width: 40, height: 30 };
 const reducer = createImageReducer((id) => (id === "s" ? SIZE : undefined));

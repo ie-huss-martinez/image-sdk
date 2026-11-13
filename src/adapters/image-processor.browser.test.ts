@@ -1,3 +1,4 @@
+import { createWindowReader } from "@hussmartinez/sdk-core";
 import { describe, expect, it } from "vitest";
 import { describeImageProcessorContract } from "../../test/contracts/image-processor.contract.js";
 import { concat, exif, pngChunk } from "../../test/fixtures/image-writers.js";
@@ -9,7 +10,6 @@ import { renderPlan } from "./export/render.js";
 import { createImageEngine } from "./image-engine.js";
 import { createImageProcessor } from "./image-processor.js";
 import { probeImage } from "./probe/probe.js";
-import { createWindowReader } from "./probe/window-reader.js";
 
 /** A distinct, opaque colour for every stored pixel. */
 const storedColour = (x: number, y: number) => [(x * 50) % 256, (y * 60) % 256, 128, 255];
