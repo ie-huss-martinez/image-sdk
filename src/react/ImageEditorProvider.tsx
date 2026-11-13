@@ -117,9 +117,7 @@ export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode 
     () =>
       createMessages(imageMessages, {
         locale,
-        // Overrides are typed for hosts that write them as literals; at
-        // runtime createMessages validates them and ignores what doesn't fit.
-        ...(overrides ? { overrides: overrides as never } : {}),
+        ...(overrides ? { overrides } : {}),
       }),
     [locale, overrides],
   );

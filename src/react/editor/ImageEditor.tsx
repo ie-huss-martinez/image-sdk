@@ -1,5 +1,5 @@
-import { createShortcutRegistry, createToolRegistry, type Platform } from "@hussmartinez/sdk-core";
-import { AnnouncerProvider, useAnnounce } from "@hussmartinez/ui/react";
+import { createShortcutRegistry, createToolRegistry } from "@hussmartinez/sdk-core";
+import { AnnouncerProvider, useAnnounce, usePlatform } from "@hussmartinez/ui/react";
 import {
   type ForwardedRef,
   forwardRef,
@@ -22,15 +22,6 @@ import { imageIcons } from "../toolbar/icons.js";
 import type { ImageEditorHandle, ImageEditorProps } from "./types.js";
 
 const join = (...names: (string | undefined | false)[]) => names.filter(Boolean).join(" ");
-
-/** Apple platforms take `Cmd` for the family's `Mod`. */
-function platform(): Platform {
-  const nav = globalThis.navigator as
-    | (Navigator & { userAgentData?: { platform?: string } })
-    | undefined;
-  const name = nav?.userAgentData?.platform ?? nav?.platform ?? "";
-  return /mac|iphone|ipad|ipod/i.test(name) ? "apple" : "other";
-}
 
 interface BodyProps
   extends Pick<
@@ -71,9 +62,11 @@ function ImageEditorBody(props: BodyProps): ReactNode {
       }),
     [props.tools, props.toolbar],
   );
+  // "other" on the server and during hydration, then the device's own keys.
+  const platform = usePlatform();
   const shortcuts = useMemo(
-    () => createShortcutRegistry({ platform: platform(), tools: registry.tools }),
-    [registry],
+    () => createShortcutRegistry({ platform, tools: registry.tools }),
+    [platform, registry],
   );
   const context: ImageToolContext = useMemo(
     () => ({ session, view, editor, chooseFile: () => input.current?.click() }),

@@ -1,6 +1,6 @@
 import { useUiMessages } from "@hussmartinez/ui/react";
 import { act, createRef, StrictMode } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
@@ -186,6 +186,35 @@ describe("ImageEditor (docs/adr/0007)", () => {
       </ImageEditorProvider>,
     );
     expect(container.querySelector("output")?.textContent).toBe("Schließen");
+  });
+
+  it("hydrates on a Mac without a mismatch, then takes the Mac's keys", async () => {
+    const nav = globalThis.navigator;
+    const faked = ["platform", "userAgentData"] as const;
+    for (const name of faked) {
+      Object.defineProperty(nav, name, {
+        configurable: true,
+        value: name === "platform" ? "MacIntel" : { platform: "macOS" },
+      });
+    }
+    const recoverable: unknown[] = [];
+    try {
+      host = document.createElement("div");
+      host.innerHTML = renderToString(<ImageEditor />);
+      document.body.append(host);
+      const undo = () => button(host as HTMLElement, "image.undo");
+      expect(undo().getAttribute("aria-keyshortcuts")).toContain("Control+Z");
+      const target = host;
+      await act(async () => {
+        root = hydrateRoot(target, <ImageEditor />, {
+          onRecoverableError: (error) => recoverable.push(error),
+        });
+      });
+      expect(recoverable).toEqual([]);
+      expect(undo().getAttribute("aria-keyshortcuts")).toContain("Meta+Z");
+    } finally {
+      for (const name of faked) Reflect.deleteProperty(nav, name);
+    }
   });
 
   it("renders its empty state on a server, with no canvas", () => {
