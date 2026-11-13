@@ -4,4 +4,68 @@
 
 ```ts
 
+import { EditorElementDefine } from '@hussmartinez/sdk-core/element';
+import { FilePolicy } from '@hussmartinez/sdk-core';
+import { FilePolicyOverrides } from '@hussmartinez/sdk-core';
+import type { MessageOverrides } from '@hussmartinez/sdk-core';
+import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
+import { SdkError } from '@hussmartinez/sdk-core';
+
+// @public
+export const defineImageEditorElement: EditorElementDefine<Partial<ImageEditorElementProps>, ImageEditorElementMethods>;
+
+// @public
+export type ImageEditorElementEvent = "change" | "event" | "export" | "error";
+
+// Warning: (ae-forgotten-export) The symbol "ImageEditorHandle" needs to be exported by the entry point element.d.ts
+//
+// @public
+export type ImageEditorElementMethods = Pick<ImageEditorHandle, "open" | "execute" | "export" | "undo" | "redo">;
+
+// @public
+export interface ImageEditorElementProps {
+    assetsUrl?: string | URL;
+    // Warning: (ae-forgotten-export) The symbol "ImageEngine" needs to be exported by the entry point element.d.ts
+    //
+    // (undocumented)
+    engine?: ImageEngine;
+    file?: Blob;
+    // Warning: (ae-forgotten-export) The symbol "ImageFilePolicyOverrides" needs to be exported by the entry point element.d.ts
+    //
+    // (undocumented)
+    filePolicy?: ImageFilePolicyOverrides;
+    locale?: string;
+    // Warning: (ae-forgotten-export) The symbol "ImageMessageCatalogue" needs to be exported by the entry point element.d.ts
+    messages?: MessageOverrides<ImageMessageCatalogue>;
+    // Warning: (ae-forgotten-export) The symbol "ImagePlan" needs to be exported by the entry point element.d.ts
+    plan?: ImagePlan;
+    // Warning: (ae-forgotten-export) The symbol "ImageProcessor" needs to be exported by the entry point element.d.ts
+    //
+    // (undocumented)
+    processor?: ImageProcessor;
+    theme?: string;
+    tools?: readonly string[];
+}
+
+// @public
+export interface ImageExportReport {
+    // Warning: (ae-forgotten-export) The symbol "ImageExportFormat" needs to be exported by the entry point element.d.ts
+    //
+    // (undocumented)
+    readonly format: ImageExportFormat["type"];
+    // (undocumented)
+    readonly height: number;
+    // Warning: (ae-forgotten-export) The symbol "ImageKeepableMetadata" needs to be exported by the entry point element.d.ts
+    //
+    // (undocumented)
+    readonly kept: readonly (keyof ImageKeepableMetadata)[];
+    // Warning: (ae-forgotten-export) The symbol "ImageMetadataPresence" needs to be exported by the entry point element.d.ts
+    //
+    // (undocumented)
+    readonly removed: readonly (keyof ImageMetadataPresence)[];
+    readonly size: number;
+    // (undocumented)
+    readonly width: number;
+}
+
 ```

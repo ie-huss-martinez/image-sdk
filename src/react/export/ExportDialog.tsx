@@ -8,7 +8,7 @@ import {
   Slider,
   useAnnounce,
 } from "@hussmartinez/ui/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { isImageError } from "../../core/errors/image-error.js";
 import { compositionSize, outputSize } from "../../core/model/geometry.js";
 import type { ImageOutput, ImagePlan } from "../../core/model/plan.js";
@@ -26,6 +26,7 @@ import {
   useImageMessages,
   useImageSession,
 } from "../hooks.js";
+import { ExportListenerContext } from "./export-listener.js";
 
 /**
  * Props of {@link ImageExportDialog}.
@@ -129,6 +130,7 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
   const [editor, editorStore] = useImageEditorState();
   const messages = useImageMessages();
   const announce = useAnnounce();
+  const listener = useContext(ExportListenerContext);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: "choose" });
   const [error, setError] = useState<unknown>(null);
@@ -211,6 +213,14 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
       announce(
         messages.t("export.done", { format: formatName(current.format), size: result.blob.size }),
       );
+      listener?.({
+        format: current.format,
+        width: result.width,
+        height: result.height,
+        size: result.blob.size,
+        removed: result.removed,
+        kept: result.kept,
+      });
       if (onExport) {
         onExport(result.blob, result);
         close();

@@ -33,6 +33,7 @@ export default defineConfig({
         inline: "inline.html",
         strict: "strict.html",
         editor: "editor.html",
+        element: "element.html",
       },
     },
   },
