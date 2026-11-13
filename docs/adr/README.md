@@ -14,3 +14,4 @@ Use [`template.md`](template.md) for new records. Name files `NNNN-short-title.m
 | [0004](0004-image-limits.md) | Image limits and session memory | Accepted |
 | [0005](0005-colour-orientation-and-metadata.md) | Colour, orientation and metadata: sRGB, oriented sources, and nothing kept by default | Accepted |
 | [0006](0006-develop-and-filters.md) | Develop adjustments and filter presets: our own pixel math in the render worker | Accepted |
+| [0007](0007-editor-shell.md) | The editor shell: layout, the stage, gestures, shortcuts and focus | Accepted |
