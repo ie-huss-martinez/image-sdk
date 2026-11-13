@@ -1,9 +1,10 @@
 import { defineMessages, type MessageValue, plural, sdkCoreMessages } from "@hussmartinez/sdk-core";
+import { uiMessages } from "@hussmartinez/ui";
 import type { ImageErrorCode } from "../core/errors/image-error.js";
 import type { ImageLimitName } from "../core/errors/image-limits.js";
 
 /**
- * The image SDK's English message catalogue: sdk-core's messages, and text
+ * The image SDK's English message catalogue: sdk-core's and ui's messages, and text
  * for every {@link ImageErrorCode} and every limit's warning. Pass it to
  * `createMessages` from `@hussmartinez/sdk-core`, with the host's locale and
  * overrides. It also has the editor's text: its labels, states,
@@ -23,6 +24,9 @@ import type { ImageLimitName } from "../core/errors/image-limits.js";
  */
 export const imageMessages = /* @__PURE__ */ defineMessages({
   ...sdkCoreMessages,
+  // ui's components' text, so hosts translate the drop zone and dialogs
+  // through the editor's `messages` too (sdk-core ADR 0046).
+  ...uiMessages,
   "errors.INVALID_IMAGE": "This file isn't a valid image, or it's too damaged to open.",
   "errors.UNSUPPORTED_FORMAT":
     "This image format isn't supported. Try converting the file to PNG or JPEG, then open it again.",
@@ -108,6 +112,32 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
   "crop.cancel": "Cancel",
   "crop.reset": "Whole image",
   "crop.applied": "Cropped to {width, number} × {height, number}.",
+  "inspector.label": "Panels",
+  "inspector.adjust": "Adjust",
+  "inspector.filters": "Filters",
+  "develop.panel": "Adjust",
+  "develop.temperature": "Temperature",
+  "develop.tint": "Tint",
+  "develop.exposure": "Exposure",
+  "develop.highlights": "Highlights",
+  "develop.shadows": "Shadows",
+  "develop.contrast": "Contrast",
+  "develop.saturation": "Saturation",
+  "develop.vibrance": "Vibrance",
+  "develop.reset": "Reset {name}",
+  "develop.resetAll": "Reset all",
+  "develop.wasReset": "All adjustments reset.",
+  "filters.panel": "Filters",
+  "filters.label": "Filter",
+  "filters.none": "None",
+  "filters.vivid": "Vivid",
+  "filters.warm": "Warm",
+  "filters.cool": "Cool",
+  "filters.fade": "Fade",
+  "filters.mono": "Mono",
+  "filters.noir": "Noir",
+  "filters.sepia": "Sepia",
+  "filters.strength": "Strength",
 }) satisfies Record<`errors.${ImageErrorCode}`, MessageValue> &
   Record<`warnings.${ImageLimitName}`, MessageValue>;
 

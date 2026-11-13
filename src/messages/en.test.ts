@@ -1,4 +1,5 @@
-import { createMessages } from "@hussmartinez/sdk-core";
+import { createMessages, sdkCoreMessages } from "@hussmartinez/sdk-core";
+import { uiMessages } from "@hussmartinez/ui";
 import { describe, expect, it } from "vitest";
 import { ImageError, type ImageErrorCode } from "../core/errors/image-error.js";
 import { imageLimitDefinitions, imageLimits } from "../core/errors/image-limits.js";
@@ -90,5 +91,38 @@ describe("imageMessages", () => {
     expect(de.t("warnings.maxFrames", { actual: 1_200 })).toBe(
       "This animation has 1.200 frames, and may be slow to edit and export.",
     );
+  });
+});
+
+describe("the message catalogue (sdk-core ADR 0046)", () => {
+  const shared = new Set([...Object.keys(sdkCoreMessages), ...Object.keys(uiMessages)]);
+  const own = Object.keys(imageMessages).filter((key) => !shared.has(key));
+
+  it("includes every sdk-core and ui message, unchanged", () => {
+    for (const [key, value] of [
+      ...Object.entries(sdkCoreMessages),
+      ...Object.entries(uiMessages),
+    ]) {
+      expect(imageMessages[key as keyof typeof imageMessages], key).toEqual(value);
+    }
+  });
+
+  it("has keys of its own that collide with neither sdk-core's nor ui's", () => {
+    // Spreading catalogues lets a later key silently replace an earlier one,
+    // so a bump of sdk-core or ui that would take one of ours fails here.
+    expect(Object.keys(sdkCoreMessages).filter((key) => Object.hasOwn(uiMessages, key))).toEqual(
+      [],
+    );
+    expect(own.length).toBeGreaterThan(0);
+    const source = Object.keys(imageMessages);
+    expect(new Set(source).size).toBe(source.length);
+  });
+
+  it("names its own keys by surface, never by one of ui's component prefixes", () => {
+    const uiPrefixes = new Set(Object.keys(uiMessages).map((key) => key.split(".")[0]));
+    uiPrefixes.delete("errors");
+    for (const key of own) {
+      expect(uiPrefixes.has(key.split(".")[0]), key).toBe(false);
+    }
   });
 });

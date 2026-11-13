@@ -20,6 +20,15 @@ import type { Tool } from '@hussmartinez/sdk-core';
 import type { ToolRegistry } from '@hussmartinez/sdk-core';
 
 // @public
+export function ImageAdjustPanel(props: ImageAdjustPanelProps): ReactNode;
+
+// @public
+export interface ImageAdjustPanelProps {
+    // (undocumented)
+    readonly className?: string;
+}
+
+// @public
 export function ImageCropPanel(props: ImageCropPanelProps): ReactNode;
 
 // @public
@@ -91,6 +100,15 @@ export interface ImageEditorState {
     } | null;
     readonly preview: ImagePlan | null;
     readonly tool: "crop" | null;
+}
+
+// @public
+export function ImageFilterPanel(props: ImageFilterPanelProps): ReactNode;
+
+// @public
+export interface ImageFilterPanelProps {
+    // (undocumented)
+    readonly className?: string;
 }
 
 // @public

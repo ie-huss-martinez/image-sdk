@@ -1,13 +1,5 @@
-import {
-  createMessages,
-  createShortcutRegistry,
-  createToolRegistry,
-  defineMessages,
-  type Platform,
-  sdkCoreMessages,
-} from "@hussmartinez/sdk-core";
-import { uiMessages } from "@hussmartinez/ui";
-import { AnnouncerProvider, UiMessagesProvider, useAnnounce } from "@hussmartinez/ui/react";
+import { createShortcutRegistry, createToolRegistry } from "@hussmartinez/sdk-core";
+import { AnnouncerProvider, useAnnounce, usePlatform } from "@hussmartinez/ui/react";
 import {
   type ForwardedRef,
   forwardRef,
@@ -21,27 +13,15 @@ import {
 import type { ImageSessionEvent } from "../../core/session/session.js";
 import type { ImageToolContext } from "../../features/tool-types.js";
 import { DEFAULT_TOOLBAR, imageTools } from "../../features/tools.js";
-import { ImageCropPanel } from "../crop/CropPanel.js";
 import { useImageDocument, useImageEditorState, useImageInternals } from "../hooks.js";
 import { ImageEditorProvider } from "../ImageEditorProvider.js";
+import { ImageInspector } from "../panels/Inspector.js";
 import { ImageStage } from "../stage/ImageStage.js";
 import { ImageToolbar } from "../toolbar/ImageToolbar.js";
 import { imageIcons } from "../toolbar/icons.js";
 import type { ImageEditorHandle, ImageEditorProps } from "./types.js";
 
-/** ui's text, for its components' own labels, such as the drop zone's button. */
-const UI_CATALOGUE = /* @__PURE__ */ defineMessages({ ...sdkCoreMessages, ...uiMessages });
-
 const join = (...names: (string | undefined | false)[]) => names.filter(Boolean).join(" ");
-
-/** Apple platforms take `Cmd` for the family's `Mod`. */
-function platform(): Platform {
-  const nav = globalThis.navigator as
-    | (Navigator & { userAgentData?: { platform?: string } })
-    | undefined;
-  const name = nav?.userAgentData?.platform ?? nav?.platform ?? "";
-  return /mac|iphone|ipad|ipod/i.test(name) ? "apple" : "other";
-}
 
 interface BodyProps
   extends Pick<
@@ -82,9 +62,11 @@ function ImageEditorBody(props: BodyProps): ReactNode {
       }),
     [props.tools, props.toolbar],
   );
+  // "other" on the server and during hydration, then the device's own keys.
+  const platform = usePlatform();
   const shortcuts = useMemo(
-    () => createShortcutRegistry({ platform: platform(), tools: registry.tools }),
-    [registry],
+    () => createShortcutRegistry({ platform, tools: registry.tools }),
+    [platform, registry],
   );
   const context: ImageToolContext = useMemo(
     () => ({ session, view, editor, chooseFile: () => input.current?.click() }),
@@ -247,16 +229,18 @@ function ImageEditorBody(props: BodyProps): ReactNode {
           if (file) void opener.open(file);
         }}
       />
-      <ImageToolbar
-        registry={registry}
-        shortcuts={shortcuts}
-        context={context}
-        icons={icons}
-        className={join("hm-image-editor-toolbar", classNames.toolbar)}
-      />
-      <ImageStage className={join("hm-image-editor-stage", classNames.stage)} />
-      <div className={join("hm-image-editor-inspector", classNames.inspector)}>
-        <ImageCropPanel />
+      <div className="hm-image-editor-layout">
+        <ImageToolbar
+          registry={registry}
+          shortcuts={shortcuts}
+          context={context}
+          icons={icons}
+          className={join("hm-image-editor-toolbar", classNames.toolbar)}
+        />
+        <ImageStage className={join("hm-image-editor-stage", classNames.stage)} />
+        <div className={join("hm-image-editor-inspector", classNames.inspector)}>
+          <ImageInspector />
+        </div>
       </div>
     </section>
   );
@@ -294,8 +278,6 @@ export const ImageEditor = forwardRef(function ImageEditor(
     onEvent,
     ...provider
   } = props;
-  const locale = provider.locale ?? "en";
-  const uiText = useMemo(() => createMessages(UI_CATALOGUE, { locale }), [locale]);
   // The editor listens to the session's events for its announcements, and
   // passes them on to the host's handler.
   const events = useRef<((event: ImageSessionEvent) => void) | undefined>(undefined);
@@ -312,23 +294,21 @@ export const ImageEditor = forwardRef(function ImageEditor(
   );
   return (
     <ImageEditorProvider {...provider} onEvent={onSessionEvent}>
-      <UiMessagesProvider messages={uiText}>
-        <AnnouncerProvider>
-          <ImageEditorBody
-            handle={ref}
-            events={events}
-            {...(initialFile ? { initialFile } : {})}
-            {...(onChange ? { onChange } : {})}
-            {...(plan ? { plan } : {})}
-            {...(tools ? { tools } : {})}
-            {...(toolbar ? { toolbar } : {})}
-            {...(icons ? { icons } : {})}
-            {...(className ? { className } : {})}
-            {...(classNames ? { classNames } : {})}
-            {...(unstyled === undefined ? {} : { unstyled })}
-          />
-        </AnnouncerProvider>
-      </UiMessagesProvider>
+      <AnnouncerProvider>
+        <ImageEditorBody
+          handle={ref}
+          events={events}
+          {...(initialFile ? { initialFile } : {})}
+          {...(onChange ? { onChange } : {})}
+          {...(plan ? { plan } : {})}
+          {...(tools ? { tools } : {})}
+          {...(toolbar ? { toolbar } : {})}
+          {...(icons ? { icons } : {})}
+          {...(className ? { className } : {})}
+          {...(classNames ? { classNames } : {})}
+          {...(unstyled === undefined ? {} : { unstyled })}
+        />
+      </AnnouncerProvider>
     </ImageEditorProvider>
   );
 });
