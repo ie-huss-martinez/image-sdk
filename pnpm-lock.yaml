@@ -189,8 +189,8 @@ catalogs:
       specifier: ^0.4.2
       version: 0.4.2
     '@hussmartinez/ui':
-      specifier: ^0.6.0
-      version: 0.6.0
+      specifier: ^0.7.0
+      version: 0.7.0
     '@microsoft/api-extractor':
       specifier: ^7.60.1
       version: 7.60.1
@@ -267,7 +267,7 @@ importers:
         version: 0.4.2
       '@hussmartinez/ui':
         specifier: 'catalog:'
-        version: 0.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 0.7.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'
@@ -376,7 +376,7 @@ importers:
         version: link:../..
       '@hussmartinez/ui':
         specifier: 'catalog:'
-        version: 0.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 0.7.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -771,8 +771,8 @@ packages:
   '@hussmartinez/sdk-core@0.4.2':
     resolution: {integrity: sha512-FC39Dc+L0QANQOjiostjfTwVrECxqsTDaL4fSiEF0CGdzU75k6kPI4ibkN1gxM+/4qRVr1vCbNCgjA1Innx9dQ==}
 
-  '@hussmartinez/ui@0.6.0':
-    resolution: {integrity: sha512-RiW+d0zHykeP+vSrGnDiPjDSvJqTspVOobSM1i3rpuMUM9MCWn4zJN73h+kE9z0ISFYNrFpAF9GM1AZd8H4BIg==}
+  '@hussmartinez/ui@0.7.0':
+    resolution: {integrity: sha512-GsWxaQJXR0e/KFZ8glsD3Ou9MJTk0WUfJ7eayWaby3XNS4geHaYLIzaAuCiVsJAH+GnG5t7G6ddv2/zFybfdRQ==}
     peerDependencies:
       react: '>=18.3'
       react-dom: '>=18.3'
@@ -2694,7 +2694,7 @@ snapshots:
 
   '@hussmartinez/sdk-core@0.4.2': {}
 
-  '@hussmartinez/ui@0.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@hussmartinez/ui@0.7.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@hussmartinez/sdk-core': 0.4.2
     optionalDependencies:

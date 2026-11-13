@@ -20,7 +20,7 @@ catalog:
   "@hussmartinez/sdk-config": ^0.5.0
   "@playwright/test": ^1.64.1
   "@hussmartinez/sdk-core": ^0.4.2
-  "@hussmartinez/ui": ^0.6.0
+  "@hussmartinez/ui": ^0.7.0
   "@microsoft/api-extractor": ^7.60.1
   "@size-limit/file": ^14.3.0
   "@types/node": ^24.19.2

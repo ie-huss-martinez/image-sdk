@@ -304,23 +304,4 @@
     margin: 0;
     color: var(--hm-color-danger-text);
   }
-
-  /* A text field to match ui's NumberField. */
-  .hm-image-text-field {
-    box-sizing: border-box;
-    inline-size: 100%;
-    min-block-size: max(var(--hm-control-height), var(--hm-target-size));
-    padding-inline: var(--hm-control-padding-x);
-    border: var(--hm-border-width) solid var(--hm-color-border-strong);
-    border-radius: var(--hm-radius-control);
-    background: var(--hm-color-surface);
-    color: var(--hm-color-text);
-    font-family: var(--hm-font-family);
-    font-size: var(--hm-font-size-body);
-  }
-
-  .hm-image-text-field:focus-visible {
-    outline: var(--hm-focus-ring);
-    outline-offset: var(--hm-focus-ring-offset);
-  }
 }
