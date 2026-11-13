@@ -1,5 +1,6 @@
 import {
   CropIcon,
+  DownloadIcon,
   FitIcon,
   FlipHorizontalIcon,
   FlipVerticalIcon,
@@ -30,6 +31,7 @@ export const imageIcons: Readonly<Record<string, IconComponent>> = {
   "zoom-out": ZoomOutIcon,
   fit: FitIcon,
   crop: CropIcon,
+  export: DownloadIcon,
   "flip-horizontal": FlipHorizontalIcon,
   "flip-vertical": FlipVerticalIcon,
   search: SearchIcon,

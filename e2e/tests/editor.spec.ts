@@ -1,14 +1,29 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
-import { fixture } from "../fixtures.js";
+import { fixture, jpegWithPrivateMetadata } from "../fixtures.js";
 
 /**
  * The React editor on the built example, as a host renders it (docs/adr/0007):
  * no accessibility violations in its designed states, and its keyboard path.
  */
 async function noViolations(page: Page) {
+  // Colours are checked as they settle, not halfway through a fade, such as
+  // a dialog's opening; a spinner's endless animation isn't waited for.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
   const results = await new AxeBuilder({ page }).include("#editor").analyze();
-  expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  // Each violation names its elements and axe's reason, so a failure says where.
+  const found = results.violations.map(
+    (v) =>
+      `${v.id}: ${v.help} at ${v.nodes.map((n) => `${n.target.join(" ")} (${n.failureSummary ?? ""})`).join("; ")}`,
+  );
+  expect(found).toEqual([]);
 }
 
 test.describe("the image editor", () => {
@@ -101,5 +116,43 @@ test.describe("the image editor", () => {
     await page.getByRole("radio", { name: "Sepia" }).click();
     await expect(page.getByRole("slider", { name: "Strength" })).toBeVisible();
     await noViolations(page);
+  });
+
+  test("exports with the keyboard only, after a summary of what's removed", async ({ page }) => {
+    await page.goto("/editor.html");
+    await page.evaluate(
+      (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
+      Array.from(jpegWithPrivateMetadata()),
+    );
+    await expect(page.getByRole("img", { name: /Edited image preview/ })).toBeVisible();
+    await page.getByRole("button", { name: "Export", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "Export image" });
+    await expect(dialog).toBeVisible();
+    const summary = dialog.getByRole("region", { name: "Summary" });
+    await expect(summary).toContainText("JPEG");
+    for (const kind of ["Location", "Camera details", "Dates and times"]) {
+      await expect(summary).toContainText(kind);
+    }
+    await noViolations(page);
+
+    // A field the user fills is listed as kept.
+    await dialog.getByRole("textbox", { name: "Title" }).focus();
+    await page.keyboard.type("Harbour");
+    await expect(summary).toContainText("Kept in the file");
+
+    await dialog.getByRole("button", { name: "Export", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    const save = dialog.getByRole("button", { name: "Download" });
+    await expect(save).toBeFocused();
+    await noViolations(page);
+    const download = page.waitForEvent("download");
+    await page.keyboard.press("Enter");
+    expect((await download).suggestedFilename()).toBe("image.jpg");
+
+    await dialog.getByRole("button", { name: "Done" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("button", { name: "Export", exact: true })).toBeFocused();
   });
 });

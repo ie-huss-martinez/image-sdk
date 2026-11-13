@@ -64,6 +64,7 @@ export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "childr
     readonly icons?: Readonly<Record<string, IconComponent>>;
     readonly initialFile?: Blob;
     readonly onChange?: (plan: ImagePlan) => void;
+    readonly onExport?: (blob: Blob, details: ImageSessionExport) => void;
     // Warning: (ae-forgotten-export) The symbol "ImagePlan" needs to be exported by the entry point react.d.ts
     readonly plan?: ImagePlan;
     readonly toolbar?: readonly (readonly string[])[];
@@ -98,8 +99,19 @@ export interface ImageEditorState {
         readonly pending: ImageCrop;
         readonly aspect: ImageAspect;
     } | null;
+    readonly dialog: "export" | null;
     readonly preview: ImagePlan | null;
     readonly tool: "crop" | null;
+}
+
+// @public
+export function ImageExportDialog(props: ImageExportDialogProps): ReactNode;
+
+// @public
+export interface ImageExportDialogProps {
+    readonly className?: string;
+    readonly fileName?: string;
+    readonly onExport?: (blob: Blob, details: ImageSessionExport) => void;
 }
 
 // @public
