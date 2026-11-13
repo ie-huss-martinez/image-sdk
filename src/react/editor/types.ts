@@ -41,6 +41,11 @@ export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "childr
   readonly classNames?: Readonly<Partial<Record<ImageEditorPart, string>>>;
   /** Drop the visual styles, keeping layout and accessibility. */
   readonly unstyled?: boolean;
+  /**
+   * Takes the exported file instead of the export dialog's download button;
+   * the dialog closes once it's called.
+   */
+  readonly onExport?: (blob: Blob, details: ImageSessionExport) => void;
 }
 
 /**

@@ -175,3 +175,16 @@ export function quadrantsWebp(orientation: number): Uint8Array {
     chunks: [fixture("quadrants.webp").subarray(12), webpChunk("EXIF", exif({ orientation }))],
   });
 }
+
+/** The primary JPEG with a location, a camera and a timestamp: what an export removes. */
+export function jpegWithPrivateMetadata(): Uint8Array {
+  return afterSoi(fixture("primary.jpg"), [
+    segment(
+      0xe1,
+      concat([
+        latin1("Exif\0\0"),
+        exif({ gps: true, make: "Camera", dateTime: "2026:11:13 18:00:00" }),
+      ]),
+    ),
+  ]);
+}

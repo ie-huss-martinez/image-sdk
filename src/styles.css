@@ -252,4 +252,67 @@
   .hm-image-adjust-value {
     font-variant-numeric: tabular-nums;
   }
+
+  /* The export dialog: its choices, the summary before Export, and the result. */
+  .hm-image-export-choices,
+  .hm-image-export-metadata {
+    display: grid;
+    gap: var(--hm-gap-normal);
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .hm-image-export-metadata > legend {
+    padding: 0;
+    font-weight: var(--hm-font-weight-strong);
+  }
+
+  .hm-image-export-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(var(--hm-space-12) * 2), 1fr));
+    gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-export-hint,
+  .hm-image-export-summary p,
+  .hm-image-export-result {
+    margin: 0;
+  }
+
+  .hm-image-export-summary {
+    display: grid;
+    gap: var(--hm-gap-tight);
+    margin-block-start: var(--hm-gap-normal);
+  }
+
+  .hm-image-export-summary ul {
+    margin: 0;
+    padding-inline-start: var(--hm-space-4);
+  }
+
+  .hm-image-export-error {
+    margin: 0;
+    color: var(--hm-color-danger-text);
+  }
+
+  /* A text field to match ui's NumberField. */
+  .hm-image-text-field {
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-block-size: max(var(--hm-control-height), var(--hm-target-size));
+    padding-inline: var(--hm-control-padding-x);
+    border: var(--hm-border-width) solid var(--hm-color-border-strong);
+    border-radius: var(--hm-radius-control);
+    background: var(--hm-color-surface);
+    color: var(--hm-color-text);
+    font-family: var(--hm-font-family);
+    font-size: var(--hm-font-size-body);
+  }
+
+  .hm-image-text-field:focus-visible {
+    outline: var(--hm-focus-ring);
+    outline-offset: var(--hm-focus-ring-offset);
+  }
 }

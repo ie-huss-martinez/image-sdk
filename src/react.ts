@@ -19,6 +19,8 @@ export type { ImageCropPanelProps } from "./react/crop/CropPanel.js";
 export { ImageCropPanel } from "./react/crop/CropPanel.js";
 export { ImageEditor } from "./react/editor/ImageEditor.js";
 export type { ImageEditorHandle, ImageEditorPart, ImageEditorProps } from "./react/editor/types.js";
+export type { ImageExportDialogProps } from "./react/export/ExportDialog.js";
+export { ImageExportDialog } from "./react/export/ExportDialog.js";
 export {
   useImageDocument,
   useImageEditorState,

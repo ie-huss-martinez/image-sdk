@@ -19,9 +19,16 @@ export interface ImageEditorState {
    * change, which isn't an edit until the gesture ends.
    */
   readonly preview: ImagePlan | null;
+  /** The dialog the editor shows over the stage, such as `export`, or `null`. */
+  readonly dialog: "export" | null;
 }
 
-export const IDLE: ImageEditorState = Object.freeze({ tool: null, crop: null, preview: null });
+export const IDLE: ImageEditorState = Object.freeze({
+  tool: null,
+  crop: null,
+  preview: null,
+  dialog: null,
+});
 
 /** A store of the editor's state. */
 export function createEditorStore(): Store<ImageEditorState> {

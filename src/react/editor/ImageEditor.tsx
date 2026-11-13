@@ -13,6 +13,7 @@ import {
 import type { ImageSessionEvent } from "../../core/session/session.js";
 import type { ImageToolContext } from "../../features/tool-types.js";
 import { DEFAULT_TOOLBAR, imageTools } from "../../features/tools.js";
+import { ImageExportDialog } from "../export/ExportDialog.js";
 import { useImageDocument, useImageEditorState, useImageInternals } from "../hooks.js";
 import { ImageEditorProvider } from "../ImageEditorProvider.js";
 import { ImageInspector } from "../panels/Inspector.js";
@@ -35,6 +36,7 @@ interface BodyProps
     | "className"
     | "classNames"
     | "unstyled"
+    | "onExport"
   > {
   readonly handle: ForwardedRef<ImageEditorHandle>;
   readonly events: { current: ((event: ImageSessionEvent) => void) | undefined };
@@ -158,11 +160,15 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     }
   }, [hostPlan, session, openSource]);
 
-  // Cropping ends when another image opens.
+  // Cropping and the export dialog end when another image opens.
   const sourceId = snapshot.source?.id;
   useEffect(() => {
     if (sourceId === undefined) return;
-    editor.set((state) => (state.tool === null ? state : { ...state, tool: null, crop: null }));
+    editor.set((state) =>
+      state.tool === null && state.dialog === null
+        ? state
+        : { ...state, tool: null, crop: null, dialog: null },
+    );
   }, [editor, sourceId]);
 
   // Focus returns to where it was when cropping started: the crop button, or
@@ -193,6 +199,9 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   }, [tool]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    // A modal dialog, such as export's, keeps its keys: React bubbles them
+    // here through the component tree, past the dialog's inert backdrop.
+    if (event.target instanceof Element && event.target.closest("dialog")) return;
     const id = shortcuts.match(event.nativeEvent);
     const tool = id ? registry.get(id) : undefined;
     if (!tool) return;
@@ -242,6 +251,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
           <ImageInspector />
         </div>
       </div>
+      <ImageExportDialog {...(props.onExport ? { onExport: props.onExport } : {})} />
     </section>
   );
 }
@@ -276,6 +286,7 @@ export const ImageEditor = forwardRef(function ImageEditor(
     classNames,
     unstyled,
     onEvent,
+    onExport,
     ...provider
   } = props;
   // The editor listens to the session's events for its announcements, and
@@ -307,6 +318,7 @@ export const ImageEditor = forwardRef(function ImageEditor(
           {...(className ? { className } : {})}
           {...(classNames ? { classNames } : {})}
           {...(unstyled === undefined ? {} : { unstyled })}
+          {...(onExport ? { onExport } : {})}
         />
       </AnnouncerProvider>
     </ImageEditorProvider>
