@@ -10,7 +10,7 @@ import type { ImageEditorProviderProps } from "../ImageEditorProvider.js";
  *
  * @public
  */
-export type ImageEditorPart = "root" | "toolbar" | "stage";
+export type ImageEditorPart = "root" | "toolbar" | "stage" | "inspector";
 
 /**
  * Props of {@link ImageEditor}. The session props are the provider's: pass
@@ -21,7 +21,13 @@ export type ImageEditorPart = "root" | "toolbar" | "stage";
 export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "children"> {
   /** An image to open on mount. Images the user opens in the editor replace it. */
   readonly initialFile?: Blob;
-  /** Called with the plan after each committed edit, open, undo or redo. */
+  /**
+   * The plan, for a host that holds it: the controlled form. When it changes,
+   * the editor applies it as one undoable step (`session.applyPlan`). Use it
+   * with `onChange`, which gets the plans the editor makes.
+   */
+  readonly plan?: ImagePlan;
+  /** Called with the plan after each committed edit, open, undo or redo, never during a gesture. */
   readonly onChange?: (plan: ImagePlan) => void;
   /** Which tools are present, by id, in order. All of them by default. */
   readonly tools?: readonly string[];

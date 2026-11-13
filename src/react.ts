@@ -12,12 +12,16 @@
  * @packageDocumentation
  */
 
+export type { ImageEditorState } from "./features/editor-state.js";
 export type { ImageTool, ImageToolContext, ImageToolState } from "./features/tool-types.js";
 export { imageTools } from "./features/tools.js";
+export type { ImageCropPanelProps } from "./react/crop/CropPanel.js";
+export { ImageCropPanel } from "./react/crop/CropPanel.js";
 export { ImageEditor } from "./react/editor/ImageEditor.js";
 export type { ImageEditorHandle, ImageEditorPart, ImageEditorProps } from "./react/editor/types.js";
 export {
   useImageDocument,
+  useImageEditorState,
   useImageMessages,
   useImageSession,
   useImageView,

@@ -1,6 +1,11 @@
 import { compositionSize } from "../../core/model/geometry.js";
 import type { ImagePlan } from "../../core/model/plan.js";
-import { backingSize, type ImageView, MAX_PIXEL_RATIO } from "../../core/ports/image-renderer.js";
+import {
+  backingSize,
+  type ImageView,
+  MAX_PIXEL_RATIO,
+  placement,
+} from "../../core/ports/image-renderer.js";
 import { renderPlan } from "./render.js";
 
 /**
@@ -22,8 +27,8 @@ export async function drawPreview(
   const composition = compositionSize(plan, source);
   const { width, height } = backingSize(view);
   const ratio = Math.min(view.pixelRatio, MAX_PIXEL_RATIO);
-  const fit = Math.min(view.width / composition.width, view.height / composition.height);
-  const shown = fit * view.zoom * ratio;
+  const placed = placement(composition, view);
+  const shown = placed.scale * ratio;
   // Rendered at most at full size; zooming past it enlarges the render.
   const scale = Math.min(1, shown);
   const rendered = await renderPlan(
@@ -44,14 +49,12 @@ export async function drawPreview(
   context.clearRect(0, 0, width, height);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
-  const drawnWidth = composition.width * shown;
-  const drawnHeight = composition.height * shown;
   context.drawImage(
     rendered,
-    (width - drawnWidth) / 2 + view.pan.x * ratio,
-    (height - drawnHeight) / 2 + view.pan.y * ratio,
-    drawnWidth,
-    drawnHeight,
+    placed.x * ratio,
+    placed.y * ratio,
+    placed.width * ratio,
+    placed.height * ratio,
   );
   rendered.width = 0;
 }

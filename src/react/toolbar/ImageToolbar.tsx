@@ -2,7 +2,7 @@ import type { ShortcutRegistry, ToolRegistry } from "@hussmartinez/sdk-core";
 import { IconButton, type IconComponent, Toolbar, ToolbarGroup } from "@hussmartinez/ui/react";
 import type { ReactNode } from "react";
 import type { ImageTool, ImageToolContext } from "../../features/tool-types.js";
-import { useImageDocument, useImageMessages } from "../hooks.js";
+import { useImageDocument, useImageEditorState, useImageMessages } from "../hooks.js";
 
 /**
  * Props of {@link ImageToolbar}.
@@ -32,7 +32,8 @@ export function ImageToolbar(props: ImageToolbarProps): ReactNode {
   const { registry, shortcuts, context, icons } = props;
   const messages = useImageMessages();
   const snapshot = useImageDocument();
-  const state = { snapshot };
+  const [editor] = useImageEditorState();
+  const state = { snapshot, editor };
   const t = messages.t as (key: string) => string;
   return (
     <Toolbar label={messages.t("toolbar.label")} className={props.className}>

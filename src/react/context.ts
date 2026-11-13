@@ -2,6 +2,7 @@ import type { Messages, Store } from "@hussmartinez/sdk-core";
 import { createContext } from "react";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageSession } from "../core/session/session.js";
+import type { ImageEditorState } from "../features/editor-state.js";
 import type { ImageMessageCatalogue } from "../messages/en.js";
 import type { ImageViewState } from "./view-store.js";
 
@@ -12,6 +13,7 @@ export interface ImageContextValue {
   readonly engine: ImageEngine;
   readonly messages: Messages<ImageMessageCatalogue>;
   readonly view: Store<ImageViewState>;
+  readonly editor: Store<ImageEditorState>;
   readonly opener: ImageOpener;
 }
 

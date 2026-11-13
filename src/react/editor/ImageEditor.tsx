@@ -21,7 +21,8 @@ import {
 import type { ImageSessionEvent } from "../../core/session/session.js";
 import type { ImageToolContext } from "../../features/tool-types.js";
 import { DEFAULT_TOOLBAR, imageTools } from "../../features/tools.js";
-import { useImageDocument, useImageInternals } from "../hooks.js";
+import { ImageCropPanel } from "../crop/CropPanel.js";
+import { useImageDocument, useImageEditorState, useImageInternals } from "../hooks.js";
 import { ImageEditorProvider } from "../ImageEditorProvider.js";
 import { ImageStage } from "../stage/ImageStage.js";
 import { ImageToolbar } from "../toolbar/ImageToolbar.js";
@@ -46,6 +47,7 @@ interface BodyProps
   extends Pick<
     ImageEditorProps,
     | "initialFile"
+    | "plan"
     | "onChange"
     | "tools"
     | "toolbar"
@@ -60,7 +62,7 @@ interface BodyProps
 
 function ImageEditorBody(props: BodyProps): ReactNode {
   const { initialFile, onChange, classNames = {}, unstyled = false, handle, events } = props;
-  const { session, messages, view, opener } = useImageInternals();
+  const { session, messages, view, editor, opener } = useImageInternals();
   const snapshot = useImageDocument();
   const announce = useAnnounce();
   const root = useRef<HTMLElement>(null);
@@ -85,8 +87,8 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     [registry],
   );
   const context: ImageToolContext = useMemo(
-    () => ({ session, view, chooseFile: () => input.current?.click() }),
-    [session, view],
+    () => ({ session, view, editor, chooseFile: () => input.current?.click() }),
+    [session, view, editor],
   );
   const icons = useMemo(() => ({ ...imageIcons, ...props.icons }), [props.icons]);
 
@@ -161,11 +163,59 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     next?.focus();
   }, [snapshot.source?.id]);
 
+  // A host's plan is applied when it changes: one undoable step of the
+  // commands that reach it. A plan for another image waits for that image.
+  const hostPlan = props.plan;
+  const openSource = snapshot.plan?.base.source;
+  useEffect(() => {
+    if (!hostPlan || openSource !== hostPlan.base.source) return;
+    try {
+      session.applyPlan(hostPlan);
+    } catch {
+      // In the snapshot: the stage shows it.
+    }
+  }, [hostPlan, session, openSource]);
+
+  // Cropping ends when another image opens.
+  const sourceId = snapshot.source?.id;
+  useEffect(() => {
+    if (sourceId === undefined) return;
+    editor.set((state) => (state.tool === null ? state : { ...state, tool: null, crop: null }));
+  }, [editor, sourceId]);
+
+  // Focus returns to where it was when cropping started: the crop button, or
+  // whatever had focus when its shortcut was pressed (docs/adr/0007).
+  const [{ tool }] = useImageEditorState();
+  const returnTo = useRef<HTMLElement | null>(null);
+  const previousTool = useRef(tool);
+  useEffect(
+    () =>
+      editor.subscribe(() => {
+        if (editor.getSnapshot().tool === "crop" && previousTool.current !== "crop") {
+          const active = document.activeElement;
+          returnTo.current =
+            active instanceof HTMLElement && root.current?.contains(active) ? active : null;
+        }
+      }),
+    [editor],
+  );
+  useEffect(() => {
+    if (previousTool.current === tool) return;
+    const was = previousTool.current;
+    previousTool.current = tool;
+    if (was !== "crop") return;
+    const target = returnTo.current?.isConnected
+      ? returnTo.current
+      : root.current?.querySelector<HTMLElement>('[data-tool="image.crop"]');
+    target?.focus();
+  }, [tool]);
+
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const id = shortcuts.match(event.nativeEvent);
     const tool = id ? registry.get(id) : undefined;
     if (!tool) return;
-    if (!(tool.isEnabled?.({ snapshot: session.getSnapshot() }) ?? true)) return;
+    const state = { snapshot: session.getSnapshot(), editor: editor.getSnapshot() };
+    if (!(tool.isEnabled?.(state) ?? true)) return;
     event.preventDefault();
     void tool.run(context);
   };
@@ -205,6 +255,9 @@ function ImageEditorBody(props: BodyProps): ReactNode {
         className={join("hm-image-editor-toolbar", classNames.toolbar)}
       />
       <ImageStage className={join("hm-image-editor-stage", classNames.stage)} />
+      <div className={join("hm-image-editor-inspector", classNames.inspector)}>
+        <ImageCropPanel />
+      </div>
     </section>
   );
 }
@@ -230,6 +283,7 @@ export const ImageEditor = forwardRef(function ImageEditor(
 ): ReactNode {
   const {
     initialFile,
+    plan,
     onChange,
     tools,
     toolbar,
@@ -265,6 +319,7 @@ export const ImageEditor = forwardRef(function ImageEditor(
             events={events}
             {...(initialFile ? { initialFile } : {})}
             {...(onChange ? { onChange } : {})}
+            {...(plan ? { plan } : {})}
             {...(tools ? { tools } : {})}
             {...(toolbar ? { toolbar } : {})}
             {...(icons ? { icons } : {})}

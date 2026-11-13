@@ -12,6 +12,12 @@ import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
 
 // @public
+export const ASPECT_PRESETS: readonly ImageAspect[];
+
+// @public
+export function aspectRatio(aspect: ImageAspect, source: ImageSize): number | undefined;
+
+// @public
 export function backingSize(view: ImageView): {
     readonly width: number;
     readonly height: number;
@@ -25,6 +31,12 @@ export function checkOutputLimits(policy: ImageFilePolicy, size: {
     readonly width: number;
     readonly height: number;
 }): void;
+
+// @public
+export function compositionDeltaToSource(dx: number, dy: number, orientation: ImageOrientation_2, source: ImageSize): {
+    readonly dx: number;
+    readonly dy: number;
+};
 
 // @public
 export function compositionSize(plan: ImagePlan, source: ImageSize): ImageSize;
@@ -51,10 +63,19 @@ export function createImageSession(options: ImageSessionOptions): ImageSession;
 export function createPlan(source: string): ImagePlan;
 
 // @public
+export type CropHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+
+// @public
+export function cropInComposition(crop: ImageCrop, orientation: ImageOrientation_2, source: ImageSize): ImageCrop;
+
+// @public
 export function cropRect(crop: ImageCrop | null, source: ImageSize): ImageCrop;
 
 // @public
 export const DEVELOP_ADJUSTMENTS: readonly ["temperature", "tint", "exposure", "highlights", "shadows", "contrast", "saturation", "vibrance"];
+
+// @public
+export function dragHandle(crop: ImageCrop, handle: CropHandle, dx: number, dy: number, source: ImageSize, ratio?: number): ImageCrop;
 
 // @public
 export const EMPTY_KEEPABLE_METADATA: ImageKeepableMetadata;
@@ -66,10 +87,19 @@ export type ExifOrientation = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export const FILTER_PRESETS: readonly ["vivid", "warm", "cool", "fade", "mono", "noir", "sepia"];
 
 // @public
+export function fitAspect(within: ImageCrop, ratio: number | undefined): ImageCrop;
+
+// @public
 export function fittedView(width: number, height: number, pixelRatio?: number): ImageView;
 
 // @public
 export const FULL_SIZE: ImageOutput;
+
+// @public
+export function handleInSource(handle: CropHandle, orientation: ImageOrientation_2): CropHandle;
+
+// @public
+export type ImageAspect = "free" | "original" | readonly [number, number];
 
 // @public
 export interface ImageBase {
@@ -328,6 +358,26 @@ export const imageMessages: {
     readonly "tools.zoom-in": "Zoom in";
     readonly "tools.zoom-out": "Zoom out";
     readonly "tools.zoom-fit": "Fit to the stage";
+    readonly "tools.crop": "Crop";
+    readonly "tools.flip-horizontal": "Flip horizontally";
+    readonly "tools.flip-vertical": "Flip vertically";
+    readonly "toolbar.groups.crop": "Crop";
+    readonly "crop.frame": "Crop area";
+    readonly "crop.frameDescription": "{width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Alt, they resize it; Enter applies and Escape cancels.";
+    readonly "crop.size": "{width, number} × {height, number}, from {x, number}, {y, number}";
+    readonly "crop.panel": "Crop";
+    readonly "crop.x": "Left";
+    readonly "crop.y": "Top";
+    readonly "crop.width": "Width";
+    readonly "crop.height": "Height";
+    readonly "crop.aspect": "Aspect ratio";
+    readonly "crop.aspects.free": "Free";
+    readonly "crop.aspects.original": "Original";
+    readonly "crop.aspects.ratio": "{width}:{height}";
+    readonly "crop.apply": "Apply crop";
+    readonly "crop.cancel": "Cancel";
+    readonly "crop.reset": "Whole image";
+    readonly "crop.applied": "Cropped to {width, number} × {height, number}.";
     readonly "errors.UNKNOWN": "Something went wrong. Please try again.";
     readonly "errors.ABORTED": "The operation was cancelled.";
     readonly "errors.TIMEOUT": "The operation took too long and was stopped.";
@@ -478,6 +528,7 @@ export type ImageRotation = 0 | 90 | 180 | 270;
 
 // @public
 export interface ImageSession {
+    applyPlan(plan: ImagePlan): void;
     destroy(): Promise<void>;
     execute(commands: ImageCommand | readonly ImageCommand[]): void;
     export(format: ImageExportFormat, options?: {
@@ -585,6 +636,7 @@ export interface ImageThumbnail {
 export interface ImageView {
     // (undocumented)
     readonly height: number;
+    readonly inset?: number;
     // (undocumented)
     readonly pan: {
         readonly x: number;
@@ -608,10 +660,16 @@ export const MAX_METADATA_LENGTH = 2000;
 export const MAX_PIXEL_RATIO = 4;
 
 // @public
+export function moveCrop(crop: ImageCrop, dx: number, dy: number, source: ImageSize): ImageCrop;
+
+// @public
 export const NEUTRAL_DEVELOP: ImageDevelop;
 
 // @public
 export const NO_METADATA: ImageMetadataPresence;
+
+// @public
+export function nudgeCropOnScreen(crop: ImageCrop, key: "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown", step: number, resize: boolean, orientation: ImageOrientation_2, source: ImageSize, ratio?: number): ImageCrop;
 
 // @public
 export function orientedSize(stored: ImageSize, orientation: ExifOrientation): ImageSize;
@@ -624,6 +682,18 @@ export function outputSize(output: ImageOutput, composition: ImageSize): ImageSi
 
 // @public
 export const PER_FILE_LIMITS: readonly ["maxFileSize", "maxImageDimension", "maxImagePixels", "maxFrames", "maxDecodedSize"];
+
+// @public
+export function placement(composition: {
+    readonly width: number;
+    readonly height: number;
+}, view: ImageView): {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly scale: number;
+};
 
 // @public
 export interface SetCropCommand {

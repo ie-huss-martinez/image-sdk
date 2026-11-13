@@ -1,5 +1,6 @@
 import type { Store, Tool } from "@hussmartinez/sdk-core";
 import type { ImageSession, ImageSessionSnapshot } from "../core/session/session.js";
+import type { ImageEditorState } from "./editor-state.js";
 
 /**
  * What a tool reads to decide whether it's available, enabled or active.
@@ -8,6 +9,7 @@ import type { ImageSession, ImageSessionSnapshot } from "../core/session/session
  */
 export interface ImageToolState {
   readonly snapshot: ImageSessionSnapshot;
+  readonly editor: ImageEditorState;
 }
 
 /**
@@ -21,6 +23,8 @@ export interface ImageToolContext {
     readonly zoom: number;
     readonly pan: { readonly x: number; readonly y: number };
   }>;
+  /** The editor's own state, which tools such as crop take over. */
+  readonly editor: Store<ImageEditorState>;
   /** Asks the user for an image, as the open tool does. */
   readonly chooseFile: () => void;
 }

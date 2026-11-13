@@ -87,6 +87,27 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
   "tools.zoom-in": "Zoom in",
   "tools.zoom-out": "Zoom out",
   "tools.zoom-fit": "Fit to the stage",
+  "tools.crop": "Crop",
+  "tools.flip-horizontal": "Flip horizontally",
+  "tools.flip-vertical": "Flip vertically",
+  "toolbar.groups.crop": "Crop",
+  "crop.frame": "Crop area",
+  "crop.frameDescription":
+    "{width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Alt, they resize it; Enter applies and Escape cancels.",
+  "crop.size": "{width, number} × {height, number}, from {x, number}, {y, number}",
+  "crop.panel": "Crop",
+  "crop.x": "Left",
+  "crop.y": "Top",
+  "crop.width": "Width",
+  "crop.height": "Height",
+  "crop.aspect": "Aspect ratio",
+  "crop.aspects.free": "Free",
+  "crop.aspects.original": "Original",
+  "crop.aspects.ratio": "{width}:{height}",
+  "crop.apply": "Apply crop",
+  "crop.cancel": "Cancel",
+  "crop.reset": "Whole image",
+  "crop.applied": "Cropped to {width, number} × {height, number}.",
 }) satisfies Record<`errors.${ImageErrorCode}`, MessageValue> &
   Record<`warnings.${ImageLimitName}`, MessageValue>;
 

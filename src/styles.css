@@ -17,6 +17,8 @@
   .hm-image-editor {
     container-type: inline-size;
     display: grid;
+    /* The editor fits its container, however narrow: nothing sets a minimum width. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     gap: var(--hm-gap-normal);
     min-block-size: calc(var(--hm-space-12) * 8);
@@ -26,6 +28,11 @@
   .hm-image-editor--styled {
     font-family: var(--hm-font-family);
     color: var(--hm-color-text);
+  }
+
+  /* In a narrow editor, the toolbar's groups wrap onto more rows. */
+  .hm-image-editor-toolbar {
+    flex-wrap: wrap;
   }
 
   /*
@@ -86,5 +93,109 @@
     color: var(--hm-color-danger-text);
     background: var(--hm-color-danger-subtle);
     border-radius: var(--hm-radius-control);
+  }
+
+  .hm-image-stage-overlay {
+    position: relative;
+    min-block-size: 0;
+  }
+
+  /*
+   * The crop frame: outlined, with the area outside it dimmed by a shadow
+   * as large as any stage, and handles at the target size (docs/adr/0007).
+   */
+  .hm-image-crop-frame {
+    position: absolute;
+    box-sizing: border-box;
+    touch-action: none;
+    cursor: move;
+    outline: var(--hm-border-width-2) solid var(--hm-color-accent);
+    /* stylelint-disable-next-line hm/no-literal-values -- a spread that covers any stage, not a design size */
+    box-shadow: 0 0 0 100vmax var(--hm-color-overlay);
+  }
+
+  .hm-image-crop-frame:focus-visible {
+    outline-color: var(--hm-color-accent-active);
+    outline-offset: var(--hm-border-width-2);
+  }
+
+  .hm-image-crop-handle {
+    position: absolute;
+    inline-size: var(--hm-target-size);
+    block-size: var(--hm-target-size);
+    translate: -50% -50%;
+    touch-action: none;
+  }
+
+  .hm-image-crop-handle::after {
+    content: "";
+    position: absolute;
+    inset: 33%;
+    background: var(--hm-color-surface);
+    border: var(--hm-border-width) solid var(--hm-color-accent);
+    border-radius: var(--hm-radius-sm);
+  }
+
+  .hm-image-crop-handle[data-hm-handle="nw"] {
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    cursor: nwse-resize;
+  }
+  .hm-image-crop-handle[data-hm-handle="n"] {
+    inset-block-start: 0;
+    inset-inline-start: 50%;
+    cursor: ns-resize;
+  }
+  .hm-image-crop-handle[data-hm-handle="ne"] {
+    inset-block-start: 0;
+    inset-inline-start: 100%;
+    cursor: nesw-resize;
+  }
+  .hm-image-crop-handle[data-hm-handle="e"] {
+    inset-block-start: 50%;
+    inset-inline-start: 100%;
+    cursor: ew-resize;
+  }
+  .hm-image-crop-handle[data-hm-handle="se"] {
+    inset-block-start: 100%;
+    inset-inline-start: 100%;
+    cursor: nwse-resize;
+  }
+  .hm-image-crop-handle[data-hm-handle="s"] {
+    inset-block-start: 100%;
+    inset-inline-start: 50%;
+    cursor: ns-resize;
+  }
+  .hm-image-crop-handle[data-hm-handle="sw"] {
+    inset-block-start: 100%;
+    inset-inline-start: 0;
+    cursor: nesw-resize;
+  }
+  .hm-image-crop-handle[data-hm-handle="w"] {
+    inset-block-start: 50%;
+    inset-inline-start: 0;
+    cursor: ew-resize;
+  }
+
+  .hm-image-editor-inspector:empty {
+    display: none;
+  }
+
+  .hm-image-crop-panel {
+    display: grid;
+    gap: var(--hm-gap-normal);
+  }
+
+  .hm-image-crop-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(var(--hm-space-12) * 2), 1fr));
+    gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-crop-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: var(--hm-gap-tight);
   }
 }

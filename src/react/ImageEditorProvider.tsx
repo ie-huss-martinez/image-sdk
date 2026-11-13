@@ -10,6 +10,7 @@ import {
   type ImageSession,
   type ImageSessionEvent,
 } from "../core/session/session.js";
+import { createEditorStore } from "../features/editor-state.js";
 import { type ImageMessageCatalogue, imageMessages } from "../messages/en.js";
 import { createOpener, ImageContext } from "./context.js";
 import { createViewStore } from "./view-store.js";
@@ -99,6 +100,7 @@ export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode 
   const { messages: overrides, locale = "en", children } = props;
   const [owned] = useState(() => own(props));
   const [view] = useState(createViewStore);
+  const [editor] = useState(createEditorStore);
   const [opener] = useState(() => createOpener(owned.session));
 
   useEffect(() => {
@@ -121,8 +123,8 @@ export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode 
     [locale, overrides],
   );
   const value = useMemo(
-    () => ({ session: owned.session, engine: owned.engine, messages, view, opener }),
-    [owned, messages, view, opener],
+    () => ({ session: owned.session, engine: owned.engine, messages, view, editor, opener }),
+    [owned, messages, view, editor, opener],
   );
   return <ImageContext.Provider value={value}>{children}</ImageContext.Provider>;
 }

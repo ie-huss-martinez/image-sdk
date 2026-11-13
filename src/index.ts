@@ -29,6 +29,18 @@ export {
   OUTPUT_LIMITS,
   PER_FILE_LIMITS,
 } from "./core/errors/image-limits.js";
+export type { CropHandle, ImageAspect } from "./core/model/crop.js";
+export {
+  ASPECT_PRESETS,
+  aspectRatio,
+  compositionDeltaToSource,
+  cropInComposition,
+  dragHandle,
+  fitAspect,
+  handleInSource,
+  moveCrop,
+  nudgeCropOnScreen,
+} from "./core/model/crop.js";
 export type { ImagePoint } from "./core/model/geometry.js";
 export {
   compositionSize,
@@ -90,7 +102,12 @@ export type {
   ImageRenderOutcome,
   ImageView,
 } from "./core/ports/image-renderer.js";
-export { backingSize, fittedView, MAX_PIXEL_RATIO } from "./core/ports/image-renderer.js";
+export {
+  backingSize,
+  fittedView,
+  MAX_PIXEL_RATIO,
+  placement,
+} from "./core/ports/image-renderer.js";
 export type {
   ImageCallOptions,
   ImageExportOptions,
