@@ -82,7 +82,18 @@ describe("cropping (docs/adr/0007)", () => {
     await opened();
     await key(document.activeElement, { key: "c" });
     await until(() => frame() !== null, "the frame");
-    const stage = document.querySelector(".hm-image-stage")?.getBoundingClientRect();
+    // Cropping swaps the inspector's panel, which resizes the stage under it;
+    // the frame follows once the stage's resize observer reports.
+    const stageBox = () => document.querySelector(".hm-image-stage")?.getBoundingClientRect();
+    const handlesInside = () => {
+      const box = stageBox();
+      return [...(frame()?.querySelectorAll("[data-hm-handle]") ?? [])].every((handle) => {
+        const h = handle.getBoundingClientRect();
+        return box !== undefined && h.bottom <= box.bottom && h.right <= box.right;
+      });
+    };
+    await until(handlesInside, "the frame to follow the stage's size");
+    const stage = stageBox();
     if (!stage) throw new Error("no stage");
     for (const handle of frame()?.querySelectorAll("[data-hm-handle]") ?? []) {
       const box = handle.getBoundingClientRect();
