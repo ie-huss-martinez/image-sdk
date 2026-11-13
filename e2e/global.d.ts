@@ -1,5 +1,6 @@
 // The hooks the example pages expose (examples/vite/src/main.ts and engine.ts).
 interface Window {
+  imageEditor: { open(bytes: ArrayBuffer): Promise<void>; status(): string };
   imageSdk: {
     run(
       bytes: ArrayBuffer,

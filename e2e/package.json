@@ -1,7 +1,7 @@
 {
   "name": "@hussmartinez/image-sdk-e2e",
   "private": true,
-  "description": "End-to-end tests of @hussmartinez/image-sdk against its built examples: the browser capability matrix and no foreign requests.",
+  "description": "End-to-end tests of @hussmartinez/image-sdk against its built examples: the browser capability matrix, the engine under each CSP, the editor's accessibility, and no foreign requests.",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "test:e2e": "tsc --noEmit && playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "catalog:",
     "@hussmartinez/sdk-config": "catalog:",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",

@@ -6,6 +6,22 @@ This repository will publish **`@hussmartinez/image-sdk`**. It follows the famil
 
 > Status: being bootstrapped. No packages are published yet.
 
+## Usage
+
+Import `@hussmartinez/ui`'s stylesheet once, then this package's. **ui's stylesheet is required:** it carries the focus rings and minimum target sizes the editor's accessibility relies on ([sdk-core ADR 0036](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0036-ui-as-a-dependency-of-the-sdks.md)).
+
+```tsx
+import "@hussmartinez/ui/styles.css";
+import "@hussmartinez/image-sdk/styles.css";
+import { ImageEditor } from "@hussmartinez/image-sdk/react";
+
+export function Editor({ file }: { file: File }) {
+  return <ImageEditor initialFile={file} onChange={(plan) => console.log(plan)} />;
+}
+```
+
+The editor decodes and draws in a Web Worker. By default the worker is inlined, which needs `worker-src blob:` in a Content Security Policy; pass `assetsUrl` to load it from your own origin with `worker-src 'self'` instead ([ADR 0002](docs/adr/0002-workers-and-assets.md)).
+
 ## Development
 
 The repository root is the published package, laid out as in the family's [standard layout](https://github.com/ie-huss-martinez/sdk-core/blob/main/STANDARDS.md#repository-layout): the source is in [`src`](src), and the pnpm workspace adds [`examples/`](examples), pages that run in the browser as hosts do, and [`e2e/`](e2e), the end-to-end suite.
