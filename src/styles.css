@@ -17,12 +17,48 @@
   .hm-image-editor {
     container-type: inline-size;
     display: grid;
-    /* The editor fits its container, however narrow: nothing sets a minimum width. */
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: var(--hm-gap-normal);
-    min-block-size: calc(var(--hm-space-12) * 8);
+    /* The layout fills the editor's box and no more: the inspector scrolls. */
+    grid-template-rows: minmax(0, 1fr);
+    /* 24rem: room for the toolbar, a usable stage and the start of the inspector. */
+    min-block-size: calc(var(--hm-space-12) * 4);
     block-size: 100%;
+  }
+
+  /*
+   * The layout, inside the editor so the editor's own width can query it:
+   * toolbar, stage and inspector in one column, the editor fitting its
+   * container however narrow; from 720 pixels, the inspector beside the stage.
+   */
+  .hm-image-editor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    /* A stage of at least 15rem; the inspector takes what's left, and scrolls. */
+    grid-template-rows: auto minmax(calc(var(--hm-space-12) * 2.5), 1fr) minmax(0, auto);
+    grid-template-areas: "toolbar" "stage" "inspector";
+    gap: var(--hm-gap-normal);
+    min-block-size: 0;
+  }
+
+  .hm-image-editor-toolbar {
+    grid-area: toolbar;
+  }
+
+  .hm-image-editor-stage {
+    grid-area: stage;
+  }
+
+  .hm-image-editor-inspector {
+    grid-area: inspector;
+    min-block-size: 0;
+    overflow: auto;
+  }
+
+  @container (width >= 720px) {
+    .hm-image-editor-layout {
+      grid-template-columns: minmax(0, 1fr) calc(var(--hm-space-12) * 3);
+      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-areas: "toolbar toolbar" "stage inspector";
+    }
   }
 
   .hm-image-editor--styled {
@@ -42,7 +78,7 @@
   .hm-image-stage {
     position: relative;
     display: grid;
-    min-block-size: calc(var(--hm-space-12) * 5);
+    min-block-size: calc(var(--hm-space-12) * 2.5);
     overflow: hidden;
   }
 
@@ -197,5 +233,23 @@
     flex-wrap: wrap;
     justify-content: end;
     gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-adjust-panel,
+  .hm-image-filter-panel {
+    display: grid;
+    gap: var(--hm-gap-normal);
+  }
+
+  /* A slider, its value, and its reset when it isn't 0. */
+  .hm-image-adjust-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-adjust-value {
+    font-variant-numeric: tabular-nums;
   }
 }

@@ -88,4 +88,18 @@ test.describe("the image editor", () => {
     await page.getByRole("button", { name: "Apply crop" }).click();
     await expect(page.getByRole("img", { name: "Edited image preview, 38 × 27" })).toBeVisible();
   });
+
+  test("has no violations with the Adjust and Filters panels", async ({ page }) => {
+    await page.goto("/editor.html");
+    await page.evaluate(
+      (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
+      Array.from(fixture("quadrants.png")),
+    );
+    await expect(page.getByRole("region", { name: "Adjust" })).toBeVisible();
+    await noViolations(page);
+    await page.getByRole("radio", { name: "Filters" }).click();
+    await page.getByRole("radio", { name: "Sepia" }).click();
+    await expect(page.getByRole("slider", { name: "Strength" })).toBeVisible();
+    await noViolations(page);
+  });
 });

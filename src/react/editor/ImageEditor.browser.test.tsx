@@ -1,9 +1,11 @@
+import { useUiMessages } from "@hussmartinez/ui/react";
 import { act, createRef, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import type { ImagePlan } from "../../core/model/plan.js";
+import { ImageEditorProvider } from "../ImageEditorProvider.js";
 import { ImageEditor } from "./ImageEditor.js";
 import type { ImageEditorHandle } from "./types.js";
 
@@ -23,6 +25,11 @@ beforeAll(async () => {
   unloadStyles = await loadStyles();
 });
 afterAll(() => unloadStyles());
+
+/** Shows ui's text for a dialog's close button, as ui's components read it. */
+function UiTextProbe() {
+  return <output>{useUiMessages().t("dialog.close")}</output>;
+}
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
@@ -170,6 +177,15 @@ describe("ImageEditor (docs/adr/0007)", () => {
     const editor = container.querySelector("section");
     expect(editor?.getBoundingClientRect().width).toBeLessThanOrEqual(320);
     expect(editor?.scrollWidth).toBeLessThanOrEqual(320);
+  });
+
+  it("gives ui's components the same text, with the host's overrides (sdk-core ADR 0046)", async () => {
+    const container = await mount(
+      <ImageEditorProvider messages={{ "dialog.close": "Schließen" }} locale="de">
+        <UiTextProbe />
+      </ImageEditorProvider>,
+    );
+    expect(container.querySelector("output")?.textContent).toBe("Schließen");
   });
 
   it("renders its empty state on a server, with no canvas", () => {

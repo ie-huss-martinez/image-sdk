@@ -28,6 +28,10 @@ export {
 } from "./react/hooks.js";
 export type { ImageEditorProviderProps } from "./react/ImageEditorProvider.js";
 export { ImageEditorProvider } from "./react/ImageEditorProvider.js";
+export type { ImageAdjustPanelProps } from "./react/panels/AdjustPanel.js";
+export { ImageAdjustPanel } from "./react/panels/AdjustPanel.js";
+export type { ImageFilterPanelProps } from "./react/panels/FilterPanel.js";
+export { ImageFilterPanel } from "./react/panels/FilterPanel.js";
 export type { ImageStageProps } from "./react/stage/ImageStage.js";
 export { ImageStage } from "./react/stage/ImageStage.js";
 export type { ImageToolbarProps } from "./react/toolbar/ImageToolbar.js";

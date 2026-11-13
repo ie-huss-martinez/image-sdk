@@ -1,4 +1,5 @@
 import { createMessages, type MessageOverrides } from "@hussmartinez/sdk-core";
+import { UiMessagesProvider } from "@hussmartinez/ui/react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { createImageEngine } from "../adapters/image-engine.js";
 import { createImageProcessor } from "../adapters/image-processor.js";
@@ -126,5 +127,11 @@ export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode 
     () => ({ session: owned.session, engine: owned.engine, messages, view, editor, opener }),
     [owned, messages, view, editor, opener],
   );
-  return <ImageContext.Provider value={value}>{children}</ImageContext.Provider>;
+  // The same object gives ui's components their text, so a host's
+  // `messages` reach the drop zone and dialogs too (sdk-core ADR 0046).
+  return (
+    <ImageContext.Provider value={value}>
+      <UiMessagesProvider messages={messages}>{children}</UiMessagesProvider>
+    </ImageContext.Provider>
+  );
 }
