@@ -10,13 +10,6 @@ import type { ImageView } from "../../core/ports/image-renderer.js";
  * `ImageBitmap`; the page keeps each source's `Blob`.
  */
 export interface RenderWorkerContract {
-  // TODO(sdk-core 0.3.0): drop for `packageVersion` in `exposeWorker` and
-  // `createWorkerClient` (sdk-core ADR 0038), which checks it before any call.
-  /**
-   * The package version the worker was built from. A self-hosted worker
-   * copied before an upgrade reports an older one (docs/adr/0002).
-   */
-  readonly version: { readonly input: undefined; readonly output: string };
   /** Reads a file's headers (docs/adr/0001). */
   readonly probe: { readonly input: { readonly file: Blob }; readonly output: ImageProbe };
   /**

@@ -1,9 +1,9 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
 import { orientedSize } from "../../core/model/geometry.js";
 import type { ExifOrientation, ImageFormat, ImageProbe } from "../../core/model/source.js";
 import { ascii, exact, invalid, u16be, u32be } from "./bytes.js";
 import { emptyExif, readExif } from "./exif.js";
-import type { WindowReader } from "./window-reader.js";
 
 /** The brands an `ftyp` may lead with for the probe to read the file. */
 const BRANDS = new Set([

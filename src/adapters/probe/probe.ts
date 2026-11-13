@@ -1,3 +1,4 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { isBmp, probeBmp } from "./bmp.js";
@@ -7,7 +8,6 @@ import { isHeif, probeHeif } from "./heif.js";
 import { JPEG_SIGNATURE, probeJpeg } from "./jpeg.js";
 import { PNG_SIGNATURE, probePng } from "./png.js";
 import { isWebp, probeWebp } from "./webp.js";
-import type { WindowReader } from "./window-reader.js";
 
 /**
  * Probes a file by its signature bytes, never its name or MIME type, and

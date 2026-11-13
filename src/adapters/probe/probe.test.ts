@@ -1,3 +1,4 @@
+import { createWindowReader } from "@hussmartinez/sdk-core";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
@@ -27,7 +28,6 @@ import {
 } from "../../../test/fixtures/image-writers.js";
 import { isImageError } from "../../core/errors/image-error.js";
 import { probeImage } from "./probe.js";
-import { createWindowReader } from "./window-reader.js";
 
 const probe = (bytes: Uint8Array, windowSize?: number) =>
   probeImage(

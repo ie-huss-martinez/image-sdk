@@ -1,6 +1,6 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
 import type { ImageFormat } from "../../core/model/source.js";
-import type { WindowReader } from "./window-reader.js";
 
 /**
  * An `INVALID_IMAGE` error naming the format and what was wrong, never data

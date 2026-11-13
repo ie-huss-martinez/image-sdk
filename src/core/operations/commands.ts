@@ -1,3 +1,4 @@
+import type { Reducer } from "@hussmartinez/sdk-core";
 import { ImageError } from "../errors/image-error.js";
 import {
   DEVELOP_ADJUSTMENTS,
@@ -15,7 +16,6 @@ import {
   type ImageSize,
   MAX_METADATA_LENGTH,
 } from "../model/source.js";
-import type { Reducer } from "./reducer-types.js";
 
 /**
  * Sets or removes the base's crop, in whole pixels of the oriented source.

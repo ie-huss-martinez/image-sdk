@@ -1,8 +1,8 @@
+import type { WindowReader } from "@hussmartinez/sdk-core";
 import { orientedSize } from "../../core/model/geometry.js";
 import { type ImageProbe, MAX_METADATA_LENGTH } from "../../core/model/source.js";
 import { ascii, exact, invalid, u32be } from "./bytes.js";
 import { emptyExif, readExif } from "./exif.js";
-import type { WindowReader } from "./window-reader.js";
 
 /** PNG's eight signature bytes. */
 export const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const;

@@ -1,11 +1,15 @@
-import { createWorkerClient, type WorkerClient, type WorkerLike } from "@hussmartinez/sdk-core";
+import {
+  createWorkerClient,
+  resolveAssetsBase,
+  type WorkerClient,
+  type WorkerLike,
+} from "@hussmartinez/sdk-core";
 import { abortError, asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
 import { ImageError } from "../core/errors/image-error.js";
 import { imageLimits, PER_FILE_LIMITS } from "../core/errors/image-limits.js";
 import type { ImageProbe, ImageSourceInfo, ImageThumbnail } from "../core/model/source.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageCallOptions, ImageRegisterOptions } from "../core/ports/options.js";
-import { assetsBase } from "./assets-url.js";
 import type { RenderWorkerContract } from "./render-worker/contract.js";
 
 /**
@@ -27,7 +31,7 @@ export interface ImageEngineOptions {
 
 /**
  * What a processor needs from the engine whose render worker it shares
- * (docs/adr/0002): its client, after the version check, and which sources
+ * (docs/adr/0002): its client, once the worker has loaded, and which sources
  * it holds.
  *
  * @internal
@@ -85,7 +89,7 @@ export interface EngineEnvironment {
  * @public
  */
 export function createImageEngine(options: ImageEngineOptions = {}): ImageEngine {
-  const base = assetsBase(options.assetsUrl);
+  const base = options.assetsUrl === undefined ? undefined : resolveAssetsBase(options.assetsUrl);
   const selfHosted = base === undefined ? undefined : `${base}image/render.worker.js`;
   return createEngine({
     loadWorker: selfHosted
@@ -123,37 +127,16 @@ export function createEngine(
     cancelTimeout: 30_000,
     // A crashed worker has lost every source.
     onCrash: () => ids.clear(),
+    // A self-hosted worker copied before an upgrade speaks the same protocol
+    // but runs older code: sdk-core refuses it before any call, with
+    // WORKER_START_FAILED and the asset and both versions (ADR 0038).
+    packageVersion: environment.version,
+    workerAsset: environment.asset ?? "inline",
   });
-
-  let versionChecked: Promise<void> | undefined;
 
   async function ready(): Promise<void> {
     if (destroyed) throw new Error("The image engine has been destroyed.");
     startWorker ??= await environment.loadWorker();
-    // A self-hosted worker copied before an upgrade would speak the same
-    // protocol but run older code, so the first call checks its version.
-    versionChecked ??= (async () => {
-      const actual = await client.call("version", undefined);
-      if (actual !== environment.version) {
-        throw new ImageError(
-          "WORKER_START_FAILED",
-          "The render worker isn't this version of the SDK. Copy dist/assets again after upgrading.",
-          {
-            details: {
-              asset: environment.asset ?? "inline",
-              expected: environment.version,
-              actual,
-            },
-          },
-        );
-      }
-    })();
-    try {
-      await versionChecked;
-    } catch (error) {
-      versionChecked = undefined;
-      throw error;
-    }
   }
 
   async function run<T>(signal: AbortSignal | undefined, work: () => Promise<T>): Promise<T> {

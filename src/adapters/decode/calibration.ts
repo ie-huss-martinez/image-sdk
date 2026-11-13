@@ -1,6 +1,6 @@
+import { createWindowReader } from "@hussmartinez/sdk-core";
 import type { ImageFormat } from "../../core/model/source.js";
 import { probeImage } from "../probe/probe.js";
-import { createWindowReader } from "../probe/window-reader.js";
 import { AVIF_CALIBRATION, HEIF_CALIBRATION } from "./calibration-files.js";
 import { classifyQuadrants, QUADRANT_COLOURS, quadrantCentres } from "./orientation.js";
 
