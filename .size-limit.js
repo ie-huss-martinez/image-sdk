@@ -12,7 +12,8 @@
 export default [
   {
     name: "Server-safe core (.), with the shared code it loads",
-    path: ["dist/index.js", "dist/shared/*.js"],
+    // The core never loads the React editor's chunks.
+    path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
     limit: "15 kB",
   },

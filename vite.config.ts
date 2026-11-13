@@ -95,11 +95,16 @@ export default defineConfig({
       external: isExternal,
       output: {
         // Code shared by several entries goes in shared/, so the size budgets
-        // count it with each entry that loads it. Code loaded with import(),
-        // such as the inlined render worker, goes in lazy/, with budgets of
-        // its own.
-        chunkFileNames: (chunk) =>
-          chunk.isDynamicEntry ? "lazy/[name]-[hash].js" : "shared/[name]-[hash].js",
+        // count it with each entry that loads it: shared/editor-* holds the
+        // React editor, which the React and element entries load, and
+        // shared/core-* the rest, which the server-safe core loads too. Code
+        // loaded with import(), such as the inlined render worker, goes in
+        // lazy/, with budgets of its own.
+        chunkFileNames: (chunk) => {
+          if (chunk.isDynamicEntry) return "lazy/[name]-[hash].js";
+          const editor = chunk.moduleIds.some((id) => id.includes("/src/react/"));
+          return editor ? "shared/editor-[hash].js" : "shared/core-[hash].js";
+        },
         // TSDoc reaches users through the .d.ts files and the source maps, so
         // the JavaScript keeps only legal and @__PURE__ annotation comments.
         comments: { legal: true, annotation: true, jsdoc: false },

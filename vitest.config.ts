@@ -28,6 +28,9 @@ export default defineConfig(({ mode }) => {
           define: versionDefine(),
           // Serves the self-hosted worker as the build writes it (docs/adr/0002).
           plugins: [testAssets()],
+          // Pre-bundled up front: found mid-run, Vite reloads the page under a
+          // running test, as the element's tests showed on a cold cache.
+          optimizeDeps: { include: ["@hussmartinez/sdk-core/element"] },
           test: {
             name: "browser",
             include: ["src/**/*.browser.test.{ts,tsx}", "test/**/*.browser.test.ts"],

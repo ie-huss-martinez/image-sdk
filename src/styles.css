@@ -10,6 +10,14 @@
 
 @layer hm.sdk {
   /*
+   * The element (docs/adr/0007) is a block, as the editor inside it is;
+   * custom elements are inline by default. A host's CSS sizes it.
+   */
+  hm-image-editor {
+    display: block;
+  }
+
+  /*
    * The editor (docs/adr/0007): toolbar, then the stage, filling the
    * editor's box. Sizes follow the editor's own width through a container
    * query, not the viewport's.
