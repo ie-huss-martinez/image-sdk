@@ -179,6 +179,34 @@ describe("ImageEditor (docs/adr/0007)", () => {
     expect(editor?.scrollWidth).toBeLessThanOrEqual(320);
   });
 
+  it("takes shortcuts inside a host's modal dialog that holds it", async () => {
+    const handle = createRef<ImageEditorHandle>();
+    const dialog = document.createElement("dialog");
+    host = document.createElement("div");
+    host.style.width = "640px";
+    host.style.height = "480px";
+    dialog.append(host);
+    document.body.append(dialog);
+    dialog.showModal();
+    try {
+      root = createRoot(host);
+      await act(async () => root?.render(<ImageEditor ref={handle} />));
+      await act(async () => handle.current?.open(await photo()));
+      await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+      await act(async () => {
+        button(dialog, "image.rotate-left").dispatchEvent(
+          new KeyboardEvent("keydown", { key: "]", bubbles: true, cancelable: true }),
+        );
+      });
+      expect(handle.current?.session.getSnapshot().plan?.base.orientation.rotate).toBe(90);
+    } finally {
+      await act(async () => root?.unmount());
+      root = undefined;
+      dialog.close();
+      dialog.remove();
+    }
+  });
+
   it("gives ui's components the same text, with the host's overrides (sdk-core ADR 0046)", async () => {
     const container = await mount(
       <ImageEditorProvider messages={{ "dialog.close": "Schließen" }} locale="de">

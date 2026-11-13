@@ -199,10 +199,10 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   }, [tool]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    // A modal dialog, such as export's, keeps its keys: React bubbles them
-    // here through the component tree, past the dialog's inert backdrop.
-    if (event.target instanceof Element && event.target.closest("dialog")) return;
-    const id = shortcuts.match(event.nativeEvent);
+    // The root bounds the search for a modal dialog: keys from one inside the
+    // editor, such as export's, stay its own, while a host's dialog holding
+    // the whole editor doesn't stop its shortcuts (sdk-core 0.4.2).
+    const id = shortcuts.match(event.nativeEvent, { root: event.currentTarget });
     const tool = id ? registry.get(id) : undefined;
     if (!tool) return;
     const state = { snapshot: session.getSnapshot(), editor: editor.getSnapshot() };
