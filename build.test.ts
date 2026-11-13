@@ -1,4 +1,6 @@
+import { readdirSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build, type Rolldown } from "vite";
@@ -207,5 +209,25 @@ describe("the self-hosted worker (docs/adr/0002)", () => {
     const code = selfHosted();
     expect(code).not.toMatch(CODE_GENERATION);
     expect(code).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|importScripts|WebSocket/);
+  });
+});
+
+describe("the format schemas (sdk-core ADR 0045)", () => {
+  it("ship with the package, each by its path under ./formats/, and the vectors don't", async () => {
+    const manifest = JSON.parse(await readFile(new URL("package.json", import.meta.url), "utf8"));
+    expect(manifest.files).toContain("formats");
+    expect(manifest.files).not.toContain("conformance");
+    expect(manifest.exports["./formats/*"]).toBe("./formats/*");
+    // The package resolves itself by name, as a host's import would.
+    const require = createRequire(import.meta.url);
+    const formats = readdirSync(new URL("formats", import.meta.url));
+    expect(formats.sort()).toEqual(["hm-image-command", "hm-image-plan"]);
+    for (const format of formats) {
+      const path = require.resolve(`@hussmartinez/image-sdk/formats/${format}/v1.schema.json`);
+      const schema = JSON.parse(await readFile(path, "utf8"));
+      expect(schema.$id).toBe(
+        `https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/${format}/v1.schema.json`,
+      );
+    }
   });
 });

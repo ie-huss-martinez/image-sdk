@@ -7,7 +7,24 @@ image-sdk's portable formats ([sdk-core ADR 0045](https://github.com/ie-huss-mar
 | `hm-image-plan` 1 | [`formats/hm-image-plan/v1.schema.json`](../../formats/hm-image-plan/v1.schema.json) | A plan ([ADR 0003](../adr/0003-layer-plan-document-model.md)), with the sources it uses |
 | `hm-image-command` 1 | [`formats/hm-image-command/v1.schema.json`](../../formats/hm-image-command/v1.schema.json) | One user-level edit command |
 
-`readImagePlanDocument` already checks everything the schema does and more, so a host needs the schema only to validate elsewhere, such as on a server that stores documents, or in another tool. The command schema refers to the plan schema's definitions by its `$id`, so a validator adds the plan schema first.
+## Loading the schemas
+
+The schemas ship with the package, under `@hussmartinez/image-sdk/formats/`, so a host validates against the version that matches its installed reader. `readImagePlanDocument` already checks everything the schema does and more, so a host needs the schemas only to validate elsewhere, such as on a server that stores documents, or in another tool.
+
+```ts
+import { Ajv2020 } from "ajv/dist/2020.js";
+import planSchema from "@hussmartinez/image-sdk/formats/hm-image-plan/v1.schema.json" with { type: "json" };
+import commandSchema from "@hussmartinez/image-sdk/formats/hm-image-command/v1.schema.json" with { type: "json" };
+
+const ajv = new Ajv2020({ strict: true });
+// The command schema refers to the plan schema's definitions by its $id, so compile that first.
+const isPlan = ajv.compile(planSchema);
+const isCommand = ajv.compile(commandSchema);
+
+if (!isPlan(JSON.parse(text))) console.error(isPlan.errors);
+```
+
+In Node without a bundler, `createRequire(import.meta.url).resolve("@hussmartinez/image-sdk/formats/hm-image-plan/v1.schema.json")` gives the file's path. The vectors in `conformance/` stay in the repository: they're for ports and the SDK's own tests, not for hosts.
 
 ## `hm-image-plan`
 
