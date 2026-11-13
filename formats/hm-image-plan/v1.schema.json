@@ -265,7 +265,7 @@
       ]
     },
     "metadataValue": {
-      "description": "Text to keep, or empty to keep nothing. Readers count its length in UTF-16 code units, as JavaScript does, which is at least its length in code points.",
+      "description": "Text to keep, or empty to keep nothing. Its length is in Unicode code points, as maxLength counts it.",
       "type": "string",
       "maxLength": 2000
     },

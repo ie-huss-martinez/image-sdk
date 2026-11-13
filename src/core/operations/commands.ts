@@ -14,6 +14,7 @@ import {
 import {
   type ImageKeepableMetadata,
   type ImageSize,
+  longerThan,
   MAX_METADATA_LENGTH,
 } from "../model/source.js";
 
@@ -107,7 +108,7 @@ export type ImageCommand =
  * - `invalid-output`: a scale outside (0, 1], or a box under 1 pixel.
  * - `unknown-metadata-field`: a field other than title, description, artist
  *   and copyright.
- * - `metadata-too-long`: a value over `MAX_METADATA_LENGTH` UTF-16 code units.
+ * - `metadata-too-long`: a value over `MAX_METADATA_LENGTH` code points.
  * - `unknown-adjustment`: a develop value that isn't an adjustment.
  * - `invalid-level`: a develop value that isn't a whole number from -100 to 100.
  * - `unknown-preset`: a filter that isn't one of `FILTER_PRESETS`.
@@ -248,8 +249,11 @@ const METADATA_FIELDS: readonly (keyof ImageKeepableMetadata)[] = [
 /** @internal */
 export function checkMetadataValue(field: string, value: unknown): string {
   if (typeof value !== "string") invalid("malformed-command", `metadata.${field} is text`);
-  if (value.length > MAX_METADATA_LENGTH) {
-    invalid("metadata-too-long", `metadata.${field} is over ${MAX_METADATA_LENGTH} characters`);
+  if (longerThan(value, MAX_METADATA_LENGTH)) {
+    invalid(
+      "metadata-too-long",
+      `metadata.${field} has more than ${MAX_METADATA_LENGTH} code points`,
+    );
   }
   return value;
 }

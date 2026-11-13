@@ -1,6 +1,7 @@
 import {
   type ExifOrientation,
   type ImageFormat,
+  longerThan,
   MAX_METADATA_LENGTH,
 } from "../../core/model/source.js";
 import { invalid } from "./bytes.js";
@@ -117,7 +118,11 @@ export function readExif(block: Uint8Array, format: ImageFormat): ExifSummary {
     }
     const raw = block.subarray(at, at + bytes);
     const decoded = utf16 ? new TextDecoder("utf-16le").decode(raw) : asciiText(raw);
-    return decoded.replace(/\0+$/, "").slice(0, MAX_METADATA_LENGTH);
+    const trimmed = decoded.replace(/\0+$/, "");
+    // At most the limit's code points, never half of a surrogate pair.
+    return longerThan(trimmed, MAX_METADATA_LENGTH)
+      ? [...trimmed].slice(0, MAX_METADATA_LENGTH).join("")
+      : trimmed;
   };
 
   const visited = new Set<number>();

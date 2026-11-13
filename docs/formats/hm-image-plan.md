@@ -34,7 +34,7 @@ image-sdk's portable formats ([sdk-core ADR 0045](https://github.com/ie-huss-mar
 - **Numbers:** crops and sizes are whole pixels of the oriented source, the image as its EXIF orientation shows it ([ADR 0005](../adr/0005-colour-orientation-and-metadata.md)). Develop levels and filter strengths are whole numbers. An output `scale` is the one float. It's copied, never computed, so it compares exactly (ADR 0045, section 3).
 - **Sources** are keyed by ids that only mean something within the document, and the base names one of them. Each gives its oriented size. Once documents travel with their files, it also gives an `asset`: the SHA-256 of the bytes, their media type and their size. A document never inlines pixels, and never records a file name.
 - **Beyond the schema,** a reader checks what depends on the whole document: the base's source is one the document lists, and its crop fits inside that source.
-- **Text lengths:** kept fields hold at most 2,000 UTF-16 code units, as JavaScript counts them. The schema's `maxLength` counts code points, which are never more, so the reader is the stricter of the two, and a port counts as JavaScript does.
+- **Text lengths:** kept fields hold at most 2,000 Unicode code points, as the schema's `maxLength` counts them, and as every language can (sdk-core ADR 0045, section 8). A character outside the BMP, such as an emoji, is one code point, though JavaScript's `length` counts it as two. The vectors check the boundary with such characters.
 - **Strict:** an unknown field anywhere is refused, never dropped. So a later version's document can't be misread as this one.
 - **Not in the format:** the editor's state, such as a crop in progress or a gesture's preview, and the session's history.
 

@@ -213,6 +213,13 @@ describe("probing JPEG", () => {
     expect(result.keepable).toMatchObject({ description: "A harbour at dawn", artist: "Someone" });
   });
 
+  it("keeps at most 2,000 code points of a field, never half of a surrogate pair", async () => {
+    const result = await probe(
+      jpeg({ width: 8, height: 8, exif: exif({ xpTitle: "📷".repeat(2_001) }) }),
+    );
+    expect(result.keepable.title).toBe("📷".repeat(2_000));
+  });
+
   it("rejects two frame headers, a scan before a frame, and a height defined after the scan", async () => {
     const sof = jpegSegment(0xc0, [8, 0, 8, 0, 8, 1, 1, 0x11, 0]);
     expect(

@@ -164,7 +164,12 @@ export function exif(spec: ExifSpec): Uint8Array {
   };
   if (spec.xpTitle !== undefined) {
     const bytes = [
-      ...Array.from(spec.xpTitle, (c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >>> 8]).flat(),
+      // UTF-16 little-endian, unit by unit, so characters outside the BMP
+      // are written as their surrogate pairs.
+      ...Array.from({ length: spec.xpTitle.length }, (_, i) => {
+        const unit = (spec.xpTitle as string).charCodeAt(i);
+        return [unit & 0xff, unit >>> 8];
+      }).flat(),
       0,
       0,
     ];

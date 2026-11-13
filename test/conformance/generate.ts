@@ -208,8 +208,18 @@ export function commandCases(): ConformanceFile {
       refused("unknown-metadata-field"),
     ],
     [
-      "refuses a kept field over 2,000 characters",
+      "refuses a kept field over 2,000 code points",
       on(metadata("description", "x".repeat(2_001))),
+      refused("metadata-too-long"),
+    ],
+    [
+      "keeps 2,000 code points outside the BMP, which are 4,000 UTF-16 units",
+      on(metadata("title", "📷".repeat(2_000))),
+      applied,
+    ],
+    [
+      "refuses 2,001 code points outside the BMP",
+      on(metadata("title", "📷".repeat(2_001))),
       refused("metadata-too-long"),
     ],
     ["refuses an unknown adjustment", on(develop({ clarity: 10 })), refused("unknown-adjustment")],
@@ -428,8 +438,18 @@ export function planCases(): ConformanceFile {
       invalidDocument("malformed-document"),
     ],
     [
-      "refuses a kept field over 2,000 characters",
+      "refuses a kept field over 2,000 code points",
       document({ metadata: { ...BASE.metadata, title: "x".repeat(2_001) } }),
+      invalidDocument("metadata-too-long"),
+    ],
+    [
+      "reads 2,000 code points outside the BMP, which are 4,000 UTF-16 units",
+      document({ metadata: { ...BASE.metadata, copyright: "𝄞".repeat(2_000) } }),
+      applied,
+    ],
+    [
+      "refuses 2,001 code points outside the BMP",
+      document({ metadata: { ...BASE.metadata, copyright: "𝄞".repeat(2_001) } }),
       invalidDocument("metadata-too-long"),
     ],
   ];
