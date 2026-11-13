@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-command/v1.schema.json",
+  "title": "hm-image-command, version 1",
+  "description": "One user-level edit to an hm-image-plan (docs/formats/hm-image-plan.md, sdk-core ADR 0045). Beyond this schema, the reducer checks a crop against the plan's source.",
+  "oneOf": [
+    {
+      "description": "Sets the crop, or removes it with null.",
+      "type": "object",
+      "required": ["type", "crop"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setCrop"
+        },
+        "crop": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json#/$defs/crop"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "description": "Sets the rotation and flips.",
+      "type": "object",
+      "required": ["type", "orientation"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setOrientation"
+        },
+        "orientation": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json#/$defs/orientation"
+        }
+      }
+    },
+    {
+      "description": "Sets the export's size.",
+      "type": "object",
+      "required": ["type", "output"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setOutput"
+        },
+        "output": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json#/$defs/output"
+        }
+      }
+    },
+    {
+      "description": "Sets one kept metadata field.",
+      "type": "object",
+      "required": ["type", "field", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setMetadata"
+        },
+        "field": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json#/$defs/metadataField"
+        },
+        "value": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json#/$defs/metadataValue"
+        }
+      }
+    },
+    {
+      "description": "Sets some develop adjustments.",
+      "type": "object",
+      "required": ["type", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setDevelop"
+        },
+        "values": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json#/$defs/developValues"
+        }
+      }
+    },
+    {
+      "description": "Sets the filter, or removes it with null.",
+      "type": "object",
+      "required": ["type", "filter"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setFilter"
+        },
+        "filter": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json#/$defs/filter"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json",
+  "title": "hm-image-plan, version 1",
+  "description": "An image-sdk plan: one source, its crop, orientation, develop adjustments and filter, the export's size, and the metadata fields the user keeps (docs/formats/hm-image-plan.md, sdk-core ADR 0045). Positions are whole pixels of the oriented source. Beyond this schema, readers check that the base's source is one the document lists, and that its crop fits inside that source.",
+  "type": "object",
+  "required": ["format", "version", "sources", "base", "output", "metadata"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "hm-image-plan"
+    },
+    "version": {
+      "const": 1
+    },
+    "sources": {
+      "description": "The sources by id. The base names one of them.",
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "base": {
+      "$ref": "#/$defs/base"
+    },
+    "output": {
+      "$ref": "#/$defs/output"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    }
+  },
+  "$defs": {
+    "pixels": {
+      "description": "A whole number of pixels from 0.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "size": {
+      "description": "A whole number of pixels from 1.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "asset": {
+      "description": "A content-addressed reference to a source's bytes. Documents never inline them.",
+      "type": "object",
+      "required": ["asset", "mediaType", "size"],
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "description": "sha256: and the lowercase hex SHA-256 of the bytes.",
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "mediaType": {
+          "description": "The bytes' media type, in lowercase.",
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$"
+        },
+        "size": {
+          "description": "The size of the bytes.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "source": {
+      "description": "A source's oriented size, after its EXIF orientation, which a crop must fit inside.",
+      "type": "object",
+      "required": ["width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "$ref": "#/$defs/size"
+        },
+        "height": {
+          "$ref": "#/$defs/size"
+        },
+        "asset": {
+          "$ref": "#/$defs/asset"
+        }
+      }
+    },
+    "crop": {
+      "description": "A rectangle in whole pixels of the oriented source.",
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/pixels"
+        },
+        "y": {
+          "$ref": "#/$defs/pixels"
+        },
+        "width": {
+          "$ref": "#/$defs/size"
+        },
+        "height": {
+          "$ref": "#/$defs/size"
+        }
+      }
+    },
+    "orientation": {
+      "description": "The plan's rotation, then its flips.",
+      "type": "object",
+      "required": ["rotate", "flipX", "flipY"],
+      "additionalProperties": false,
+      "properties": {
+        "rotate": {
+          "description": "Clockwise, in degrees.",
+          "enum": [0, 90, 180, 270]
+        },
+        "flipX": {
+          "type": "boolean"
+        },
+        "flipY": {
+          "type": "boolean"
+        }
+      }
+    },
+    "level": {
+      "description": "A develop adjustment: a whole number from -100 to 100, where 0 is unchanged.",
+      "type": "integer",
+      "minimum": -100,
+      "maximum": 100
+    },
+    "develop": {
+      "description": "Every develop adjustment, in the order they're applied.",
+      "type": "object",
+      "required": [
+        "temperature",
+        "tint",
+        "exposure",
+        "highlights",
+        "shadows",
+        "contrast",
+        "saturation",
+        "vibrance"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "temperature": {
+          "$ref": "#/$defs/level"
+        },
+        "tint": {
+          "$ref": "#/$defs/level"
+        },
+        "exposure": {
+          "$ref": "#/$defs/level"
+        },
+        "highlights": {
+          "$ref": "#/$defs/level"
+        },
+        "shadows": {
+          "$ref": "#/$defs/level"
+        },
+        "contrast": {
+          "$ref": "#/$defs/level"
+        },
+        "saturation": {
+          "$ref": "#/$defs/level"
+        },
+        "vibrance": {
+          "$ref": "#/$defs/level"
+        }
+      }
+    },
+    "developValues": {
+      "description": "Some develop adjustments; the others keep their values.",
+      "type": "object",
+      "required": [],
+      "additionalProperties": false,
+      "properties": {
+        "temperature": {
+          "$ref": "#/$defs/level"
+        },
+        "tint": {
+          "$ref": "#/$defs/level"
+        },
+        "exposure": {
+          "$ref": "#/$defs/level"
+        },
+        "highlights": {
+          "$ref": "#/$defs/level"
+        },
+        "shadows": {
+          "$ref": "#/$defs/level"
+        },
+        "contrast": {
+          "$ref": "#/$defs/level"
+        },
+        "saturation": {
+          "$ref": "#/$defs/level"
+        },
+        "vibrance": {
+          "$ref": "#/$defs/level"
+        }
+      }
+    },
+    "filter": {
+      "description": "A filter preset and its strength, or null for none.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": ["preset", "strength"],
+          "additionalProperties": false,
+          "properties": {
+            "preset": {
+              "enum": ["vivid", "warm", "cool", "fade", "mono", "noir", "sepia"]
+            },
+            "strength": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      ]
+    },
+    "output": {
+      "description": "The export's size: the composition scaled by a factor up to 1, or fitted inside a box without enlarging it. The scale is copied, never computed, so it compares exactly.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "scale"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "scale"
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "width", "height"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "fit"
+            },
+            "width": {
+              "$ref": "#/$defs/size"
+            },
+            "height": {
+              "$ref": "#/$defs/size"
+            }
+          }
+        }
+      ]
+    },
+    "metadataValue": {
+      "description": "Text to keep, or empty to keep nothing. Readers count its length in UTF-16 code units, as JavaScript does, which is at least its length in code points.",
+      "type": "string",
+      "maxLength": 2000
+    },
+    "metadataField": {
+      "enum": ["title", "description", "artist", "copyright"]
+    },
+    "metadata": {
+      "description": "The fields the user keeps on export. Never a location.",
+      "type": "object",
+      "required": ["title", "description", "artist", "copyright"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/metadataValue"
+        },
+        "description": {
+          "$ref": "#/$defs/metadataValue"
+        },
+        "artist": {
+          "$ref": "#/$defs/metadataValue"
+        },
+        "copyright": {
+          "$ref": "#/$defs/metadataValue"
+        }
+      }
+    },
+    "base": {
+      "description": "The image being edited.",
+      "type": "object",
+      "required": ["source", "crop", "orientation", "develop", "filter"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "description": "The id of a source the document lists.",
+          "type": "string",
+          "minLength": 1
+        },
+        "crop": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/crop"
+            }
+          ]
+        },
+        "orientation": {
+          "$ref": "#/$defs/orientation"
+        },
+        "develop": {
+          "$ref": "#/$defs/develop"
+        },
+        "filter": {
+          "$ref": "#/$defs/filter"
+        }
+      }
+    }
+  }
+}

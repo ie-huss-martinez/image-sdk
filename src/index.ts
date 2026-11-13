@@ -29,6 +29,18 @@ export {
   OUTPUT_LIMITS,
   PER_FILE_LIMITS,
 } from "./core/errors/image-limits.js";
+export type {
+  ImageAssetReference,
+  ImageDocumentRejection,
+  ImagePlanDocument,
+  ImagePlanDocumentSource,
+} from "./core/format/plan-document.js";
+export {
+  IMAGE_PLAN_FORMAT,
+  IMAGE_PLAN_VERSION,
+  readImagePlanDocument,
+  toImagePlanDocument,
+} from "./core/format/plan-document.js";
 export type { CropHandle, ImageAspect } from "./core/model/crop.js";
 export {
   ASPECT_PRESETS,
@@ -82,6 +94,7 @@ export type {
 export { EMPTY_KEEPABLE_METADATA, MAX_METADATA_LENGTH, NO_METADATA } from "./core/model/source.js";
 export type {
   ImageCommand,
+  ImageCommandRejection,
   SetCropCommand,
   SetDevelopCommand,
   SetFilterCommand,

@@ -1,13 +1,11 @@
 import { applyCommands } from "@hussmartinez/sdk-core";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { command, plan, reducer } from "../../../test/arbitraries/image-plan.js";
 import { isImageError } from "../errors/image-error.js";
-import { createPlan, DEVELOP_ADJUSTMENTS, FILTER_PRESETS, type ImagePlan } from "../model/plan.js";
+import { createPlan } from "../model/plan.js";
 import { MAX_METADATA_LENGTH } from "../model/source.js";
-import { createImageReducer, type ImageCommand } from "./commands.js";
-
-const SIZE = { width: 40, height: 30 };
-const reducer = createImageReducer((id) => (id === "s" ? SIZE : undefined));
+import type { ImageCommand } from "./commands.js";
 
 function invalid(run: () => unknown): boolean {
   try {
@@ -17,73 +15,6 @@ function invalid(run: () => unknown): boolean {
   }
   return false;
 }
-
-const crop = fc.oneof(
-  fc.constant(null),
-  fc.record({ x: fc.nat(39), y: fc.nat(29) }).chain(({ x, y }) =>
-    fc.record({
-      x: fc.constant(x),
-      y: fc.constant(y),
-      width: fc.integer({ min: 1, max: SIZE.width - x }),
-      height: fc.integer({ min: 1, max: SIZE.height - y }),
-    }),
-  ),
-);
-const orientation = fc.record({
-  rotate: fc.constantFrom(0 as const, 90 as const, 180 as const, 270 as const),
-  flipX: fc.boolean(),
-  flipY: fc.boolean(),
-});
-const output = fc.oneof(
-  fc.record({
-    kind: fc.constant("scale" as const),
-    scale: fc.double({ min: 0.01, max: 1, noNaN: true }),
-  }),
-  fc.record({
-    kind: fc.constant("fit" as const),
-    width: fc.integer({ min: 1, max: 10_000 }),
-    height: fc.integer({ min: 1, max: 10_000 }),
-  }),
-);
-const field = fc.constantFrom(
-  "title" as const,
-  "description" as const,
-  "artist" as const,
-  "copyright" as const,
-);
-
-const level = fc.integer({ min: -100, max: 100 });
-const developValues = fc.record(
-  Object.fromEntries(DEVELOP_ADJUSTMENTS.map((name) => [name, level])) as Record<
-    (typeof DEVELOP_ADJUSTMENTS)[number],
-    typeof level
-  >,
-  { requiredKeys: [] },
-);
-const filter = fc.option(
-  fc.record({
-    preset: fc.constantFrom(...FILTER_PRESETS),
-    strength: fc.integer({ min: 0, max: 100 }),
-  }),
-  { nil: null },
-);
-
-/** Any valid command. */
-const command: fc.Arbitrary<ImageCommand> = fc.oneof(
-  developValues.map((values) => ({ type: "image.setDevelop" as const, values })),
-  filter.map((value) => ({ type: "image.setFilter" as const, filter: value })),
-  crop.map((value) => ({ type: "image.setCrop" as const, crop: value })),
-  orientation.map((value) => ({ type: "image.setOrientation" as const, orientation: value })),
-  output.map((value) => ({ type: "image.setOutput" as const, output: value })),
-  fc
-    .record({ field, value: fc.string({ maxLength: 40 }) })
-    .map(({ field, value }) => ({ type: "image.setMetadata" as const, field, value })),
-);
-
-/** A plan reached by applying valid commands to a new one. */
-const plan: fc.Arbitrary<ImagePlan> = fc
-  .array(command, { maxLength: 6 })
-  .map((commands) => applyCommands(reducer, createPlan("s"), commands).state);
 
 describe("the image reducer", () => {
   it("sets some develop values, and its inverse restores exactly those", () => {
