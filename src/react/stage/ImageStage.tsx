@@ -1,9 +1,15 @@
 import { Button, FileDropZone, Spinner } from "@hussmartinez/ui/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createImageRenderer } from "../../adapters/image-renderer.js";
 import { compositionSize } from "../../core/model/geometry.js";
 import type { ImageRenderer } from "../../core/ports/image-renderer.js";
-import { useImageDocument, useImageInternals, useImageView } from "../hooks.js";
+import { CropFrame } from "../crop/CropFrame.js";
+import {
+  useImageDocument,
+  useImageEditorState,
+  useImageInternals,
+  useImageView,
+} from "../hooks.js";
 
 /**
  * Props of {@link ImageStage}.
@@ -84,7 +90,17 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   const rendererRef = useRef<{ renderer: ImageRenderer; attached: Promise<void> } | undefined>(
     undefined,
   );
-  const { plan, source, status } = snapshot;
+  const [editorState] = useImageEditorState();
+  const { source, status } = snapshot;
+  const cropping = editorState.tool === "crop";
+  // What the stage shows: while cropping, the whole image under the plan's
+  // other edits; during a gesture, its transient plan; otherwise the plan.
+  const plan = useMemo(() => {
+    const committed = snapshot.plan;
+    if (!committed) return null;
+    if (cropping) return { ...committed, base: { ...committed.base, crop: null } };
+    return editorState.preview ?? committed;
+  }, [snapshot.plan, cropping, editorState.preview]);
 
   // The canvas and its renderer live and die with this effect.
   useEffect(() => {
@@ -151,6 +167,21 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   return (
     <div className={className} data-status={status}>
       <div className="hm-image-stage-frame" ref={setFrame} />
+      {cropping && snapshot.plan && source && size ? (
+        <div className="hm-image-stage-overlay">
+          <CropFrame
+            plan={snapshot.plan}
+            source={source}
+            view={{
+              width: size.width,
+              height: size.height,
+              pixelRatio: 1,
+              zoom: view.zoom,
+              pan: view.pan,
+            }}
+          />
+        </div>
+      ) : null}
       {status === "empty" && !snapshot.opening ? (
         <FileDropZone
           className="hm-image-stage-drop"

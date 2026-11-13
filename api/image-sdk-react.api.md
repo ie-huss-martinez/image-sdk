@@ -20,6 +20,15 @@ import type { Tool } from '@hussmartinez/sdk-core';
 import type { ToolRegistry } from '@hussmartinez/sdk-core';
 
 // @public
+export function ImageCropPanel(props: ImageCropPanelProps): ReactNode;
+
+// @public
+export interface ImageCropPanelProps {
+    // (undocumented)
+    readonly className?: string;
+}
+
+// @public
 export const ImageEditor: ForwardRefExoticComponent<ImageEditorProps & RefAttributes<ImageEditorHandle>>;
 
 // @public
@@ -37,7 +46,7 @@ export interface ImageEditorHandle {
 }
 
 // @public
-export type ImageEditorPart = "root" | "toolbar" | "stage";
+export type ImageEditorPart = "root" | "toolbar" | "stage" | "inspector";
 
 // @public
 export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "children"> {
@@ -45,8 +54,9 @@ export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "childr
     readonly classNames?: Readonly<Partial<Record<ImageEditorPart, string>>>;
     readonly icons?: Readonly<Record<string, IconComponent>>;
     readonly initialFile?: Blob;
-    // Warning: (ae-forgotten-export) The symbol "ImagePlan" needs to be exported by the entry point react.d.ts
     readonly onChange?: (plan: ImagePlan) => void;
+    // Warning: (ae-forgotten-export) The symbol "ImagePlan" needs to be exported by the entry point react.d.ts
+    readonly plan?: ImagePlan;
     readonly toolbar?: readonly (readonly string[])[];
     readonly tools?: readonly string[];
     readonly unstyled?: boolean;
@@ -71,6 +81,16 @@ export interface ImageEditorProviderProps {
     // Warning: (ae-forgotten-export) The symbol "ImageProcessor" needs to be exported by the entry point react.d.ts
     readonly processor?: ImageProcessor;
     readonly session?: ImageSession;
+}
+
+// @public
+export interface ImageEditorState {
+    readonly crop: {
+        readonly pending: ImageCrop;
+        readonly aspect: ImageAspect;
+    } | null;
+    readonly preview: ImagePlan | null;
+    readonly tool: "crop" | null;
 }
 
 // @public
@@ -103,6 +123,7 @@ export interface ImageToolbarProps {
 // @public
 export interface ImageToolContext {
     readonly chooseFile: () => void;
+    readonly editor: Store<ImageEditorState>;
     // (undocumented)
     readonly session: ImageSession;
     // (undocumented)
@@ -120,6 +141,8 @@ export const imageTools: readonly ImageTool[];
 
 // @public
 export interface ImageToolState {
+    // (undocumented)
+    readonly editor: ImageEditorState;
     // Warning: (ae-forgotten-export) The symbol "ImageSessionSnapshot" needs to be exported by the entry point react.d.ts
     //
     // (undocumented)
@@ -141,6 +164,9 @@ export interface ImageViewState {
 export function useImageDocument(): ImageSessionSnapshot;
 
 // @public
+export function useImageEditorState(): readonly [ImageEditorState, Store<ImageEditorState>];
+
+// @public
 export function useImageMessages(): Messages<ImageMessageCatalogue>;
 
 // @public
@@ -148,5 +174,10 @@ export function useImageSession(): ImageSession;
 
 // @public
 export function useImageView(): readonly [ImageViewState, Store<ImageViewState>];
+
+// Warnings were encountered during analysis:
+//
+// temp/types/features/editor-state.d.ts:16:9 - (ae-forgotten-export) The symbol "ImageCrop" needs to be exported by the entry point react.d.ts
+// temp/types/features/editor-state.d.ts:17:9 - (ae-forgotten-export) The symbol "ImageAspect" needs to be exported by the entry point react.d.ts
 
 ```

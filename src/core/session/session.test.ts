@@ -209,6 +209,46 @@ describe("the image session (ADR 0003)", () => {
     expect(events.map((e) => `${e.type}:${e.outcome}`)).toContain("undo:done");
   });
 
+  it("applies a host's plan as one step of the commands that reach it", async () => {
+    const { session, events } = setup();
+    await session.open(await file());
+    const start = session.getSnapshot().plan;
+    if (!start) throw new Error("no plan");
+    const target = {
+      ...start,
+      base: {
+        ...start.base,
+        crop: { x: 1, y: 2, width: 20, height: 10 },
+        develop: { ...start.base.develop, exposure: 30 },
+        filter: { preset: "mono" as const, strength: 40 },
+      },
+      metadata: { ...start.metadata, title: "Harbour" },
+    };
+    session.applyPlan(target);
+    expect(session.getSnapshot().plan).toEqual(target);
+    expect(events.at(-1)?.commands).toEqual([
+      "image.setCrop",
+      "image.setDevelop",
+      "image.setFilter",
+      "image.setMetadata",
+    ]);
+    // The same plan again changes nothing, and adds no step.
+    const count = events.length;
+    session.applyPlan(target);
+    expect(events).toHaveLength(count);
+    expect(session.undo()).toBe(true);
+    expect(session.getSnapshot().plan).toEqual(start);
+    expect(() =>
+      session.applyPlan({ ...target, base: { ...target.base, source: "other" } }),
+    ).toThrow();
+    expect(() =>
+      session.applyPlan({
+        ...target,
+        base: { ...target.base, develop: { ...target.base.develop, tint: 500 } },
+      }),
+    ).toThrow();
+  });
+
   it("rejects an invalid command and changes nothing", async () => {
     const { session, events } = setup();
     expect(() => session.execute({ type: "image.setDevelop", values: { exposure: 5 } })).toThrow();

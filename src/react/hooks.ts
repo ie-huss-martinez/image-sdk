@@ -1,6 +1,7 @@
 import type { Messages, Store } from "@hussmartinez/sdk-core";
 import { useContext, useSyncExternalStore } from "react";
 import type { ImageSession, ImageSessionSnapshot } from "../core/session/session.js";
+import type { ImageEditorState } from "../features/editor-state.js";
 import type { ImageMessageCatalogue } from "../messages/en.js";
 import { ImageContext, type ImageContextValue } from "./context.js";
 import type { ImageViewState } from "./view-store.js";
@@ -41,6 +42,18 @@ export function useImageView(): readonly [ImageViewState, Store<ImageViewState>]
   const { view } = useImageContext("useImageView");
   const state = useSyncExternalStore(view.subscribe, view.getSnapshot, view.getSnapshot);
   return [state, view] as const;
+}
+
+/**
+ * The editor's own state: the active tool, a crop in progress, and a
+ * gesture's transient plan (docs/adr/0007).
+ *
+ * @public
+ */
+export function useImageEditorState(): readonly [ImageEditorState, Store<ImageEditorState>] {
+  const { editor } = useImageContext("useImageEditorState");
+  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot, editor.getSnapshot);
+  return [state, editor] as const;
 }
 
 /**

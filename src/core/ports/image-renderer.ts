@@ -109,3 +109,34 @@ export function backingSize(view: ImageView): { readonly width: number; readonly
 export function fittedView(width: number, height: number, pixelRatio = 1): ImageView {
   return { width, height, pixelRatio, zoom: 1, pan: { x: 0, y: 0 } };
 }
+
+/**
+ * Where a composition of this size is shown on the stage for a view, in the
+ * stage's CSS pixels: fitted, zoomed, centred and panned. The renderer draws
+ * there, and the editor's crop frame and handles are placed with it, so the
+ * DOM over the canvas lines up with its pixels (ADR 0002).
+ *
+ * @public
+ */
+export function placement(
+  composition: { readonly width: number; readonly height: number },
+  view: ImageView,
+): {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly scale: number;
+} {
+  const fit = Math.min(view.width / composition.width, view.height / composition.height);
+  const scale = fit * view.zoom;
+  const width = composition.width * scale;
+  const height = composition.height * scale;
+  return {
+    x: (view.width - width) / 2 + view.pan.x,
+    y: (view.height - height) / 2 + view.pan.y,
+    width,
+    height,
+    scale,
+  };
+}

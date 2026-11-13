@@ -140,6 +140,13 @@ export interface ImageSession {
    */
   execute(commands: ImageCommand | readonly ImageCommand[]): void;
   /**
+   * Makes the document's plan equal to `plan`, as one undoable step of the
+   * commands that reach it, checked as `execute` checks them (ADR 0003). A
+   * plan equal to the current one changes nothing. A plan over another
+   * source is `INVALID_COMMAND`. For editors whose host holds the plan.
+   */
+  applyPlan(plan: ImagePlan): void;
+  /**
    * Runs `fn`, and records every step it executes as one undoable step, for
    * a gesture such as dragging a crop handle (ADR 0003). `fn` must be
    * synchronous.
@@ -159,6 +166,39 @@ export interface ImageSession {
   ): Promise<ImageSessionExport>;
   /** Releases the source the session holds. Later calls throw. */
   destroy(): Promise<void>;
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** The commands that turn `from` into `to`, field by field. */
+export function commandsBetween(from: ImagePlan, to: ImagePlan): ImageCommand[] {
+  const commands: ImageCommand[] = [];
+  if (!same(from.base.crop, to.base.crop)) {
+    commands.push({ type: "image.setCrop", crop: to.base.crop });
+  }
+  if (!same(from.base.orientation, to.base.orientation)) {
+    commands.push({ type: "image.setOrientation", orientation: to.base.orientation });
+  }
+  const develop = Object.fromEntries(
+    Object.entries(to.base.develop).filter(
+      ([name, value]) => from.base.develop[name as keyof typeof from.base.develop] !== value,
+    ),
+  );
+  if (Object.keys(develop).length > 0) {
+    commands.push({ type: "image.setDevelop", values: develop });
+  }
+  if (!same(from.base.filter, to.base.filter)) {
+    commands.push({ type: "image.setFilter", filter: to.base.filter });
+  }
+  if (!same(from.output, to.output)) {
+    commands.push({ type: "image.setOutput", output: to.output });
+  }
+  for (const field of Object.keys(to.metadata) as (keyof ImageKeepableMetadata)[]) {
+    if (from.metadata[field] !== to.metadata[field]) {
+      commands.push({ type: "image.setMetadata", field, value: to.metadata[field] });
+    }
+  }
+  return commands;
 }
 
 const PRESENCE: readonly (keyof ImageMetadataPresence)[] = [
@@ -280,6 +320,29 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     return true;
   };
 
+  /** Applies commands as one undoable step: `execute`, which `applyPlan` shares. */
+  const executeCommands = (input: ImageCommand | readonly ImageCommand[]) => {
+    assertAlive();
+    const commands = Array.isArray(input)
+      ? (input as readonly ImageCommand[])
+      : [input as ImageCommand];
+    try {
+      if (plan === null) {
+        throw new ImageError("INVALID_COMMAND", "There's nothing to edit before a file is open.");
+      }
+      const result = attempt(plan, commands);
+      plan = result.state;
+      history.push(result.step);
+      error = null;
+      emit({ type: "execute", outcome: "done", commands: commands.map((c) => c.type) });
+    } catch (reason) {
+      emit({ type: "execute", outcome: "failed", commands: commands.map((c) => c.type) });
+      throw fail(reason);
+    } finally {
+      publish();
+    }
+  };
+
   return {
     getSnapshot: () => store.getSnapshot(),
     subscribe: (listener) => store.subscribe(listener),
@@ -335,26 +398,18 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       }
     },
 
-    execute(input) {
+    execute: (input) => executeCommands(input),
+
+    applyPlan(next) {
       assertAlive();
-      const commands = Array.isArray(input)
-        ? (input as readonly ImageCommand[])
-        : [input as ImageCommand];
-      try {
-        if (plan === null) {
-          throw new ImageError("INVALID_COMMAND", "There's nothing to edit before a file is open.");
-        }
-        const result = attempt(plan, commands);
-        plan = result.state;
-        history.push(result.step);
-        error = null;
-        emit({ type: "execute", outcome: "done", commands: commands.map((c) => c.type) });
-      } catch (reason) {
-        emit({ type: "execute", outcome: "failed", commands: commands.map((c) => c.type) });
-        throw fail(reason);
-      } finally {
+      if (plan === null || next.base.source !== plan.base.source) {
+        const failure = new ImageError("INVALID_COMMAND", "The plan isn't for the open image.");
+        error = failure;
         publish();
+        throw failure;
       }
+      const commands = commandsBetween(plan, next);
+      if (commands.length > 0) executeCommands(commands);
     },
 
     group(fn) {

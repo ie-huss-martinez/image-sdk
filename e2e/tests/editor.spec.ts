@@ -44,4 +44,24 @@ test.describe("the image editor", () => {
     await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
     await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
   });
+
+  test("crops with the keyboard, with no violations while cropping", async ({ page }) => {
+    await page.goto("/editor.html");
+    await page.evaluate(
+      (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
+      Array.from(fixture("quadrants.png")),
+    );
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+    await page.getByRole("button", { name: "Rotate left" }).focus();
+    await page.keyboard.press("c");
+    const frame = page.getByRole("group", { name: "Crop area" });
+    await expect(frame).toBeFocused();
+    await expect(page.getByRole("region", { name: "Crop" })).toBeVisible();
+    await noViolations(page);
+    // Shrink it by 10 from the right edge, then apply: one crop, and focus returns.
+    await page.keyboard.press("Alt+Shift+ArrowLeft");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("img", { name: "Edited image preview, 38 × 32" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Rotate left" })).toBeFocused();
+  });
 });
