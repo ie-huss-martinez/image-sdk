@@ -139,8 +139,28 @@ export const EMPTY_KEEPABLE_METADATA: ImageKeepableMetadata = Object.freeze({
 });
 
 /**
- * The longest a kept metadata value may be, in UTF-16 code units (ADR 0005).
+ * The longest a kept metadata value may be, in Unicode code points, as JSON
+ * Schema and every language count them (ADR 0005, sdk-core ADR 0045).
  *
  * @public
  */
 export const MAX_METADATA_LENGTH = 2_000;
+
+/**
+ * Whether text has more than `max` Unicode code points: the length JSON
+ * Schema's `maxLength` and other languages count, where JavaScript's
+ * `length` counts UTF-16 units (sdk-core ADR 0045). It stops counting at
+ * `max + 1`.
+ *
+ * @internal
+ */
+export function longerThan(text: string, max: number): boolean {
+  // Every code point is one or two UTF-16 units.
+  if (text.length <= max) return false;
+  let count = 0;
+  for (const _ of text) {
+    count += 1;
+    if (count > max) return true;
+  }
+  return false;
+}

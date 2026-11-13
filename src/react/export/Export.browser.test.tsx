@@ -241,6 +241,16 @@ describe("the export dialog (docs/adr/0007)", () => {
     expect(exports).toEqual([]);
   });
 
+  it("takes 2,000 emoji in a field, as the plan counts code points, and clamps more", async () => {
+    const { session } = await opened();
+    await openDialog();
+    await type(inDialog("Title"), "📷".repeat(2_001));
+    expect((inDialog("Title") as HTMLInputElement).value).toBe("📷".repeat(2_000));
+    await click(inDialog("Export"));
+    await until(() => session().getSnapshot().plan?.metadata.title !== "", "the title");
+    expect(session().getSnapshot().plan?.metadata.title).toBe("📷".repeat(2_000));
+  });
+
   it("keeps its keys from the editor's shortcuts", async () => {
     const { session } = await opened();
     await openDialog();

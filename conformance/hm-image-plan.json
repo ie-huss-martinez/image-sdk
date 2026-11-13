@@ -1,0 +1,4056 @@
+{
+  "format": "hm-conformance",
+  "version": 1,
+  "subject": "hm-image-plan",
+  "description": "image-sdk's plan document (docs/formats/hm-image-plan.md). input is an hm-image-plan document; expected is the document as a reader writes it back, or the rejection. Generated cases come from the reducer's property-test generators, with a fixed seed.",
+  "cases": [
+    {
+      "name": "reads a document unchanged",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "reads a new plan: no crop, upright, neutral, unfiltered, full size",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "reads a box to fit",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "fit",
+          "width": 800,
+          "height": 600
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "fit",
+          "width": 800,
+          "height": 600
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "reads a source with its asset",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30,
+            "asset": {
+              "asset": "sha256:0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+              "mediaType": "image/jpeg",
+              "size": 48213
+            }
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30,
+            "asset": {
+              "asset": "sha256:0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+              "mediaType": "image/jpeg",
+              "size": 48213
+            }
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "reads source ids named __proto__, constructor and toString",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "__proto__": {
+            "width": 10,
+            "height": 8
+          },
+          "constructor": {
+            "width": 20,
+            "height": 16
+          },
+          "toString": {
+            "width": 30,
+            "height": 24
+          }
+        },
+        "base": {
+          "source": "__proto__",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "__proto__": {
+            "width": 10,
+            "height": 8
+          },
+          "constructor": {
+            "width": 20,
+            "height": 16
+          },
+          "toString": {
+            "width": 30,
+            "height": 24
+          }
+        },
+        "base": {
+          "source": "__proto__",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "crops a source keyed toString within its own size",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "__proto__": {
+            "width": 10,
+            "height": 8
+          },
+          "constructor": {
+            "width": 20,
+            "height": 16
+          },
+          "toString": {
+            "width": 30,
+            "height": 24
+          }
+        },
+        "base": {
+          "source": "toString",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 30,
+            "height": 24
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "__proto__": {
+            "width": 10,
+            "height": 8
+          },
+          "constructor": {
+            "width": 20,
+            "height": 16
+          },
+          "toString": {
+            "width": 30,
+            "height": 24
+          }
+        },
+        "base": {
+          "source": "toString",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 30,
+            "height": 24
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "refuses a base whose source only Object.prototype has",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "__proto__": {
+            "width": 10,
+            "height": 8
+          },
+          "constructor": {
+            "width": 20,
+            "height": 16
+          },
+          "toString": {
+            "width": 30,
+            "height": 24
+          }
+        },
+        "base": {
+          "source": "hasOwnProperty",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "unknown-source"
+        }
+      }
+    },
+    {
+      "name": "refuses another format",
+      "input": {
+        "format": "hm-video-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "UNSUPPORTED_FORMAT",
+          "reason": "unknown-format"
+        }
+      }
+    },
+    {
+      "name": "refuses a later version",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "UNSUPPORTED_FORMAT",
+          "reason": "unknown-format-version"
+        }
+      }
+    },
+    {
+      "name": "refuses a list",
+      "input": [
+        {
+          "format": "hm-image-plan",
+          "version": 1,
+          "sources": {
+            "s": {
+              "width": 40,
+              "height": 30
+            },
+            "t": {
+              "width": 4000,
+              "height": 3000
+            }
+          },
+          "base": {
+            "source": "s",
+            "crop": {
+              "x": 2,
+              "y": 3,
+              "width": 20,
+              "height": 10
+            },
+            "orientation": {
+              "rotate": 90,
+              "flipX": true,
+              "flipY": false
+            },
+            "develop": {
+              "temperature": 0,
+              "tint": 0,
+              "exposure": 20,
+              "highlights": 0,
+              "shadows": 0,
+              "contrast": -15,
+              "saturation": 0,
+              "vibrance": 0
+            },
+            "filter": {
+              "preset": "sepia",
+              "strength": 60
+            }
+          },
+          "output": {
+            "kind": "scale",
+            "scale": 0.5
+          },
+          "metadata": {
+            "title": "Harbour at dusk",
+            "description": "",
+            "artist": "",
+            "copyright": ""
+          }
+        }
+      ],
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a version that isn't a number",
+      "input": {
+        "format": "hm-image-plan",
+        "version": "1",
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses an unknown field",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        },
+        "layers": []
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a missing field",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a source of no pixels",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 0,
+            "height": 30
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses an asset that isn't a SHA-256",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30,
+            "asset": {
+              "asset": "md5:00",
+              "mediaType": "image/jpeg",
+              "size": 48213
+            }
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a media type in capitals",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30,
+            "asset": {
+              "asset": "sha256:0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+              "mediaType": "Image/JPEG",
+              "size": 48213
+            }
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a base whose source isn't listed",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s9",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "unknown-source"
+        }
+      }
+    },
+    {
+      "name": "refuses a crop outside its source",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 30,
+            "y": 0,
+            "width": 11,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "crop-outside-source"
+        }
+      }
+    },
+    {
+      "name": "refuses an unknown base field",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          },
+          "layer": 0
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses develop without every adjustment",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "exposure": 20
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a level over 100",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 101,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "invalid-level"
+        }
+      }
+    },
+    {
+      "name": "refuses a rotation of 45 degrees",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 45,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "invalid-orientation"
+        }
+      }
+    },
+    {
+      "name": "refuses an unknown preset",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "lomo",
+            "strength": 50
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "unknown-preset"
+        }
+      }
+    },
+    {
+      "name": "refuses a strength over 100",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "mono",
+            "strength": 101
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "invalid-strength"
+        }
+      }
+    },
+    {
+      "name": "refuses an unknown adjustment",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0,
+            "clarity": 10
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "unknown-adjustment"
+        }
+      }
+    },
+    {
+      "name": "refuses a scale over 1",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 2
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "invalid-output"
+        }
+      }
+    },
+    {
+      "name": "refuses an unknown metadata field",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": "",
+          "location": "52.5,13.4"
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a kept field over 2,000 code points",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "metadata-too-long"
+        }
+      }
+    },
+    {
+      "name": "reads 2,000 code points outside the BMP, which are 4,000 UTF-16 units",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": "𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞"
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": "𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞"
+        }
+      }
+    },
+    {
+      "name": "refuses 2,001 code points outside the BMP",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": "𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞"
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "metadata-too-long"
+        }
+      }
+    },
+    {
+      "name": "generated 1",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 2",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 180,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.06709475662300678
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "]Qe1F6",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 180,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.06709475662300678
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "]Qe1F6",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 3",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 11,
+            "y": 2,
+            "width": 16,
+            "height": 3
+          },
+          "orientation": {
+            "rotate": 180,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": -1,
+            "tint": -50,
+            "exposure": -95,
+            "highlights": 39,
+            "shadows": 47,
+            "contrast": -56,
+            "saturation": 20,
+            "vibrance": 64
+          },
+          "filter": {
+            "preset": "warm",
+            "strength": 22
+          }
+        },
+        "output": {
+          "kind": "fit",
+          "width": 9433,
+          "height": 7330
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 11,
+            "y": 2,
+            "width": 16,
+            "height": 3
+          },
+          "orientation": {
+            "rotate": 180,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": -1,
+            "tint": -50,
+            "exposure": -95,
+            "highlights": 39,
+            "shadows": 47,
+            "contrast": -56,
+            "saturation": 20,
+            "vibrance": 64
+          },
+          "filter": {
+            "preset": "warm",
+            "strength": 22
+          }
+        },
+        "output": {
+          "kind": "fit",
+          "width": 9433,
+          "height": 7330
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 4",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 5",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 3126,
+          "height": 6928
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 3126,
+          "height": 6928
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 6",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 3,
+            "tint": 91,
+            "exposure": 28,
+            "highlights": -35,
+            "shadows": -28,
+            "contrast": 91,
+            "saturation": 49,
+            "vibrance": 5
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 3,
+            "tint": 91,
+            "exposure": 28,
+            "highlights": -35,
+            "shadows": -28,
+            "contrast": 91,
+            "saturation": 49,
+            "vibrance": 5
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 7",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 7,
+            "tint": -3,
+            "exposure": 40,
+            "highlights": 44,
+            "shadows": -34,
+            "contrast": -4,
+            "saturation": -75,
+            "vibrance": 24
+          },
+          "filter": {
+            "preset": "fade",
+            "strength": 43
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.04235440383655229
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 7,
+            "tint": -3,
+            "exposure": 40,
+            "highlights": 44,
+            "shadows": -34,
+            "contrast": -4,
+            "saturation": -75,
+            "vibrance": 24
+          },
+          "filter": {
+            "preset": "fade",
+            "strength": 43
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.04235440383655229
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 8",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 8,
+            "tint": -12,
+            "exposure": -59,
+            "highlights": 0,
+            "shadows": -58,
+            "contrast": -25,
+            "saturation": -22,
+            "vibrance": 32
+          },
+          "filter": {
+            "preset": "vivid",
+            "strength": 95
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "Ak}\\S",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 8,
+            "tint": -12,
+            "exposure": -59,
+            "highlights": 0,
+            "shadows": -58,
+            "contrast": -25,
+            "saturation": -22,
+            "vibrance": 32
+          },
+          "filter": {
+            "preset": "vivid",
+            "strength": 95
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "Ak}\\S",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 9",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": -62,
+            "tint": -47,
+            "exposure": -44,
+            "highlights": 67,
+            "shadows": 0,
+            "contrast": 93,
+            "saturation": -95,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "cool",
+            "strength": 91
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": -62,
+            "tint": -47,
+            "exposure": -44,
+            "highlights": 67,
+            "shadows": 0,
+            "contrast": 93,
+            "saturation": -95,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "cool",
+            "strength": 91
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 10",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 63,
+            "tint": 0,
+            "exposure": 33,
+            "highlights": 19,
+            "shadows": 31,
+            "contrast": -90,
+            "saturation": -13,
+            "vibrance": 40
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 63,
+            "tint": 0,
+            "exposure": 33,
+            "highlights": 19,
+            "shadows": 31,
+            "contrast": -90,
+            "saturation": -13,
+            "vibrance": 40
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 11",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 180,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "warm",
+            "strength": 3
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.1452406603230831
+        },
+        "metadata": {
+          "title": "mO%\"H-2z",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 180,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "warm",
+            "strength": 3
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.1452406603230831
+        },
+        "metadata": {
+          "title": "mO%\"H-2z",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 12",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 9,
+            "y": 11,
+            "width": 27,
+            "height": 17
+          },
+          "orientation": {
+            "rotate": 270,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 78,
+            "tint": 86,
+            "exposure": -74,
+            "highlights": -49,
+            "shadows": -23,
+            "contrast": 19,
+            "saturation": -29,
+            "vibrance": 22
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 9,
+            "y": 11,
+            "width": 27,
+            "height": 17
+          },
+          "orientation": {
+            "rotate": 270,
+            "flipX": true,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 78,
+            "tint": 86,
+            "exposure": -74,
+            "highlights": -49,
+            "shadows": -23,
+            "contrast": 19,
+            "saturation": -29,
+            "vibrance": 22
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 13",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 38,
+            "y": 11,
+            "width": 1,
+            "height": 2
+          },
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": -82,
+            "tint": -87,
+            "exposure": 41,
+            "highlights": 31,
+            "shadows": 78,
+            "contrast": -31,
+            "saturation": -68,
+            "vibrance": -9
+          },
+          "filter": {
+            "preset": "noir",
+            "strength": 17
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 38,
+            "y": 11,
+            "width": 1,
+            "height": 2
+          },
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": -82,
+            "tint": -87,
+            "exposure": 41,
+            "highlights": 31,
+            "shadows": 78,
+            "contrast": -31,
+            "saturation": -68,
+            "vibrance": -9
+          },
+          "filter": {
+            "preset": "noir",
+            "strength": 17
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 14",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 15",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 8535,
+          "height": 3
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 8535,
+          "height": 3
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 16",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 18,
+            "tint": -7,
+            "exposure": 0,
+            "highlights": 57,
+            "shadows": -43,
+            "contrast": 46,
+            "saturation": 22,
+            "vibrance": 84
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 6025,
+          "height": 3917
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 90,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 18,
+            "tint": -7,
+            "exposure": 0,
+            "highlights": 57,
+            "shadows": -43,
+            "contrast": 46,
+            "saturation": 22,
+            "vibrance": 84
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 6025,
+          "height": 3917
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 17",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 18",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 13,
+            "tint": 29,
+            "exposure": 21,
+            "highlights": 80,
+            "shadows": -65,
+            "contrast": -1,
+            "saturation": 71,
+            "vibrance": 66
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "mZQN",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 13,
+            "tint": 29,
+            "exposure": 21,
+            "highlights": 80,
+            "shadows": -65,
+            "contrast": -1,
+            "saturation": 71,
+            "vibrance": 66
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "mZQN",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 19",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": -55,
+            "tint": 0,
+            "exposure": 62,
+            "highlights": 55,
+            "shadows": 0,
+            "contrast": -63,
+            "saturation": 0,
+            "vibrance": -79
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 67
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.010813534198872484
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": -55,
+            "tint": 0,
+            "exposure": 62,
+            "highlights": 55,
+            "shadows": 0,
+            "contrast": -63,
+            "saturation": 0,
+            "vibrance": -79
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 67
+          }
+        },
+        "output": {
+          "kind": "scale",
+          "scale": 0.010813534198872484
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 20",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 270,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 56,
+            "tint": -5,
+            "exposure": 96,
+            "highlights": 0,
+            "shadows": -92,
+            "contrast": -96,
+            "saturation": -88,
+            "vibrance": 71
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 3594,
+          "height": 7
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 1,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 270,
+            "flipX": false,
+            "flipY": true
+          },
+          "develop": {
+            "temperature": 56,
+            "tint": -5,
+            "exposure": 96,
+            "highlights": 0,
+            "shadows": -92,
+            "contrast": -96,
+            "saturation": -88,
+            "vibrance": 71
+          },
+          "filter": null
+        },
+        "output": {
+          "kind": "fit",
+          "width": 3594,
+          "height": 7
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    }
+  ]
+}

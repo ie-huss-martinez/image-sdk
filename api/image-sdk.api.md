@@ -99,7 +99,20 @@ export const FULL_SIZE: ImageOutput;
 export function handleInSource(handle: CropHandle, orientation: ImageOrientation_2): CropHandle;
 
 // @public
+export const IMAGE_PLAN_FORMAT = "hm-image-plan";
+
+// @public
+export const IMAGE_PLAN_VERSION = 1;
+
+// @public
 export type ImageAspect = "free" | "original" | readonly [number, number];
+
+// @public
+export interface ImageAssetReference {
+    readonly asset: string;
+    readonly mediaType: string;
+    readonly size: number;
+}
 
 // @public
 export interface ImageBase {
@@ -119,6 +132,9 @@ export interface ImageCallOptions {
 
 // @public
 export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand;
+
+// @public
+export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength";
 
 // @public
 export interface ImageCrop {
@@ -149,6 +165,9 @@ export interface ImageDevelop {
 }
 
 // @public
+export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength";
+
+// @public
 export interface ImageEngine {
     destroy(): Promise<void>;
     probe(file: Blob, options?: ImageCallOptions): Promise<ImageProbe>;
@@ -168,7 +187,7 @@ export class ImageError extends SdkError<ImageErrorCode> {
 }
 
 // @public
-export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS";
+export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "INVALID_DOCUMENT" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS";
 
 // @public
 export type ImageExportFormat = {
@@ -298,6 +317,7 @@ export const imageMessages: {
     readonly "errors.UNSUPPORTED_FORMAT": "This image format isn't supported. Try converting the file to PNG or JPEG, then open it again.";
     readonly "errors.DECODE_FAILED": "This browser can't open this kind of image. Try another browser, or convert the file to PNG or JPEG.";
     readonly "errors.INVALID_COMMAND": "This edit couldn't be made. Please try again.";
+    readonly "errors.INVALID_DOCUMENT": "This project is damaged, or it isn't an image project.";
     readonly "errors.IMAGE_TOO_LARGE": "This image has more pixels than the editor can handle. Try a smaller version of it.";
     readonly "errors.IMAGE_DIMENSION_TOO_LARGE": "This image is {actual, number} pixels across, which is over the {maximum, number}-pixel limit.";
     readonly "errors.TOO_MANY_FRAMES": {
@@ -545,6 +565,22 @@ export interface ImagePlan {
 }
 
 // @public
+export interface ImagePlanDocument extends ImagePlan {
+    // (undocumented)
+    readonly format: typeof IMAGE_PLAN_FORMAT;
+    // (undocumented)
+    readonly sources: Readonly<Record<string, ImagePlanDocumentSource>>;
+    // (undocumented)
+    readonly version: typeof IMAGE_PLAN_VERSION;
+}
+
+// @public
+export interface ImagePlanDocumentSource extends ImageSize {
+    // (undocumented)
+    readonly asset?: ImageAssetReference;
+}
+
+// @public
 export interface ImagePoint {
     // (undocumented)
     readonly x: number;
@@ -772,6 +808,12 @@ export function placement(composition: {
 };
 
 // @public
+export function readImagePlanDocument(value: unknown): {
+    readonly plan: ImagePlan;
+    readonly sources: Readonly<Record<string, ImagePlanDocumentSource>>;
+};
+
+// @public
 export interface SetCropCommand {
     // (undocumented)
     readonly crop: ImageCrop | null;
@@ -823,6 +865,9 @@ export interface SetOutputCommand {
 
 // @public
 export function sourceToComposition(point: ImagePoint, crop: ImageCrop, orientation: ImageOrientation_2): ImagePoint;
+
+// @public
+export function toImagePlanDocument(plan: ImagePlan, sources: Readonly<Record<string, ImagePlanDocumentSource>>): ImagePlanDocument;
 
 // @public
 export const UPRIGHT: ImageOrientation_2;

@@ -15,6 +15,7 @@ import type { ImageOutput, ImagePlan } from "../../core/model/plan.js";
 import {
   type ImageKeepableMetadata,
   type ImageMetadataPresence,
+  longerThan,
   MAX_METADATA_LENGTH,
 } from "../../core/model/source.js";
 import type { ImageCommand } from "../../core/operations/commands.js";
@@ -78,6 +79,14 @@ const KINDS: readonly (keyof ImageMetadataPresence)[] = [
   "other",
 ];
 const DEFAULT_QUALITY = 92;
+
+/**
+ * A field's text, clamped to the limit in code points, as the plan counts
+ * it. An input's `maxLength` counts UTF-16 units, which would stop at half
+ * as many emoji.
+ */
+const keepable = (text: string) =>
+  longerThan(text, MAX_METADATA_LENGTH) ? [...text].slice(0, MAX_METADATA_LENGTH).join("") : text;
 
 /** The choices a dialog opens with: the plan's size and fields, in the source's format if it can be written. */
 function initialDraft(plan: ImagePlan, source: ImageSessionSource): Draft {
@@ -389,11 +398,13 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
                         className="hm-image-text-field"
                         type="text"
                         autoComplete="off"
-                        maxLength={MAX_METADATA_LENGTH}
                         value={current.metadata[field]}
                         onChange={(event) =>
                           update({
-                            metadata: { ...current.metadata, [field]: event.currentTarget.value },
+                            metadata: {
+                              ...current.metadata,
+                              [field]: keepable(event.currentTarget.value),
+                            },
                           })
                         }
                       />

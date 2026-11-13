@@ -13,8 +13,13 @@ import { isSdkError, type SdkCoreErrorCode, SdkError } from "@hussmartinez/sdk-c
  *   `details.format` names it.
  * - `DECODE_FAILED`: the browser couldn't decode a file the SDK probed,
  *   usually because it lacks the format. `details.format` names it.
- * - `INVALID_COMMAND`: an edit command doesn't apply to the layer plan, such
- *   as a crop outside its source or an unknown layer key.
+ * - `INVALID_COMMAND`: an edit command doesn't apply to the plan, such as a
+ *   crop outside its source. `details.reason` says why, as a stable token
+ *   (`ImageCommandRejection`).
+ * - `INVALID_DOCUMENT`: a plan document, such as a saved project, isn't
+ *   valid in its format. `details.reason` says why (`ImageDocumentRejection`).
+ *   A document of another format, or a later version, is `UNSUPPORTED_FORMAT`
+ *   instead, with `details.reason` `unknown-format` or `unknown-format-version`.
  * - `IMAGE_TOO_LARGE`: an image, a frame, the canvas or the export exceeds
  *   the `maxImagePixels` limit.
  * - `IMAGE_DIMENSION_TOO_LARGE`: a width or height exceeds the
@@ -26,7 +31,7 @@ import { isSdkError, type SdkCoreErrorCode, SdkError } from "@hussmartinez/sdk-c
  *
  * Limit codes carry `details` with the `limit`, its `maximum`, the `actual`
  * value and the `unit`. Other codes' `details` name the format involved,
- * never data from the file.
+ * and a `reason`, never data from the file.
  *
  * @public
  */
@@ -36,6 +41,7 @@ export type ImageErrorCode =
   | "UNSUPPORTED_FORMAT"
   | "DECODE_FAILED"
   | "INVALID_COMMAND"
+  | "INVALID_DOCUMENT"
   | "IMAGE_TOO_LARGE"
   | "IMAGE_DIMENSION_TOO_LARGE"
   | "TOO_MANY_FRAMES"

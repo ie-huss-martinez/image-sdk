@@ -33,6 +33,7 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
   "errors.DECODE_FAILED":
     "This browser can't open this kind of image. Try another browser, or convert the file to PNG or JPEG.",
   "errors.INVALID_COMMAND": "This edit couldn't be made. Please try again.",
+  "errors.INVALID_DOCUMENT": "This project is damaged, or it isn't an image project.",
   "errors.IMAGE_TOO_LARGE":
     "This image has more pixels than the editor can handle. Try a smaller version of it.",
   "errors.IMAGE_DIMENSION_TOO_LARGE":
