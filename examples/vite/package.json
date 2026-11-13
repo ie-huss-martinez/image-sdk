@@ -10,11 +10,16 @@
     "start": "vite preview --port 4320 --strictPort"
   },
   "dependencies": {
-    "@hussmartinez/image-sdk": "workspace:*"
+    "@hussmartinez/image-sdk": "workspace:*",
+    "@hussmartinez/ui": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
     "@hussmartinez/sdk-config": "catalog:",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"
   }

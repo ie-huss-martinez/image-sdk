@@ -4,4 +4,149 @@
 
 ```ts
 
+import { FilePolicy } from '@hussmartinez/sdk-core';
+import { FilePolicyOverrides } from '@hussmartinez/sdk-core';
+import { ForwardRefExoticComponent } from 'react';
+import { IconComponent } from '@hussmartinez/ui/react';
+import { MessageOverrides } from '@hussmartinez/sdk-core';
+import type { Messages } from '@hussmartinez/sdk-core';
+import { ReactNode } from 'react';
+import { RefAttributes } from 'react';
+import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
+import { SdkError } from '@hussmartinez/sdk-core';
+import type { ShortcutRegistry } from '@hussmartinez/sdk-core';
+import type { Store } from '@hussmartinez/sdk-core';
+import type { Tool } from '@hussmartinez/sdk-core';
+import type { ToolRegistry } from '@hussmartinez/sdk-core';
+
+// @public
+export const ImageEditor: ForwardRefExoticComponent<ImageEditorProps & RefAttributes<ImageEditorHandle>>;
+
+// @public
+export interface ImageEditorHandle {
+    // Warning: (ae-forgotten-export) The symbol "ImageCommand" needs to be exported by the entry point react.d.ts
+    execute(commands: ImageCommand | readonly ImageCommand[]): void;
+    // Warning: (ae-forgotten-export) The symbol "ImageExportFormat" needs to be exported by the entry point react.d.ts
+    // Warning: (ae-forgotten-export) The symbol "ImageSessionExport" needs to be exported by the entry point react.d.ts
+    export(format: ImageExportFormat): Promise<ImageSessionExport>;
+    open(file: Blob): Promise<void>;
+    redo(): void;
+    // Warning: (ae-forgotten-export) The symbol "ImageSession" needs to be exported by the entry point react.d.ts
+    readonly session: ImageSession;
+    undo(): void;
+}
+
+// @public
+export type ImageEditorPart = "root" | "toolbar" | "stage";
+
+// @public
+export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "children"> {
+    readonly className?: string;
+    readonly classNames?: Readonly<Partial<Record<ImageEditorPart, string>>>;
+    readonly icons?: Readonly<Record<string, IconComponent>>;
+    readonly initialFile?: Blob;
+    // Warning: (ae-forgotten-export) The symbol "ImagePlan" needs to be exported by the entry point react.d.ts
+    readonly onChange?: (plan: ImagePlan) => void;
+    readonly toolbar?: readonly (readonly string[])[];
+    readonly tools?: readonly string[];
+    readonly unstyled?: boolean;
+}
+
+// @public
+export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode;
+
+// @public
+export interface ImageEditorProviderProps {
+    readonly assetsUrl?: string | URL;
+    readonly children?: ReactNode;
+    // Warning: (ae-forgotten-export) The symbol "ImageEngine" needs to be exported by the entry point react.d.ts
+    readonly engine?: ImageEngine;
+    // Warning: (ae-forgotten-export) The symbol "ImageFilePolicyOverrides" needs to be exported by the entry point react.d.ts
+    readonly filePolicy?: ImageFilePolicyOverrides;
+    readonly locale?: string;
+    // Warning: (ae-forgotten-export) The symbol "ImageMessageCatalogue" needs to be exported by the entry point react.d.ts
+    readonly messages?: MessageOverrides<ImageMessageCatalogue>;
+    // Warning: (ae-forgotten-export) The symbol "ImageSessionEvent" needs to be exported by the entry point react.d.ts
+    readonly onEvent?: (event: ImageSessionEvent) => void;
+    // Warning: (ae-forgotten-export) The symbol "ImageProcessor" needs to be exported by the entry point react.d.ts
+    readonly processor?: ImageProcessor;
+    readonly session?: ImageSession;
+}
+
+// @public
+export const imageIcons: Readonly<Record<string, IconComponent>>;
+
+// @public
+export function ImageStage(props: ImageStageProps): ReactNode;
+
+// @public
+export interface ImageStageProps {
+    readonly className?: string;
+}
+
+// @public
+export type ImageTool = Tool<ImageToolState, ImageToolContext, undefined>;
+
+// @public
+export function ImageToolbar(props: ImageToolbarProps): ReactNode;
+
+// @public
+export interface ImageToolbarProps {
+    // (undocumented)
+    readonly className?: string;
+    readonly context: ImageToolContext;
+    readonly icons: Readonly<Record<string, IconComponent>>;
+    readonly registry: ToolRegistry<ImageTool>;
+    readonly shortcuts?: ShortcutRegistry;
+}
+
+// @public
+export interface ImageToolContext {
+    readonly chooseFile: () => void;
+    // (undocumented)
+    readonly session: ImageSession;
+    // (undocumented)
+    readonly view: Store<{
+        readonly zoom: number;
+        readonly pan: {
+            readonly x: number;
+            readonly y: number;
+        };
+    }>;
+}
+
+// @public
+export const imageTools: readonly ImageTool[];
+
+// @public
+export interface ImageToolState {
+    // Warning: (ae-forgotten-export) The symbol "ImageSessionSnapshot" needs to be exported by the entry point react.d.ts
+    //
+    // (undocumented)
+    readonly snapshot: ImageSessionSnapshot;
+}
+
+// @public
+export interface ImageViewState {
+    // (undocumented)
+    readonly pan: {
+        readonly x: number;
+        readonly y: number;
+    };
+    // (undocumented)
+    readonly zoom: number;
+}
+
+// @public
+export function useImageDocument(): ImageSessionSnapshot;
+
+// @public
+export function useImageMessages(): Messages<ImageMessageCatalogue>;
+
+// @public
+export function useImageSession(): ImageSession;
+
+// @public
+export function useImageView(): readonly [ImageViewState, Store<ImageViewState>];
+
 ```

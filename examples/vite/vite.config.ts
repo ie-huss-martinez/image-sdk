@@ -28,7 +28,12 @@ export default defineConfig({
   build: {
     target: "es2022",
     rollupOptions: {
-      input: { index: "index.html", inline: "inline.html", strict: "strict.html" },
+      input: {
+        index: "index.html",
+        inline: "inline.html",
+        strict: "strict.html",
+        editor: "editor.html",
+      },
     },
   },
   worker: { format: "es" },

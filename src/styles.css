@@ -7,3 +7,84 @@
  * host's unlayered CSS beats every hm layer without !important (ADR 0005).
  */
 @layer hm.tokens, hm.base, hm.components, hm.sdk;
+
+@layer hm.sdk {
+  /*
+   * The editor (docs/adr/0007): toolbar, then the stage, filling the
+   * editor's box. Sizes follow the editor's own width through a container
+   * query, not the viewport's.
+   */
+  .hm-image-editor {
+    container-type: inline-size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--hm-gap-normal);
+    min-block-size: calc(var(--hm-space-12) * 8);
+    block-size: 100%;
+  }
+
+  .hm-image-editor--styled {
+    font-family: var(--hm-font-family);
+    color: var(--hm-color-text);
+  }
+
+  /*
+   * The stage: the canvas fills its frame, and the designed states sit over
+   * it, so the current image stays visible while another opens.
+   */
+  .hm-image-stage {
+    position: relative;
+    display: grid;
+    min-block-size: calc(var(--hm-space-12) * 5);
+    overflow: hidden;
+  }
+
+  .hm-image-editor--styled .hm-image-stage {
+    background: var(--hm-color-surface-sunken);
+    border: var(--hm-border-width) solid var(--hm-color-border);
+    border-radius: var(--hm-radius-surface);
+  }
+
+  .hm-image-stage > * {
+    grid-area: 1 / 1;
+  }
+
+  .hm-image-stage-frame {
+    position: relative;
+    min-block-size: 0;
+  }
+
+  .hm-image-stage-canvas {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .hm-image-stage-canvas[hidden] {
+    display: none;
+  }
+
+  .hm-image-stage-drop {
+    margin: var(--hm-inset-loose);
+  }
+
+  .hm-image-stage-opening {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--hm-gap-normal);
+  }
+
+  .hm-image-stage-error {
+    align-self: end;
+    margin: var(--hm-inset-normal);
+  }
+
+  .hm-image-editor--styled .hm-image-stage-error {
+    padding: var(--hm-inset-tight) var(--hm-inset-normal);
+    color: var(--hm-color-danger-text);
+    background: var(--hm-color-danger-subtle);
+    border-radius: var(--hm-radius-control);
+  }
+}

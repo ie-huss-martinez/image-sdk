@@ -167,6 +167,9 @@ catalogs:
     '@arethetypeswrong/cli':
       specifier: ^0.18.5
       version: 0.18.5
+    '@axe-core/playwright':
+      specifier: ^4.14.0
+      version: 4.14.0
     '@biomejs/biome':
       specifier: ^2.6.5
       version: 2.6.6
@@ -183,6 +186,9 @@ catalogs:
       specifier: ^0.2.1
       version: 0.2.1
     '@hussmartinez/sdk-core':
+      specifier: ^0.3.0
+      version: 0.3.0
+    '@hussmartinez/ui':
       specifier: ^0.3.0
       version: 0.3.0
     '@microsoft/api-extractor':
@@ -256,6 +262,9 @@ importers:
       '@hussmartinez/sdk-core':
         specifier: 'catalog:'
         version: 0.3.0
+      '@hussmartinez/ui':
+        specifier: 'catalog:'
+        version: 0.3.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'
@@ -338,6 +347,9 @@ importers:
 
   e2e:
     devDependencies:
+      '@axe-core/playwright':
+        specifier: 'catalog:'
+        version: 4.14.0(playwright-core@1.65.0)
       '@hussmartinez/sdk-config':
         specifier: 'catalog:'
         version: 0.2.1(@biomejs/biome@2.6.6)(@commitlint/cli@21.2.4(conventional-commits-parser@7.1.4)(typescript@6.0.3))(@microsoft/api-extractor@7.60.1(@types/node@24.19.2))(dependency-cruiser@18.7.2)(lint-staged@17.6.0)(secretlint@13.1.0(supports-color@10.2.2))(stylelint@18.0.0)(typescript@6.0.3)
@@ -356,6 +368,15 @@ importers:
       '@hussmartinez/image-sdk':
         specifier: workspace:*
         version: link:../..
+      '@hussmartinez/ui':
+        specifier: 'catalog:'
+        version: 0.3.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
     devDependencies:
       '@hussmartinez/sdk-config':
         specifier: 'catalog:'
@@ -363,6 +384,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -383,6 +410,12 @@ packages:
   '@arethetypeswrong/core@0.18.5':
     resolution: {integrity: sha512-9ytjzGwxjm9Uz7I9avfbt5vlQt6uk9uRRESzJjqrznl6WKvI6dwYTo+vJ3U02Wrq/mR3iql/PzhvHhKdJIAjDQ==}
     engines: {node: '>=20'}
+
+  '@axe-core/playwright@4.14.0':
+    resolution: {integrity: sha512-SGUhG5PIHd2eMdpgBF2PyQLOhX+qyDR2PT4cmoS4Qk2ak+jX/rrSvst9l0PGv5WTHolKpUMvVmoHpr4cZgf1RQ==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@azu/format-text@1.0.2':
     resolution: {integrity: sha512-Swi4N7Edy1Eqq82GxgEECXSSLyn6GOb5htRFPzBDdUkECGXtlf12ynO5oJSpWKPwCaUssOu7NfhDcCWpIC6Ywg==}
@@ -725,6 +758,17 @@ packages:
 
   '@hussmartinez/sdk-core@0.3.0':
     resolution: {integrity: sha512-VUADkhXIPFhlU/bXzr8lWkQXrTNi6TSiYxcwI7B1QXjGYaSPb5cX41iA2oEGwd0nZjRX0bfwRD5ACh7hhm72Gw==}
+
+  '@hussmartinez/ui@0.3.0':
+    resolution: {integrity: sha512-h2yd9dNMWlB2aa0aZJdq4cf2XtaFjtOmZ/KYACjwlyBYQrMfohWR1ywAVD/1UmlcOeQvEe/wIhStiJOfPDlAjA==}
+    peerDependencies:
+      react: '>=18.3'
+      react-dom: '>=18.3'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   '@jridgewell/resolve-uri@3.1.2':
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
@@ -1157,6 +1201,10 @@ packages:
   astral-regex@2.0.0:
     resolution: {integrity: sha512-Z7tMw1ytTXt5jqMcOP+OQteU1VuNK9Y02uuJtKQ1Sv69jXQKKg5cibLwGJow8yzZP+eAc18EmLGPal0bp36rvQ==}
     engines: {node: '>=8'}
+
+  axe-core@4.14.0:
+    resolution: {integrity: sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ==}
+    engines: {node: '>=4'}
 
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
@@ -2257,6 +2305,11 @@ snapshots:
       typescript: 5.6.1-rc
       validate-npm-package-name: 5.0.1
 
+  '@axe-core/playwright@4.14.0(playwright-core@1.65.0)':
+    dependencies:
+      axe-core: 4.14.0
+      playwright-core: 1.65.0
+
   '@azu/format-text@1.0.2': {}
 
   '@azu/style-format@1.0.1':
@@ -2625,6 +2678,13 @@ snapshots:
       typescript: 6.0.3
 
   '@hussmartinez/sdk-core@0.3.0': {}
+
+  '@hussmartinez/ui@0.3.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+    dependencies:
+      '@hussmartinez/sdk-core': 0.3.0
+    optionalDependencies:
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
@@ -3072,6 +3132,8 @@ snapshots:
   assertion-error@2.0.1: {}
 
   astral-regex@2.0.0: {}
+
+  axe-core@4.14.0: {}
 
   balanced-match@4.0.4: {}
 

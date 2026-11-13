@@ -6,7 +6,8 @@ import type { ImageLimitName } from "../core/errors/image-limits.js";
  * The image SDK's English message catalogue: sdk-core's messages, and text
  * for every {@link ImageErrorCode} and every limit's warning. Pass it to
  * `createMessages` from `@hussmartinez/sdk-core`, with the host's locale and
- * overrides. The editor's text joins it as the editor arrives.
+ * overrides. It also has the editor's text: its labels, states,
+ * announcements and tool names.
  *
  * Error text is looked up by code, with the error's `details` as
  * parameters, and never taken from `error.message` (ADR 0019).
@@ -56,6 +57,36 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
     one: "This image has {actual} layer.",
     other: "This image has {actual, number} layers, and may be slow to edit and export.",
   }),
+  "editor.label": "Image editor",
+  "editor.preview": "Edited image preview, {width, number} × {height, number}",
+  "editor.empty": "Open an image to start editing. It stays on this device.",
+  "editor.choose": "Choose an image",
+  "editor.dropHint": "or drop it here",
+  "editor.opening": "Opening the image…",
+  "editor.cancel": "Cancel",
+  "editor.opened": "Image opened, {width, number} × {height, number}.",
+  "editor.undid": "Undid {action}.",
+  "editor.redid": "Redid {action}.",
+  "actions.image.setCrop": "crop",
+  "actions.image.setOrientation": "rotate or flip",
+  "actions.image.setOutput": "size",
+  "actions.image.setMetadata": "metadata",
+  "actions.image.setDevelop": "adjustment",
+  "actions.image.setFilter": "filter",
+  "toolbar.label": "Image tools",
+  "toolbar.groups.file": "File",
+  "toolbar.groups.history": "History",
+  "toolbar.groups.orientation": "Rotate",
+  "toolbar.groups.zoom": "Zoom",
+  "toolbar.groups.other": "More tools",
+  "tools.open": "Open image",
+  "tools.undo": "Undo",
+  "tools.redo": "Redo",
+  "tools.rotate-left": "Rotate left",
+  "tools.rotate-right": "Rotate right",
+  "tools.zoom-in": "Zoom in",
+  "tools.zoom-out": "Zoom out",
+  "tools.zoom-fit": "Fit to the stage",
 }) satisfies Record<`errors.${ImageErrorCode}`, MessageValue> &
   Record<`warnings.${ImageLimitName}`, MessageValue>;
 
