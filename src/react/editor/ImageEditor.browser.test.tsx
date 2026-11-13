@@ -1,7 +1,8 @@
 import { act, createRef, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { loadStyles } from "../../../test/browser/styles.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import { ImageEditor } from "./ImageEditor.js";
 import type { ImageEditorHandle } from "./types.js";
@@ -15,6 +16,13 @@ async function photo(): Promise<Blob> {
   context.fillRect(0, 0, 30, 20);
   return canvas.convertToBlob();
 }
+
+// The editor as hosts lay it out, with ui's stylesheet and the package's.
+let unloadStyles: () => void = () => {};
+beforeAll(async () => {
+  unloadStyles = await loadStyles();
+});
+afterAll(() => unloadStyles());
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
@@ -151,6 +159,17 @@ describe("ImageEditor (docs/adr/0007)", () => {
     expect(container.querySelector("canvas")?.getAttribute("aria-label")).toBe(
       "Edited image preview, 30 × 20",
     );
+  });
+
+  it("fits a narrow container, wrapping its toolbar rather than overflowing", async () => {
+    const handle = createRef<ImageEditorHandle>();
+    const container = await mount(<ImageEditor ref={handle} />);
+    container.style.width = "320px";
+    await act(async () => handle.current?.open(await photo()));
+    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    const editor = container.querySelector("section");
+    expect(editor?.getBoundingClientRect().width).toBeLessThanOrEqual(320);
+    expect(editor?.scrollWidth).toBeLessThanOrEqual(320);
   });
 
   it("renders its empty state on a server, with no canvas", () => {

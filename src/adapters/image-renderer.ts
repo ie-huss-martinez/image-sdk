@@ -51,9 +51,13 @@ function checkView(view: ImageView): void {
     !positive(view.pixelRatio) ||
     !positive(view.zoom) ||
     !Number.isFinite(view.pan.x) ||
-    !Number.isFinite(view.pan.y)
+    !Number.isFinite(view.pan.y) ||
+    (view.inset !== undefined &&
+      !(view.inset >= 0 && 2 * view.inset < Math.min(view.width, view.height)))
   ) {
-    throw new RangeError("A view needs a positive size, pixel ratio and zoom, and a finite pan.");
+    throw new RangeError(
+      "A view needs a positive size, pixel ratio and zoom, a finite pan, and an inset under half its size.",
+    );
   }
 }
 

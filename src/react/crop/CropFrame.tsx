@@ -64,6 +64,8 @@ export function CropFrame(props: CropFrameProps): ReactNode {
   const { orientation } = plan.base;
   const whole = { ...plan, base: { ...plan.base, crop: null } };
   const placed = placement(compositionSize(whole, source), view);
+  // A stage with no size yet has nowhere to put the frame, and no scale for a drag.
+  if (!(placed.scale > 0)) return null;
   const shown = cropInComposition(crop.pending, orientation, source);
   const ratio = aspectRatio(crop.aspect, source);
 

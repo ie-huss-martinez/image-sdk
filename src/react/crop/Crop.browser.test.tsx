@@ -1,6 +1,7 @@
 import { act, createRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { loadStyles } from "../../../test/browser/styles.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle } from "../editor/types.js";
@@ -12,6 +13,13 @@ async function photo(): Promise<Blob> {
   context.fillRect(0, 0, 30, 20);
   return canvas.convertToBlob();
 }
+
+// The editor as hosts lay it out, with ui's stylesheet and the package's.
+let unloadStyles: () => void = () => {};
+beforeAll(async () => {
+  unloadStyles = await loadStyles();
+});
+afterAll(() => unloadStyles());
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
@@ -31,7 +39,8 @@ async function until(condition: () => boolean, what: string) {
 async function opened(extra: { onChange?: (plan: ImagePlan) => void } = {}) {
   const handle = createRef<ImageEditorHandle>();
   host = document.createElement("div");
-  host.style.width = "640px";
+  // Inside the test page's viewport, so hit tests reach every handle.
+  host.style.width = "380px";
   host.style.height = "480px";
   document.body.append(host);
   root = createRoot(host);
@@ -66,6 +75,26 @@ describe("cropping (docs/adr/0007)", () => {
     expect(document.querySelector('section[aria-label="Crop"]')).not.toBeNull();
     for (const handle of frame()?.querySelectorAll("[data-hm-handle]") ?? []) {
       expect(handle.getAttribute("aria-hidden")).toBe("true");
+    }
+  });
+
+  it("keeps every handle whole inside the stage, where the image meets its edges", async () => {
+    await opened();
+    await key(document.activeElement, { key: "c" });
+    await until(() => frame() !== null, "the frame");
+    const stage = document.querySelector(".hm-image-stage")?.getBoundingClientRect();
+    if (!stage) throw new Error("no stage");
+    for (const handle of frame()?.querySelectorAll("[data-hm-handle]") ?? []) {
+      const box = handle.getBoundingClientRect();
+      const name = handle.getAttribute("data-hm-handle") ?? "";
+      expect(box.width, `${name} target`).toBeGreaterThanOrEqual(24);
+      expect(box.left, name).toBeGreaterThanOrEqual(stage.left);
+      expect(box.top, name).toBeGreaterThanOrEqual(stage.top);
+      expect(box.right, name).toBeLessThanOrEqual(stage.right);
+      expect(box.bottom, name).toBeLessThanOrEqual(stage.bottom);
+      // A pointer at the handle's centre hits the handle.
+      const centre = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      expect(centre, name).toBe(handle);
     }
   });
 
@@ -144,6 +173,8 @@ describe("cropping (docs/adr/0007)", () => {
     await until(() => frame() !== null, "the frame");
     const rect = frame()?.getBoundingClientRect();
     if (!rect) throw new Error("no frame");
+    // The stage has its own size, not the canvas's, so the frame has one too.
+    expect(rect.width).toBeGreaterThan(30);
     const scale = rect.width / 30;
     const corner = frame()?.querySelector('[data-hm-handle="se"]');
     const pointer = (type: string, x: number, y: number) =>

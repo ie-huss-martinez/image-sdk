@@ -64,4 +64,28 @@ test.describe("the image editor", () => {
     await expect(page.getByRole("img", { name: "Edited image preview, 38 × 32" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Rotate left" })).toBeFocused();
   });
+
+  test("crops by dragging a handle with a real mouse", async ({ page }) => {
+    await page.goto("/editor.html");
+    await page.evaluate(
+      (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
+      Array.from(fixture("quadrants.png")),
+    );
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+    await page.getByRole("button", { name: "Crop" }).click();
+    const frame = page.getByRole("group", { name: "Crop area" });
+    await expect(frame).toBeFocused();
+    const box = await frame.boundingBox();
+    if (!box) throw new Error("no frame");
+    const scale = box.width / 48;
+    // The bottom-right handle sits on the corner: drag it in by 10 × 5 source pixels.
+    await page.mouse.move(box.x + box.width, box.y + box.height);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 10 * scale, box.y + box.height - 5 * scale, {
+      steps: 5,
+    });
+    await page.mouse.up();
+    await page.getByRole("button", { name: "Apply crop" }).click();
+    await expect(page.getByRole("img", { name: "Edited image preview, 38 × 27" })).toBeVisible();
+  });
 });

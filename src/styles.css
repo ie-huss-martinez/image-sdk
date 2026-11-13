@@ -17,6 +17,8 @@
   .hm-image-editor {
     container-type: inline-size;
     display: grid;
+    /* The editor fits its container, however narrow: nothing sets a minimum width. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     gap: var(--hm-gap-normal);
     min-block-size: calc(var(--hm-space-12) * 8);
@@ -26,6 +28,11 @@
   .hm-image-editor--styled {
     font-family: var(--hm-font-family);
     color: var(--hm-color-text);
+  }
+
+  /* In a narrow editor, the toolbar's groups wrap onto more rows. */
+  .hm-image-editor-toolbar {
+    flex-wrap: wrap;
   }
 
   /*

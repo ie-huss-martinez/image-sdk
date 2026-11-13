@@ -636,6 +636,7 @@ export interface ImageThumbnail {
 export interface ImageView {
     // (undocumented)
     readonly height: number;
+    readonly inset?: number;
     // (undocumented)
     readonly pan: {
         readonly x: number;

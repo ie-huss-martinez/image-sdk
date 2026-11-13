@@ -30,6 +30,12 @@ export interface ImageView {
   /** 1 fits the composition inside the stage; 2 is twice that. */
   readonly zoom: number;
   readonly pan: { readonly x: number; readonly y: number };
+  /**
+   * CSS pixels the fitted composition keeps clear inside each edge of the
+   * stage, such as room for the crop frame's handles, which would otherwise
+   * be cut off where the image meets the stage's edge. 0 when omitted.
+   */
+  readonly inset?: number;
 }
 
 /**
@@ -128,8 +134,12 @@ export function placement(
   readonly height: number;
   readonly scale: number;
 } {
-  const fit = Math.min(view.width / composition.width, view.height / composition.height);
-  const scale = fit * view.zoom;
+  const inset = view.inset ?? 0;
+  const fit = Math.min(
+    (view.width - 2 * inset) / composition.width,
+    (view.height - 2 * inset) / composition.height,
+  );
+  const scale = Math.max(0, fit) * view.zoom;
   const width = composition.width * scale;
   const height = composition.height * scale;
   return {

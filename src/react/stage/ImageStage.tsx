@@ -21,6 +21,13 @@ export interface ImageStageProps {
   readonly className?: string;
 }
 
+/**
+ * The margin the image keeps inside the stage while cropping: half of the
+ * largest handle target, 44 pixels on touch, so no handle is cut off where
+ * the image meets the stage's edge (docs/adr/0007).
+ */
+const CROP_INSET = 24;
+
 /** The stage's size in CSS pixels, and the device pixel ratio. */
 interface StageSize {
   readonly width: number;
@@ -93,6 +100,7 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   const [editorState] = useImageEditorState();
   const { source, status } = snapshot;
   const cropping = editorState.tool === "crop";
+  const inset = cropping ? CROP_INSET : 0;
   // What the stage shows: while cropping, the whole image under the plan's
   // other edits; during a gesture, its transient plan; otherwise the plan.
   const plan = useMemo(() => {
@@ -156,12 +164,13 @@ export function ImageStage(props: ImageStageProps): ReactNode {
           pixelRatio: size.pixelRatio,
           zoom: view.zoom,
           pan: view.pan,
+          inset,
         }),
       )
       .catch(() => {
         // A render that fails leaves the previous frame; the session's state is unaffected.
       });
-  }, [plan, view, size]);
+  }, [plan, view, size, inset]);
 
   const className = ["hm-image-stage", props.className].filter(Boolean).join(" ");
   return (
@@ -178,6 +187,7 @@ export function ImageStage(props: ImageStageProps): ReactNode {
               pixelRatio: 1,
               zoom: view.zoom,
               pan: view.pan,
+              inset,
             }}
           />
         </div>
