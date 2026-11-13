@@ -24,13 +24,11 @@ export const imageTools: readonly ImageTool[] = [
   zoomFitTool,
 ];
 
-/**
- * The toolbar's default groups. Flip, crop and fit have no buttons until
- * ui's icon set has their icons; crop and fit have keys now.
- */
+/** The toolbar's default groups (docs/adr/0007). */
 export const DEFAULT_TOOLBAR: readonly (readonly string[])[] = [
   ["image.open"],
   ["image.undo", "image.redo"],
-  ["image.rotate-left", "image.rotate-right"],
-  ["image.zoom-in", "image.zoom-out"],
+  ["image.rotate-left", "image.rotate-right", "image.flip-horizontal", "image.flip-vertical"],
+  ["image.crop"],
+  ["image.zoom-in", "image.zoom-out", "image.zoom-fit"],
 ];

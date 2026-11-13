@@ -1,4 +1,8 @@
 import {
+  CropIcon,
+  FitIcon,
+  FlipHorizontalIcon,
+  FlipVerticalIcon,
   type IconComponent,
   OpenIcon,
   RedoIcon,
@@ -24,5 +28,9 @@ export const imageIcons: Readonly<Record<string, IconComponent>> = {
   "rotate-right": RotateRightIcon,
   "zoom-in": ZoomInIcon,
   "zoom-out": ZoomOutIcon,
+  fit: FitIcon,
+  crop: CropIcon,
+  "flip-horizontal": FlipHorizontalIcon,
+  "flip-vertical": FlipVerticalIcon,
   search: SearchIcon,
 };

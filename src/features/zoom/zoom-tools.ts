@@ -26,14 +26,11 @@ export const zoomOutTool: ImageTool = /* @__PURE__ */ defineTool({
   shortcuts: "zoom-out",
 });
 
-/**
- * Fits the image to the stage, with no pan. Its button joins the toolbar
- * when ui's icon set has a fit icon; the family's `zoom-reset` keys work now.
- */
+/** Fits the image to the stage, with no pan, as the family's `zoom-reset` keys do. */
 export const zoomFitTool: ImageTool = /* @__PURE__ */ defineTool({
   id: "image.zoom-fit",
   label: "tools.zoom-fit",
-  icon: "search",
+  icon: "fit",
   group: "zoom",
   isEnabled: hasDocument,
   run: ({ view }) => view.set({ zoom: 1, pan: { x: 0, y: 0 } }),
