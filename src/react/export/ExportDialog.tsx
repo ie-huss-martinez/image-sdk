@@ -6,6 +6,7 @@ import {
   ProgressBar,
   SegmentedControl,
   Slider,
+  TextField,
   useAnnounce,
 } from "@hussmartinez/ui/react";
 import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
@@ -392,23 +393,13 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
               <div className="hm-image-export-fields">
                 {FIELDS.map((field) => (
                   <Field key={field} label={messages.t(`export.field.${field}`)}>
-                    {(control) => (
-                      <input
-                        {...control}
-                        className="hm-image-text-field"
-                        type="text"
-                        autoComplete="off"
-                        value={current.metadata[field]}
-                        onChange={(event) =>
-                          update({
-                            metadata: {
-                              ...current.metadata,
-                              [field]: keepable(event.currentTarget.value),
-                            },
-                          })
-                        }
-                      />
-                    )}
+                    <TextField
+                      autoComplete="off"
+                      value={current.metadata[field]}
+                      onValueChange={(value) =>
+                        update({ metadata: { ...current.metadata, [field]: keepable(value) } })
+                      }
+                    />
                   </Field>
                 ))}
               </div>
