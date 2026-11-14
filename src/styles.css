@@ -55,10 +55,30 @@
     grid-area: stage;
   }
 
+  /*
+   * The inspector keeps to its column: its content wraps rather than widening
+   * it, and it scrolls up and down, with room kept for the scrollbar so it
+   * never covers the values.
+   */
   .hm-image-editor-inspector {
     grid-area: inspector;
+    display: grid;
+    align-content: start;
+    gap: var(--hm-gap-normal);
     min-block-size: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .hm-image-editor-inspector > * {
+    min-inline-size: 0;
+  }
+
+  /* A choice of more options than fit, such as the filter presets, wraps. */
+  .hm-image-editor-inspector .hm-segmented-control {
+    flex-wrap: wrap;
+    max-inline-size: 100%;
   }
 
   @container (width >= 720px) {
@@ -230,9 +250,10 @@
     gap: var(--hm-gap-normal);
   }
 
+  /* Left and top, then width and height: two columns that shrink with the inspector. */
   .hm-image-crop-fields {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(calc(var(--hm-space-12) * 2), 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--hm-gap-tight);
   }
 
@@ -252,6 +273,11 @@
   /* A slider's field: its visible name above it, and the slider across the column. */
   .hm-image-slider-field {
     justify-items: stretch;
+  }
+
+  .hm-image-adjust-actions {
+    display: flex;
+    justify-content: end;
   }
 
   /* A slider, its value, and its reset when it isn't 0. */

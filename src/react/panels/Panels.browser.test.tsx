@@ -184,6 +184,39 @@ describe("the Filters panel (docs/adr/0007)", () => {
 });
 
 describe("the inspector's place (docs/adr/0007)", () => {
+  for (const density of ["compact", "comfortable"]) {
+    it(`keeps every panel to its column in ${density} density, scrolling only up and down`, async () => {
+      document.documentElement.setAttribute("data-hm-density", density);
+      try {
+        await opened(900, 600);
+        const inspector = document.querySelector<HTMLElement>(".hm-image-editor-inspector");
+        if (!inspector) throw new Error("no inspector");
+        const fits = (what: string) =>
+          expect(inspector.scrollWidth, what).toBeLessThanOrEqual(inspector.clientWidth);
+        fits("Adjust");
+        const radio = (name: string) =>
+          [...document.querySelectorAll<HTMLElement>('[role="radio"]')].find(
+            (element) => element.textContent === name,
+          );
+        await act(async () => radio("Filters")?.click());
+        fits("Filters");
+        // Every preset shows, the first ones too, and so does the panel switch.
+        for (const name of ["None", "Vivid", "Sepia", "Adjust"]) {
+          const box = radio(name)?.getBoundingClientRect();
+          const column = inspector.getBoundingClientRect();
+          expect(box?.left, name).toBeGreaterThanOrEqual(column.left);
+          expect(box?.right, name).toBeLessThanOrEqual(column.right);
+        }
+        await act(async () =>
+          document.querySelector<HTMLButtonElement>('button[data-tool="image.crop"]')?.click(),
+        );
+        fits("Crop");
+      } finally {
+        document.documentElement.removeAttribute("data-hm-density");
+      }
+    });
+  }
+
   const box = (selector: string) => {
     const found = document.querySelector(selector)?.getBoundingClientRect();
     if (!found) throw new Error(`no ${selector}`);
