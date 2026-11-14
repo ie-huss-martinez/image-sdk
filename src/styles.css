@@ -249,6 +249,11 @@
     gap: var(--hm-gap-normal);
   }
 
+  /* A slider's field: its visible name above it, and the slider across the column. */
+  .hm-image-slider-field {
+    justify-items: stretch;
+  }
+
   /* A slider, its value, and its reset when it isn't 0. */
   .hm-image-adjust-row {
     display: grid;
