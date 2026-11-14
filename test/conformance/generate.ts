@@ -5,7 +5,7 @@ import type {
 import fc from "fast-check";
 import { type ImagePlan, NEUTRAL_DEVELOP, toImagePlanDocument } from "../../src/index.js";
 import { command, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
-import { applyToDocument, readAndWrite } from "./run.js";
+import { applyToDocument, GEOMETRY_OPERATIONS, geometry, readAndWrite } from "./run.js";
 
 /**
  * Writes the conformance cases (sdk-core ADR 0045): hand-written cases for
@@ -468,5 +468,250 @@ export function planCases(): ConformanceFile {
       ...handWritten.map(([name, input, outcome]) => make(name, input, readAndWrite, outcome)),
       ...generated,
     ],
+  };
+}
+
+/** How many generated cases each geometry operation keeps. */
+const GENERATED_PER_OPERATION = 8;
+
+/** `hm-image-geometry`: the pure geometry a port reproduces exactly. */
+export function geometryCases(): ConformanceFile {
+  const source = { width: 400, height: 300 };
+  const whole = { x: 0, y: 0, width: 400, height: 300 };
+  const upright = { rotate: 0, flipX: false, flipY: false };
+  const turned = { rotate: 90, flipX: false, flipY: false };
+  const mirrored = { rotate: 270, flipX: true, flipY: false };
+  const crop = { x: 40, y: 30, width: 200, height: 100 };
+  const op = (operation: string, args: Record<string, unknown>) => ({ operation, ...args });
+  const handWritten: [string, unknown][] = [
+    [
+      "swaps an EXIF-6 image's width and height",
+      op("orientedSize", { stored: { width: 48, height: 32 }, orientation: 6 }),
+    ],
+    [
+      "keeps an EXIF-3 image's size",
+      op("orientedSize", { stored: { width: 48, height: 32 }, orientation: 3 }),
+    ],
+    [
+      "turns the composition of a crop by 90 degrees",
+      op("compositionSize", { source, crop, orientation: turned }),
+    ],
+    [
+      "uses the whole source without a crop",
+      op("compositionSize", { source, crop: null, orientation: upright }),
+    ],
+    [
+      "scales and rounds a half up",
+      op("outputSize", {
+        output: { kind: "scale", scale: 0.5 },
+        composition: { width: 401, height: 301 },
+      }),
+    ],
+    [
+      "scales by a fraction that isn't exact in binary",
+      op("outputSize", {
+        output: { kind: "scale", scale: 0.1 },
+        composition: { width: 4_005, height: 3_000 },
+      }),
+    ],
+    [
+      "fits a box without enlarging",
+      op("outputSize", {
+        output: { kind: "fit", width: 1_000, height: 1_000 },
+        composition: { width: 400, height: 300 },
+      }),
+    ],
+    [
+      "fits a box by its tighter side",
+      op("outputSize", {
+        output: { kind: "fit", width: 100, height: 100 },
+        composition: { width: 400, height: 300 },
+      }),
+    ],
+    [
+      "keeps at least one pixel",
+      op("outputSize", {
+        output: { kind: "scale", scale: 0.001 },
+        composition: { width: 400, height: 3 },
+      }),
+    ],
+    [
+      "maps a fractional point through a turn and a flip",
+      op("sourceToComposition", { point: { x: 52.25, y: 31.5 }, crop, orientation: mirrored }),
+    ],
+    [
+      "maps a point back through a turn and a flip",
+      op("compositionToSource", { point: { x: 12.75, y: 199.5 }, crop, orientation: mirrored }),
+    ],
+    ["gives no ratio for a free aspect", op("aspectRatio", { aspect: "free", source })],
+    [
+      "gives the source's ratio for the original aspect",
+      op("aspectRatio", { aspect: "original", source }),
+    ],
+    ["gives 16:9 as a ratio", op("aspectRatio", { aspect: [16, 9], source })],
+    ["fits a square, centred", op("fitAspect", { within: whole, ratio: 1 })],
+    ["fits 16:9, rounding and centring down", op("fitAspect", { within: whole, ratio: 16 / 9 })],
+    ["keeps the area without a ratio", op("fitAspect", { within: whole, ratio: null })],
+    ["moves a crop, kept inside the source", op("moveCrop", { crop, dx: 500, dy: -500, source })],
+    [
+      "rounds a move's negative half toward positive infinity, as JavaScript's Math.round",
+      op("moveCrop", { crop, dx: -2.5, dy: 2.5, source }),
+    ],
+    [
+      "drags a corner freely",
+      op("dragHandle", { crop, handle: "se", dx: 15.4, dy: -20.6, source, ratio: null }),
+    ],
+    [
+      "drags a corner with a ratio, keeping the opposite corner",
+      op("dragHandle", { crop, handle: "nw", dx: -30, dy: -10, source, ratio: 1 }),
+    ],
+    [
+      "drags a side with a ratio, keeping the crop centred across it",
+      op("dragHandle", { crop, handle: "e", dx: 50, dy: 0, source, ratio: 2 }),
+    ],
+    [
+      "drags past the source's edge, stopping at it",
+      op("dragHandle", { crop, handle: "w", dx: -100, dy: 0, source, ratio: null }),
+    ],
+    [
+      "drags an edge past the opposite one, keeping one pixel",
+      op("dragHandle", { crop, handle: "n", dx: 0, dy: 500, source, ratio: null }),
+    ],
+    [
+      "shows a crop where it is after a turn and a flip",
+      op("cropInComposition", { crop, orientation: mirrored, source }),
+    ],
+    [
+      "maps a drag on screen back to the source after a turn",
+      op("compositionDeltaToSource", { dx: 10, dy: -4, orientation: turned, source }),
+    ],
+    [
+      "maps the screen's east handle to the source's north after a turn",
+      op("handleInSource", { handle: "e", orientation: turned }),
+    ],
+    [
+      "maps the screen's south-west handle through a mirror",
+      op("handleInSource", { handle: "sw", orientation: mirrored }),
+    ],
+    [
+      "nudges left on screen after a turn",
+      op("nudgeCropOnScreen", {
+        crop,
+        key: "ArrowLeft",
+        step: 10,
+        resize: false,
+        orientation: turned,
+        source,
+        ratio: null,
+      }),
+    ],
+    [
+      "resizes the bottom edge on screen with a ratio",
+      op("nudgeCropOnScreen", {
+        crop,
+        key: "ArrowDown",
+        step: 1,
+        resize: true,
+        orientation: mirrored,
+        source,
+        ratio: 2,
+      }),
+    ],
+  ];
+
+  const orientation = fc.record({
+    rotate: fc.constantFrom(0, 90, 180, 270),
+    flipX: fc.boolean(),
+    flipY: fc.boolean(),
+  });
+  const cropArb = fc.record({ x: fc.nat(399), y: fc.nat(299) }).chain(({ x, y }) =>
+    fc.record({
+      x: fc.constant(x),
+      y: fc.constant(y),
+      width: fc.integer({ min: 1, max: 400 - x }),
+      height: fc.integer({ min: 1, max: 300 - y }),
+    }),
+  );
+  // Quarters and halves, negative too, which round as Math.round does.
+  const delta = fc.integer({ min: -2_000, max: 2_000 }).map((quarters) => quarters / 4);
+  const ratio = fc.option(fc.constantFrom(1, 16 / 9, 4 / 3, 0.75, 9 / 16), { nil: null });
+  const handle = fc.constantFrom("n", "s", "e", "w", "ne", "nw", "se", "sw");
+  const point = fc.record({ x: delta, y: delta });
+  const size = fc.record({
+    width: fc.integer({ min: 1, max: 8_000 }),
+    height: fc.integer({ min: 1, max: 8_000 }),
+  });
+  const output = fc.oneof(
+    fc.record({
+      kind: fc.constant("scale"),
+      scale: fc.integer({ min: 1, max: 1_000 }).map((n) => n / 1_000),
+    }),
+    fc.record({
+      kind: fc.constant("fit"),
+      width: fc.integer({ min: 1, max: 4_000 }),
+      height: fc.integer({ min: 1, max: 4_000 }),
+    }),
+  );
+  const arbitraries: Record<string, fc.Arbitrary<Record<string, unknown>>> = {
+    orientedSize: fc.record({ stored: size, orientation: fc.integer({ min: 1, max: 8 }) }),
+    compositionSize: fc.record({
+      source: fc.constant(source),
+      crop: fc.option(cropArb, { nil: null }),
+      orientation,
+    }),
+    outputSize: fc.record({ output, composition: size }),
+    sourceToComposition: fc.record({ point, crop: cropArb, orientation }),
+    compositionToSource: fc.record({ point, crop: cropArb, orientation }),
+    aspectRatio: fc.record({
+      aspect: fc.oneof(
+        fc.constantFrom("free", "original"),
+        fc.tuple(fc.integer({ min: 1, max: 21 }), fc.integer({ min: 1, max: 21 })),
+      ),
+      source: size,
+    }),
+    fitAspect: fc.record({ within: cropArb, ratio }),
+    moveCrop: fc.record({ crop: cropArb, dx: delta, dy: delta, source: fc.constant(source) }),
+    dragHandle: fc.record({
+      crop: cropArb,
+      handle,
+      dx: delta,
+      dy: delta,
+      source: fc.constant(source),
+      ratio,
+    }),
+    cropInComposition: fc.record({ crop: cropArb, orientation, source: fc.constant(source) }),
+    compositionDeltaToSource: fc.record({
+      dx: delta,
+      dy: delta,
+      orientation,
+      source: fc.constant(source),
+    }),
+    handleInSource: fc.record({ handle, orientation }),
+    nudgeCropOnScreen: fc.record({
+      crop: cropArb,
+      key: fc.constantFrom("ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"),
+      step: fc.constantFrom(1, 10),
+      resize: fc.boolean(),
+      orientation,
+      source: fc.constant(source),
+      ratio,
+    }),
+  };
+  const generated = GEOMETRY_OPERATIONS.flatMap((operation) => {
+    const arbitrary = arbitraries[operation];
+    if (!arbitrary) throw new Error(`No generator for ${operation}.`);
+    return fc
+      .sample(arbitrary, { seed: SEED, numRuns: GENERATED_PER_OPERATION })
+      .map((args, index) =>
+        make(`generated ${operation} ${index + 1}`, op(operation, args), geometry),
+      );
+  });
+  return {
+    format: "hm-conformance",
+    version: 1,
+    subject: "hm-image-geometry",
+    description:
+      "image-sdk's geometry (docs/formats/hm-image-plan.md): input.operation names a function and the other fields are its arguments, with null for a missing ratio; expected is its result, exactly. Sizes, crops and points are in pixels of the oriented source or of the composition. Results are rounded as JavaScript's Math.round does, halves toward positive infinity. Generated cases come from fixed-seed generators.",
+    cases: [...handWritten.map(([name, input]) => make(name, input, geometry)), ...generated],
   };
 }

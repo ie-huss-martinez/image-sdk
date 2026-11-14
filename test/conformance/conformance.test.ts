@@ -9,8 +9,8 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { toImagePlanDocument } from "../../src/index.js";
 import { command, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
-import { commandCases, planCases } from "./generate.js";
-import { applyToDocument, readAndWrite } from "./run.js";
+import { commandCases, geometryCases, planCases } from "./generate.js";
+import { applyToDocument, geometry, readAndWrite } from "./run.js";
 
 /**
  * The conformance vectors (sdk-core ADR 0045): the same files a port in
@@ -20,6 +20,7 @@ import { applyToDocument, readAndWrite } from "./run.js";
 
 const COMMANDS = new URL("../../conformance/hm-image-commands.json", import.meta.url);
 const PLANS = new URL("../../conformance/hm-image-plan.json", import.meta.url);
+const GEOMETRY = new URL("../../conformance/hm-image-geometry.json", import.meta.url);
 
 const text = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 
@@ -29,10 +30,14 @@ it("keeps the checked-in cases up to date with their generator", async () => {
   await expect(text(commandCases())).toMatchFileSnapshot(
     "../../conformance/hm-image-commands.json",
   );
+  await expect(text(geometryCases())).toMatchFileSnapshot(
+    "../../conformance/hm-image-geometry.json",
+  );
 });
 
 describeConformance(PLANS, readAndWrite);
 describeConformance(COMMANDS, applyToDocument);
+describeConformance(GEOMETRY, geometry);
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 const schema = (path: string) =>

@@ -79,10 +79,29 @@ A refusal is compared by its code and `details.reason`, never its message:
 |---|---|---|---|
 | [`conformance/hm-image-plan.json`](../../conformance/hm-image-plan.json) | `hm-image-plan` | A document | The document as a reader writes it back, or the rejection |
 | [`conformance/hm-image-commands.json`](../../conformance/hm-image-commands.json) | `hm-image-commands` | `{ plan, command }` | The resulting document, or the rejection. The command's inverse must also restore the plan |
+| [`conformance/hm-image-geometry.json`](../../conformance/hm-image-geometry.json) | `hm-image-geometry` | `{ operation, …arguments }` | The function's result, exactly |
 
 Hand-written cases cover every outcome, including source ids, command types, adjustments and kept fields named `__proto__`, `constructor` and `toString` (ADR 0045, section 8). Generated ones come from the reducer's property-test generators, with a fixed seed: 60 commands that apply, and two of each refusal from commands with a field replaced or added. `pnpm conformance:update` rewrites the files, and the tests fail when the checked-in files differ from what the generator writes.
 
 The TypeScript tests also check that the schemas agree with the readers. Every document and command the vectors accept passes its schema, and every structural refusal fails it. Over thousands of mutated inputs, the reducer and the reader never accept anything their schema refuses.
+
+## Geometry
+
+`hm-image-geometry` isn't a format: it's the pure geometry a port needs to show and export a plan as this SDK does. Each case names one function and gives its arguments, with `null` for a missing ratio:
+
+| Operation | What it gives |
+|---|---|
+| `orientedSize` | A stored size under an EXIF orientation, 1 to 8 |
+| `compositionSize` | The cropped source, turned by the plan's rotation |
+| `outputSize` | The export's size: scaled or fitted, never enlarged, at least 1 × 1 |
+| `sourceToComposition`, `compositionToSource` | A point mapped through the crop, the rotation and then the flips, and back |
+| `aspectRatio`, `fitAspect` | An aspect's ratio, and the largest centred crop of it |
+| `moveCrop`, `dragHandle`, `nudgeCropOnScreen` | A crop moved or resized, kept inside its source, in whole pixels |
+| `cropInComposition`, `compositionDeltaToSource`, `handleInSource` | Where a crop shows on screen, and how a drag or a handle on screen maps back to the source |
+
+The results compare exactly, with no tolerance. They need only IEEE addition, multiplication and division, which give the same doubles in every language, and rounding.
+
+**Rounding is JavaScript's `Math.round`:** halves round toward positive infinity, so −2.5 rounds to −2. Many languages round halves away from zero, such as Rust's `f64::round`, which gives −3. A port rounds as `floor(x + 0.5)` does, and the vectors include negative halves. `fitAspect` centres with `floor`.
 
 ## Changing the formats
 
