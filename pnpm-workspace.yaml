@@ -17,8 +17,10 @@ catalog:
   "@changesets/cli": ^3.0.3
   "@biomejs/biome": ^2.6.5
   "@commitlint/cli": ^21.2.4
-  "@hussmartinez/sdk-config": ^0.5.0
-  "@playwright/test": ^1.64.1
+  "@hussmartinez/sdk-config": ^0.6.0
+  # The browser test image's version (ci/Dockerfile): the visual tests'
+  # screenshots depend on its Chromium build (sdk-core ADR 0048).
+  "@playwright/test": 1.65.0
   "@hussmartinez/sdk-core": ^0.4.2
   "@hussmartinez/ui": ^0.7.0
   "@microsoft/api-extractor": ^7.60.1
@@ -32,7 +34,7 @@ catalog:
   fast-check: ^4.10.2
   husky: ^9.1.7
   lint-staged: ^17.6.0
-  playwright: ^1.64.1
+  playwright: 1.65.0
   publint: ^0.3.25
   react: ^19.3.0
   react-dom: ^19.3.0
