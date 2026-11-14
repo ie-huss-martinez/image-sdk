@@ -1,5 +1,11 @@
 # @hussmartinez/image-sdk
 
+## 0.1.1
+
+### Patch Changes
+
+- [#42](https://github.com/ie-huss-martinez/image-sdk/pull/42) [`a5eb52a`](https://github.com/ie-huss-martinez/image-sdk/commit/a5eb52a9adef79b1f8e213bf082b0914b5703ffa) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The editor shows a failed first open inside the empty stage's drop zone, under its text and by the button that retries, instead of as a banner over the drop zone's border. Over an open image, a failure is still a banner at the foot of the stage.
+
 ## 0.1.0
 
 ### Minor Changes
