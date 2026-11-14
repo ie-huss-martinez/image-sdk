@@ -325,14 +325,23 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
             />
             {current.format === "png" ? null : (
               <Field label={messages.t("export.quality")} className="hm-image-slider-field">
-                <Slider
-                  min={1}
-                  max={100}
-                  step={1}
-                  largeStep={10}
-                  value={current.quality}
-                  onValueChange={(quality) => update({ quality: Math.round(quality) })}
-                />
+                {(control) => (
+                  <div className="hm-image-adjust-row">
+                    <Slider
+                      {...control}
+                      min={1}
+                      max={100}
+                      step={1}
+                      largeStep={10}
+                      value={current.quality}
+                      formatValue={(quality) => messages.t("export.qualityValue", { quality })}
+                      onValueChange={(quality) => update({ quality: Math.round(quality) })}
+                    />
+                    <output className="hm-image-adjust-value" aria-hidden="true">
+                      {messages.t("export.qualityValue", { quality: current.quality })}
+                    </output>
+                  </div>
+                )}
               </Field>
             )}
             <SegmentedControl

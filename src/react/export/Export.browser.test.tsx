@@ -251,6 +251,16 @@ describe("the export dialog (docs/adr/0007)", () => {
     expect(session().getSnapshot().plan?.metadata.title).toBe("📷".repeat(2_000));
   });
 
+  it("shows the quality as a percentage, and says it", async () => {
+    await opened();
+    await openDialog();
+    await click(inDialog("JPEG"));
+    const quality = dialog()?.querySelector<HTMLInputElement>('input[type="range"]');
+    expect(quality?.labels?.[0]?.textContent).toBe("Quality");
+    expect(quality?.getAttribute("aria-valuetext")).toBe("92%");
+    expect(dialog()?.querySelector(".hm-image-adjust-value")?.textContent).toBe("92%");
+  });
+
   it("keeps its keys from the editor's shortcuts", async () => {
     const { session } = await opened();
     await openDialog();

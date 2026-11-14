@@ -51,6 +51,20 @@ export function ImageAdjustPanel(props: ImageAdjustPanelProps): ReactNode {
       className={["hm-image-adjust-panel", props.className].filter(Boolean).join(" ")}
       aria-label={messages.t("develop.panel")}
     >
+      {/* First, so it's in view however far the sliders scroll. */}
+      <div className="hm-image-adjust-actions">
+        <Button
+          variant="secondary"
+          disabled={changed.length === 0}
+          onClick={() => {
+            reset(Object.fromEntries(changed.map((name) => [name, 0])));
+            first.current?.focus();
+            announce(messages.t("develop.wasReset"));
+          }}
+        >
+          {messages.t("develop.resetAll")}
+        </Button>
+      </div>
       {DEVELOP_ADJUSTMENTS.map((name, index) => {
         const label = messages.t(`develop.${name}`);
         return (
@@ -88,17 +102,6 @@ export function ImageAdjustPanel(props: ImageAdjustPanelProps): ReactNode {
           </Field>
         );
       })}
-      <Button
-        variant="secondary"
-        disabled={changed.length === 0}
-        onClick={() => {
-          reset(Object.fromEntries(changed.map((name) => [name, 0])));
-          first.current?.focus();
-          announce(messages.t("develop.wasReset"));
-        }}
-      >
-        {messages.t("develop.resetAll")}
-      </Button>
     </section>
   );
 }

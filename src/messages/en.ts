@@ -148,6 +148,7 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
   "export.formats.jpeg": "JPEG",
   "export.formats.webp": "WebP",
   "export.quality": "Quality",
+  "export.qualityValue": "{quality, number}%",
   "export.size": "Size",
   "export.sizes.scale": "Scale",
   "export.sizes.fit": "Fit in a box",

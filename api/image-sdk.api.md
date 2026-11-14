@@ -433,6 +433,7 @@ export const imageMessages: {
     readonly "export.formats.jpeg": "JPEG";
     readonly "export.formats.webp": "WebP";
     readonly "export.quality": "Quality";
+    readonly "export.qualityValue": "{quality, number}%";
     readonly "export.size": "Size";
     readonly "export.sizes.scale": "Scale";
     readonly "export.sizes.fit": "Fit in a box";
