@@ -245,6 +245,34 @@ describe("ImageEditor (docs/adr/0007)", () => {
     }
   });
 
+  it("shows a failed first open inside the drop zone, and a later one over the image", async () => {
+    const handle = createRef<ImageEditorHandle>();
+    const container = await mount(<ImageEditor ref={handle} />);
+    const broken = new Blob([new Uint8Array([1, 2, 3, 4])]);
+    await act(async () => handle.current?.open(broken));
+    await until(() => container.querySelector(".hm-image-stage-error") !== null, "the error");
+    const drop = container.querySelector(".hm-image-stage-drop");
+    const error = container.querySelector(".hm-image-stage-error");
+    // Within the drop zone's border, as its content, not over it.
+    expect(drop?.contains(error ?? null)).toBe(true);
+    const zone = drop?.getBoundingClientRect();
+    const box = error?.getBoundingClientRect();
+    expect(box && zone && box.bottom <= zone.bottom && box.top >= zone.top).toBe(true);
+    // Centred across the zone, as its text and button are.
+    const centre = (rect?: DOMRect) => (rect ? rect.left + rect.width / 2 : Number.NaN);
+    expect(Math.abs(centre(box) - centre(zone))).toBeLessThanOrEqual(1);
+
+    await act(async () => handle.current?.open(await photo()));
+    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await act(async () => handle.current?.open(broken));
+    await until(
+      () => container.querySelector(".hm-image-stage-error") !== null,
+      "the second error",
+    );
+    expect(container.querySelector(".hm-image-stage-drop")).toBeNull();
+    expect(container.querySelector(".hm-image-stage-error")?.getAttribute("role")).toBe("alert");
+  });
+
   it("renders its empty state on a server, with no canvas", () => {
     const html = renderToString(<ImageEditor />);
     expect(html).toContain("Choose an image");
