@@ -120,6 +120,7 @@ A browser that can't encode WebP fails the export with `UNSUPPORTED_FORMAT` ([AD
 ### Tests
 
 - **axe** on every designed state, and with each panel and the crop frame open, in all three engines.
+- **Screenshots** of each designed state, in light and dark, compact and comfortable, on Chromium in the pinned image ([sdk-core ADR 0048](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0048-visual-regression-for-sdk-editors.md)). The states are listed in `e2e/visual/editor.spec.ts`.
 - **Keyboard only, end to end:** open through the drop zone's button; crop with the frame's keys and with the panel's fields; rotate, flip and undo; adjust with a slider's keys; choose a filter; and export, checking the summary. Each step checks where focus is.
 - **One step per gesture:** a slider drag, a burst of arrow keys on a slider, and a crop drag each add one undo step and call `onChange` once; `Escape` during each restores the plan, with no step.
 - **Shortcuts** don't fire in fields or on sliders, and `Space` on a button presses it.
