@@ -152,6 +152,15 @@
     margin: var(--hm-inset-normal);
   }
 
+  /*
+   * Inside the drop zone, it's part of its content, not a banner over it,
+   * centred as the rest is: in the zone's column, align-self is across it.
+   */
+  .hm-image-stage-drop .hm-image-stage-error {
+    align-self: center;
+    margin: 0;
+  }
+
   .hm-image-editor--styled .hm-image-stage-error {
     padding: var(--hm-inset-tight) var(--hm-inset-normal);
     color: var(--hm-color-danger-text);

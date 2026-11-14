@@ -173,6 +173,12 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   }, [plan, view, size, inset]);
 
   const className = ["hm-image-stage", props.className].filter(Boolean).join(" ");
+  const empty = status === "empty" && !snapshot.opening;
+  const error = snapshot.error ? (
+    <p className="hm-image-stage-error" role="alert">
+      {messages.error(snapshot.error)}
+    </p>
+  ) : null;
   return (
     <div className={className} data-status={status}>
       <div className="hm-image-stage-frame" ref={setFrame} />
@@ -192,7 +198,7 @@ export function ImageStage(props: ImageStageProps): ReactNode {
           />
         </div>
       ) : null}
-      {status === "empty" && !snapshot.opening ? (
+      {empty ? (
         <FileDropZone
           className="hm-image-stage-drop"
           accept="image/*"
@@ -204,6 +210,8 @@ export function ImageStage(props: ImageStageProps): ReactNode {
           hint={messages.t("editor.dropHint")}
         >
           <p className="hm-image-stage-empty">{messages.t("editor.empty")}</p>
+          {/* With no image, the failure sits in the drop zone, by the button that retries. */}
+          {error}
         </FileDropZone>
       ) : null}
       {snapshot.opening ? (
@@ -214,11 +222,8 @@ export function ImageStage(props: ImageStageProps): ReactNode {
           </Button>
         </div>
       ) : null}
-      {snapshot.error ? (
-        <p className="hm-image-stage-error" role="alert">
-          {messages.error(snapshot.error)}
-        </p>
-      ) : null}
+      {/* Over an image, it's a banner at the stage's foot. */}
+      {empty ? null : error}
     </div>
   );
 }
