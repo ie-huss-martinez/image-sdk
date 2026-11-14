@@ -1,4 +1,4 @@
-import { SegmentedControl, Slider } from "@hussmartinez/ui/react";
+import { Field, SegmentedControl, Slider } from "@hussmartinez/ui/react";
 import type { ReactNode } from "react";
 import { FILTER_PRESETS, type ImageFilterPreset } from "../../core/model/plan.js";
 import { useGesture } from "../gesture.js";
@@ -59,18 +59,19 @@ export function ImageFilterPanel(props: ImageFilterPanelProps): ReactNode {
         }}
       />
       {filter ? (
-        <Slider
-          label={messages.t("filters.strength")}
-          min={0}
-          max={100}
-          step={1}
-          largeStep={10}
-          value={filter.strength}
-          {...sliderGesture(gesture, (value) => ({
-            type: "image.setFilter",
-            filter: { preset: filter.preset, strength: Math.round(value) },
-          }))}
-        />
+        <Field label={messages.t("filters.strength")} className="hm-image-slider-field">
+          <Slider
+            min={0}
+            max={100}
+            step={1}
+            largeStep={10}
+            value={filter.strength}
+            {...sliderGesture(gesture, (value) => ({
+              type: "image.setFilter",
+              filter: { preset: filter.preset, strength: Math.round(value) },
+            }))}
+          />
+        </Field>
       ) : null}
     </section>
   );

@@ -71,6 +71,23 @@ const move = (input: HTMLInputElement, value: number) =>
 const fire = (target: Element, event: Event) => act(async () => void target.dispatchEvent(event));
 
 describe("the Adjust panel (docs/adr/0007)", () => {
+  it("shows each slider's name in a visible label that names it (WCAG 2.5.3)", async () => {
+    await opened();
+    const sliders = [
+      ...document.querySelectorAll<HTMLInputElement>(
+        'section[aria-label="Adjust"] input[type="range"]',
+      ),
+    ];
+    expect(sliders).toHaveLength(8);
+    for (const slider of sliders) {
+      const label = slider.labels?.[0];
+      expect(label?.textContent, slider.id).toBeTruthy();
+      expect(label?.getBoundingClientRect().height, label?.textContent ?? "").toBeGreaterThan(0);
+      expect(slider.getAttribute("aria-label")).toBeNull();
+    }
+    expect(sliders[2]?.labels?.[0]?.textContent).toBe("Exposure");
+  });
+
   it("previews a slider drag without an edit, then commits one step on release", async () => {
     const { session, changes, start } = await opened();
     const exposure = slider("Adjust", 2);

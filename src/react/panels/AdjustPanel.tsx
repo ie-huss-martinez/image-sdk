@@ -1,4 +1,4 @@
-import { Button, Slider, useAnnounce } from "@hussmartinez/ui/react";
+import { Button, Field, Slider, useAnnounce } from "@hussmartinez/ui/react";
 import { type ReactNode, useRef } from "react";
 import { DEVELOP_ADJUSTMENTS, type ImageDevelop } from "../../core/model/plan.js";
 import { useGesture } from "../gesture.js";
@@ -54,33 +54,38 @@ export function ImageAdjustPanel(props: ImageAdjustPanelProps): ReactNode {
       {DEVELOP_ADJUSTMENTS.map((name, index) => {
         const label = messages.t(`develop.${name}`);
         return (
-          <div className="hm-image-adjust-row" key={name}>
-            <Slider
-              {...(index === 0 ? { ref: first } : {})}
-              label={label}
-              min={-100}
-              max={100}
-              step={1}
-              largeStep={10}
-              value={develop[name]}
-              formatValue={signed}
-              {...sliderGesture(gesture, (value) => ({
-                type: "image.setDevelop",
-                values: { [name]: Math.round(value) },
-              }))}
-              onDoubleClick={() => {
-                if (plan.base.develop[name] !== 0) reset({ [name]: 0 });
-              }}
-            />
-            <output className="hm-image-adjust-value" aria-hidden="true">
-              {signed(develop[name])}
-            </output>
-            {plan.base.develop[name] !== 0 ? (
-              <Button variant="quiet" size="small" onClick={() => reset({ [name]: 0 })}>
-                {messages.t("develop.reset", { name: label })}
-              </Button>
-            ) : null}
-          </div>
+          // The Field shows the slider's name, and labels it (WCAG 2.5.3).
+          <Field key={name} label={label} className="hm-image-slider-field">
+            {(control) => (
+              <div className="hm-image-adjust-row">
+                <Slider
+                  {...control}
+                  {...(index === 0 ? { ref: first } : {})}
+                  min={-100}
+                  max={100}
+                  step={1}
+                  largeStep={10}
+                  value={develop[name]}
+                  formatValue={signed}
+                  {...sliderGesture(gesture, (value) => ({
+                    type: "image.setDevelop",
+                    values: { [name]: Math.round(value) },
+                  }))}
+                  onDoubleClick={() => {
+                    if (plan.base.develop[name] !== 0) reset({ [name]: 0 });
+                  }}
+                />
+                <output className="hm-image-adjust-value" aria-hidden="true">
+                  {signed(develop[name])}
+                </output>
+                {plan.base.develop[name] !== 0 ? (
+                  <Button variant="quiet" size="small" onClick={() => reset({ [name]: 0 })}>
+                    {messages.t("develop.reset", { name: label })}
+                  </Button>
+                ) : null}
+              </div>
+            )}
+          </Field>
         );
       })}
       <Button
