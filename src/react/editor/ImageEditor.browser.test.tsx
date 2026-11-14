@@ -72,7 +72,8 @@ describe("ImageEditor (docs/adr/0007)", () => {
     expect(container.textContent).toContain("Choose an image");
     const canvas = container.querySelector("canvas");
     expect(canvas?.hidden).toBe(true);
-    expect(button(container, "image.rotate-left").disabled).toBe(true);
+    // Disabled, but focusable, in the toolbar's keyboard order.
+    expect(button(container, "image.rotate-left").getAttribute("aria-disabled")).toBe("true");
   });
 
   it("opens an image into a named, unfocusable canvas, and moves focus to the first tool", async () => {

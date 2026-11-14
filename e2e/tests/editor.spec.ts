@@ -155,4 +155,35 @@ test.describe("the image editor", () => {
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("button", { name: "Export", exact: true })).toBeFocused();
   });
+
+  test("shows a tool's name and shortcut on keyboard focus, and keeps disabled tools reachable", async ({
+    page,
+  }) => {
+    await page.goto("/editor.html");
+    await page.evaluate(
+      (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
+      Array.from(fixture("quadrants.png")),
+    );
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+    await page.getByRole("button", { name: "Rotate left" }).focus();
+    await page.keyboard.press("ArrowRight");
+    const rotate = page.getByRole("button", { name: "Rotate right" });
+    await expect(rotate).toBeFocused();
+    const tooltip = page.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("Rotate right");
+    await expect(tooltip).toContainText("]");
+    await noViolations(page);
+
+    // Nothing to undo yet: the button is disabled but stays in the toolbar's
+    // keyboard order, and a click does nothing.
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    await expect(undo).toHaveAttribute("aria-disabled", "true");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await expect(undo).toBeFocused();
+    await undo.click({ force: true });
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+  });
 });

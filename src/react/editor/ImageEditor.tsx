@@ -141,7 +141,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     const ours = active === null || active === document.body || root.current?.contains(active);
     if (!ours) return;
     const buttons = root.current?.querySelectorAll<HTMLButtonElement>(
-      ".hm-image-editor-toolbar button:not([disabled])",
+      '.hm-image-editor-toolbar button:not([aria-disabled="true"])',
     );
     const next = [...(buttons ?? [])].find((button) => button.dataset["tool"] !== "image.open");
     next?.focus();

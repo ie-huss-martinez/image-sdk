@@ -1,5 +1,11 @@
 import type { ShortcutRegistry, ToolRegistry } from "@hussmartinez/sdk-core";
-import { IconButton, type IconComponent, Toolbar, ToolbarGroup } from "@hussmartinez/ui/react";
+import {
+  IconButton,
+  type IconComponent,
+  Toolbar,
+  ToolbarGroup,
+  Tooltip,
+} from "@hussmartinez/ui/react";
 import type { ReactNode } from "react";
 import type { ImageTool, ImageToolContext } from "../../features/tool-types.js";
 import { useImageDocument, useImageEditorState, useImageMessages } from "../hooks.js";
@@ -12,7 +18,7 @@ import { useImageDocument, useImageEditorState, useImageMessages } from "../hook
 export interface ImageToolbarProps {
   /** The editor's tools, from `createToolRegistry`. */
   readonly registry: ToolRegistry<ImageTool>;
-  /** The editor's shortcuts, for each button's `aria-keyshortcuts`. */
+  /** The editor's shortcuts, for each button's tooltip and `aria-keyshortcuts`. */
   readonly shortcuts?: ShortcutRegistry;
   /** What the tools run against. */
   readonly context: ImageToolContext;
@@ -24,7 +30,10 @@ export interface ImageToolbarProps {
 /**
  * The editor's toolbar (docs/adr/0007): ui's Toolbar, one group per toolbar
  * group of the registry, one button per tool, disabled when it can't run,
- * with the tool's shortcuts as `aria-keyshortcuts`.
+ * each with a tooltip of its name and its shortcut, which also sets its
+ * `aria-keyshortcuts`. A button that can't run stays focusable, with
+ * `aria-disabled`, so it keeps its place in the toolbar's keyboard order and
+ * screen readers find it.
  *
  * @public
  */
@@ -46,18 +55,25 @@ export function ImageToolbar(props: ImageToolbarProps): ReactNode {
             .filter((tool) => tool.isAvailable?.(state) ?? true)
             .map((tool) => {
               const Icon = icons[tool.icon];
-              const keys = shortcuts?.ariaKeyShortcuts(tool.id);
+              const label = t(tool.label);
+              const shortcut = shortcuts?.describe(tool.id)[0];
               return (
-                <IconButton
+                <Tooltip
                   key={tool.id}
-                  data-tool={tool.id}
-                  label={t(tool.label)}
-                  icon={Icon ? <Icon /> : null}
-                  disabled={!(tool.isEnabled?.(state) ?? true)}
-                  {...(tool.isActive ? { pressed: tool.isActive(state) } : {})}
-                  {...(keys ? { "aria-keyshortcuts": keys } : {})}
-                  onClick={() => void tool.run(context)}
-                />
+                  type="label"
+                  content={label}
+                  {...(shortcut ? { shortcut } : {})}
+                >
+                  <IconButton
+                    data-tool={tool.id}
+                    label={label}
+                    icon={Icon ? <Icon /> : null}
+                    disabled={!(tool.isEnabled?.(state) ?? true)}
+                    focusableWhenDisabled
+                    {...(tool.isActive ? { pressed: tool.isActive(state) } : {})}
+                    onClick={() => void tool.run(context)}
+                  />
+                </Tooltip>
               );
             })}
         </ToolbarGroup>
