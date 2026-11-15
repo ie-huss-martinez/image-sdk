@@ -1,14 +1,20 @@
 # image-sdk
 
-A client-side image SDK: crop, rotate, adjust, annotate, redact and export images entirely in the browser. Images never leave the device. It offers a headless core, a React editor (`ImageEditor`) and a `<hm-image-editor>` custom element.
+Edit images entirely in the browser with **`@hussmartinez/image-sdk`**: crop, rotate, flip, adjust colour and tone, apply filter presets, resize on export, and export PNG, JPEG or WebP. It offers a headless core, a React editor (`ImageEditor`) and a `<hm-image-editor>` custom element. The SDK processes images on the user's device and uploads nothing; the host controls what it does with files returned by the SDK.
 
-This repository will publish **`@hussmartinez/image-sdk`**. It follows the family standards in [`sdk-core`'s `STANDARDS.md`](https://github.com/ie-huss-martinez/sdk-core/blob/main/STANDARDS.md), and in particular the decisions on [hostile input and no network](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0012-hostile-input-and-no-network.md), [workers and assets](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0011-worker-messaging-and-assets.md) and [ports and adapters](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0008-ports-adapters-and-session.md).
+## Install
 
-> Status: being bootstrapped. No packages are published yet.
+```sh
+pnpm add @hussmartinez/image-sdk @hussmartinez/ui@^0.7.0 react react-dom
+```
 
-## Usage
+Use the same `@hussmartinez/ui` minor as the SDK's dependency (`^0.7.0` for image-sdk 0.2.0). React and React DOM `>=18.3` are required for the React editor and custom element. Headless consumers can install just `@hussmartinez/image-sdk`.
 
-Import `@hussmartinez/ui`'s stylesheet once, then this package's. **ui's stylesheet is required:** it carries the focus rings and minimum target sizes the editor's accessibility relies on ([sdk-core ADR 0036](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0036-ui-as-a-dependency-of-the-sdks.md)).
+The package is ESM. Its root entry is server-safe and has no React or DOM access on import; image processing itself requires a browser. The `./react` entry starts with `"use client"`. Importing `./element` registers nothing until you call `defineImageEditorElement()`.
+
+## React editor
+
+Import `@hussmartinez/ui`'s stylesheet once, then this package's. **ui's stylesheet is required:** it carries the focus rings and minimum target sizes the editor's accessibility relies on ([sdk-core ADR 0036](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0036-ui-as-a-dependency-of-the-sdks.md)). Give the editor a height in your application's CSS.
 
 ```tsx
 import "@hussmartinez/ui/styles.css";
@@ -20,7 +26,85 @@ export function Editor({ file }: { file: File }) {
 }
 ```
 
-The editor decodes and draws in a Web Worker. By default the worker is inlined, which needs `worker-src blob:` in a Content Security Policy; pass `assetsUrl` to load it from your own origin with `worker-src 'self'` instead ([ADR 0002](docs/adr/0002-workers-and-assets.md)).
+`initialFile` opens on mount. To replace the image later, call `open(blob)` on an `ImageEditorHandle` ref. The controlled document is `plan` with `onChange`: it describes edits over the current source, and changes are undoable. `onChange` fires after committed edits, open, undo and redo, never during a gesture. The React editor has no `file` prop.
+
+| Configuration | Public API |
+|---|---|
+| Tools and toolbar groups | `tools` (ordered tool IDs), `toolbar` (groups of IDs); see [`imageTools`](src/features/tools.ts) |
+| Inspector panels and export dialog | `features: { adjust, filters, info, export }`, all enabled by default; disabling export still permits the ref's `export()` |
+| Theme and styling | `theme: "light" \| "dark" \| "system"`, `className`, `classNames`, `unstyled`, `icons`; page attributes `data-hm-theme` and `data-hm-density` |
+| Translation | `messages` overrides, including shared control text, and `locale` for formatting; [`imageMessages`](src/messages/en.ts) is the catalogue |
+| Limits and assets | `filePolicy`, `assetsUrl`; see [host integration](docs/hosting.md) |
+| Host-owned processing | `engine`, `processor`, `session`; a supplied session must use the supplied engine |
+| Host callbacks | `onEvent` receives anonymous usage events; `onExport(blob, details)` receives the exported file instead of the dialog offering a download |
+
+The ref provides `session`, `open(blob)`, `execute(commandOrCommands)`, `export(format)`, `undo()` and `redo()`. For example, `await ref.current.export({ type: "jpeg", quality: 0.9 })` returns `{ blob, width, height, removed, kept }`; the host handles the returned file. The ref's export bypasses the dialog and its metadata summary, so show that summary in your own download flow.
+
+For a custom layout, `ImageEditorProvider` supplies `ImageStage`, `ImageToolbar`, `ImageCropPanel`, `ImageAdjustPanel`, `ImageFilterPanel`, `ImageInfoPanel` and `ImageExportDialog`. Hooks include `useImageSession`, `useImageDocument`, `useImageView`, `useImageEditorState` and `useImageMessages`. The complete public signatures are in the [React API report](api/image-sdk-react.api.md).
+
+## Custom element
+
+In a bundled browser entry, import both stylesheets and register the element explicitly:
+
+```ts
+import "@hussmartinez/ui/styles.css";
+import "@hussmartinez/image-sdk/styles.css";
+import { defineImageEditorElement } from "@hussmartinez/image-sdk/element";
+
+defineImageEditorElement();
+```
+
+```html
+<hm-image-editor theme="dark" locale="en"></hm-image-editor>
+```
+
+Set the element's height in host CSS. It renders into the light DOM and uses React internally. Its attributes are `theme`, `locale` and `tools` (space-separated IDs). Its properties are `file` (`Blob`), `plan`, `filePolicy`, `assetsUrl`, `messages`, `engine` and `processor`, as well as the attribute-backed properties. Set processing configuration before connecting the element. Setting `file` opens an image; the methods `open`, `execute`, `export`, `undo` and `redo` match the React handle.
+
+Listen for `hm-image-editor-change` (plan), `hm-image-editor-event` (anonymous usage event), `hm-image-editor-error` (`{ code, details }`) and `hm-image-editor-export` (format, dimensions, size and metadata summary). Event payloads are in `event.detail`. The export event carries a report; call the element's `export(format)` method to obtain a file. See the [element API report](api/image-sdk-element.api.md).
+
+## Headless session
+
+A session holds one source and a serialisable edit plan, with undo and redo. Create the processor over the same engine, and release resources when finished:
+
+```ts
+import {
+  createImageEngine,
+  createImageProcessor,
+  createImageSession,
+} from "@hussmartinez/image-sdk";
+
+export async function brighten(file: Blob): Promise<Blob> {
+  const engine = createImageEngine();
+  const processor = createImageProcessor(engine);
+  const session = createImageSession({ engine, processor });
+  try {
+    await session.open(file);
+    session.execute({ type: "image.setDevelop", values: { exposure: 20 } });
+    const { blob } = await session.export({ type: "jpeg", quality: 0.9 });
+    return blob;
+  } finally {
+    await session.destroy();
+    await processor.destroy();
+    await engine.destroy();
+  }
+}
+```
+
+Commands set crop, orientation, develop adjustments, filter, output size and kept metadata. `subscribe()` and `getSnapshot()` expose state, errors and limit warnings; `export()` accepts an abort signal and progress callback. A caller-supplied engine, processor or session remains the caller's responsibility to destroy. See the [core API report](api/image-sdk.api.md) and [portable format schemas](formats).
+
+## Formats and browsers
+
+The engine reads PNG, JPEG, WebP, GIF, BMP and AVIF with the browser's decoder after checking headers and limits in its worker. Animated inputs open as a single first frame. HEIC is recognised, but decoding depends on the browser: all three pinned test engines reject it with `DECODE_FAILED`. SVG is unsupported. Export formats are PNG, JPEG and WebP; an unavailable encoder fails with `UNSUPPORTED_FORMAT`. Exports are sRGB; colours outside sRGB can be clipped.
+
+The family's [support target](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0013-browser-and-react-support.md) is the last two major versions of Chrome, Edge, Firefox and Safari on desktop and mobile, with ES2022 output and no polyfills. The [measured capability matrix](docs/capabilities.md) records the exact pinned Chromium, Firefox and WebKit builds checked in CI. These runs prove the generated fixtures, orientation handling and worker canvas paths in those builds; they do not constitute testing of every browser version or device. Playwright WebKit is not Safari and does not prove Apple system HEIC decoding or iOS canvas limits. Validate your target devices and choose limits suitable for them.
+
+The editor requires Web Workers, worker `createImageBitmap`, a 2D `OffscreenCanvas` and `transferControlToOffscreen`. The renderer reports `UNSUPPORTED_ENVIRONMENT` when canvas transfer is unavailable; other worker/platform startup and decoding failures can have different codes. The engine and CSP suites exercise inline and self-hosted workers on all three engines; editor tests cover keyboard flows and axe checks, with separate visual comparisons in Chromium.
+
+## Privacy and host security
+
+Images are parsed, decoded, drawn and encoded in workers. The SDK has no upload or telemetry service; `onEvent` calls only the host. Exports keep no source metadata by default. Users can explicitly keep title, description, artist and copyright in PNG/JPEG; WebP exports carry no metadata. Location is never written. The export dialog shows the removal summary before download.
+
+See [host integration and security](docs/hosting.md) for resource limits, error handling, asset deployment, exact tested CSP directives and the host's responsibilities. Report vulnerabilities through the [security policy](SECURITY.md).
 
 ## Development
 

@@ -23,7 +23,7 @@ Please include:
 
 ## Supported versions
 
-The package is pre-1.0. Security fixes go into the latest release only. No version has been published yet.
+The package is pre-1.0. Security fixes go into the latest release only. See the [releases](https://github.com/ie-huss-martinez/image-sdk/releases) for published versions and [host integration and security](docs/hosting.md) for deployment guidance.
 
 ## Scope
 
