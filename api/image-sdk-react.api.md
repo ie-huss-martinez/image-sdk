@@ -127,6 +127,15 @@ export interface ImageFilterPanelProps {
 export const imageIcons: Readonly<Record<string, IconComponent>>;
 
 // @public
+export function ImageInfoPanel(props: ImageInfoPanelProps): ReactNode;
+
+// @public
+export interface ImageInfoPanelProps {
+    // (undocumented)
+    readonly className?: string;
+}
+
+// @public
 export function ImageStage(props: ImageStageProps): ReactNode;
 
 // @public

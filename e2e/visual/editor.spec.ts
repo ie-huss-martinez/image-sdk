@@ -1,6 +1,6 @@
 import { applyVisualVariant, visualVariants } from "@hussmartinez/sdk-config/testing/visual";
 import { expect, type Page, test } from "@playwright/test";
-import { fixture, jpegWithPrivateMetadata } from "../fixtures.js";
+import { fixture, jpegWithPrivateMetadata, quadrantsPngWithColourProfile } from "../fixtures.js";
 import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**
@@ -17,6 +17,8 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `export-summary` | The export dialog's choices and its summary of the metadata it removes |
  * | `export-done` | The export dialog's result, with Download focused |
  * | `error` | A file that isn't an image, and the catalogue's text for it |
+ * | `notices` | An image with a colour profile, and the notice that its colours are clipped on export |
+ * | `info` | The Info panel, for that image |
  * | `element-empty`, `element-open` | `<hm-image-editor>`, whose styles arrive through the host's imports |
  *
  * No state is masked: every one renders committed fixtures, at a fixed time,
@@ -38,6 +40,12 @@ const open = (bytes: Uint8Array) => async (page: Page) => {
 const opened = async (page: Page) => {
   await open(fixture("quadrants.png"))(page);
   await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+    timeout: FIRST_RENDER_TIMEOUT,
+  });
+};
+const withProfile = async (page: Page) => {
+  await open(quadrantsPngWithColourProfile())(page);
+  await expect(page.getByRole("status", { name: "Notices" })).toContainText("sRGB", {
     timeout: FIRST_RENDER_TIMEOUT,
   });
 };
@@ -73,6 +81,12 @@ const EDITOR: Readonly<Record<string, State>> = {
     const dialog = page.getByRole("dialog", { name: "Export image" });
     await dialog.getByRole("button", { name: "Export", exact: true }).click();
     await expect(dialog.getByRole("button", { name: "Download" })).toBeFocused();
+  },
+  notices: withProfile,
+  info: async (page) => {
+    await withProfile(page);
+    await page.getByRole("radio", { name: "Info" }).click();
+    await expect(page.getByRole("region", { name: "Image info" })).toBeVisible();
   },
   error: async (page) => {
     await open(new Uint8Array([1, 2, 3, 4]))(page);

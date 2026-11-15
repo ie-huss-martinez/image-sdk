@@ -24,7 +24,7 @@ What the family leaves to this SDK: the layout of an image editor; the crop fram
 
 1. **Toolbar** (`ui` Toolbar): open, undo and redo, rotate left and right, flip horizontally and vertically, crop, zoom, and export, built from the tool registry.
 2. **Stage:** the preview canvas, with the crop frame over it while cropping.
-3. **Inspector:** panels for the active tool. **Crop:** aspect presets and numeric position and size. **Adjust:** the develop sliders. **Filters:** the presets and a strength slider. **Image:** its size, format and the metadata it carries, with the fields the user may keep.
+3. **Inspector:** panels for the active tool. **Crop:** aspect presets and numeric position and size. **Adjust:** the develop sliders. **Filters:** the presets and a strength slider. **Info** (`ImageInfoPanel`): its upright size, format, frames and file size, the kinds of metadata it carries, and the fields kept on export. Never its file's name (sdk-core ADR 0012).
 
 Below a container width of 720 px the inspector moves under the stage. Sizes come from a container query on the root, not the viewport, so an editor in a narrow column lays out for the column.
 
@@ -33,7 +33,7 @@ Below a container width of 720 px the inspector moves under the stage. Sizes com
 - **Empty:** `ui`'s FileDropZone fills the stage, with a button to choose a file, so dropping is never the only way.
 - **Opening:** a Spinner over the stage, with a cancel button. The current image, if there is one, stays until the new one is ready ([ADR 0003](0003-layer-plan-document-model.md)).
 - **Error:** the catalogue's text for the code, where the action was, with the next step. A failed open leaves the current document as it was.
-- **Warnings:** the session's limit warnings, and a notice when the source has a colour profile, that colours outside sRGB will be clipped on export ([ADR 0005](0005-colour-orientation-and-metadata.md)).
+- **Warnings:** the session's limit warnings, and a notice when the source has a colour profile, that colours outside sRGB will be clipped on export ([ADR 0005](0005-colour-orientation-and-metadata.md)). They're polite notices at the stage's foot, in a status region, each with a dismiss button, and a dismissed notice shows again for another image that has it.
 
 ### The stage's canvas
 

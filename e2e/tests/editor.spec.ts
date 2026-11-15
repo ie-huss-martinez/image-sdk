@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
-import { fixture, jpegWithPrivateMetadata } from "../fixtures.js";
+import { fixture, jpegWithPrivateMetadata, quadrantsPngWithColourProfile } from "../fixtures.js";
 import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**
@@ -121,6 +121,28 @@ test.describe("the image editor", () => {
     await page.getByRole("radio", { name: "Sepia" }).click();
     await expect(page.getByRole("slider", { name: "Strength" })).toBeVisible();
     await noViolations(page);
+  });
+
+  test("has no violations with a notice and the Info panel, and dismisses the notice", async ({
+    page,
+  }) => {
+    await page.goto("/editor.html");
+    await page.evaluate(
+      (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
+      Array.from(quadrantsPngWithColourProfile()),
+    );
+    const notices = page.getByRole("status", { name: "Notices" });
+    await expect(notices).toContainText(
+      "Colours outside sRGB will be clipped in the exported file.",
+      {
+        timeout: FIRST_RENDER_TIMEOUT,
+      },
+    );
+    await page.getByRole("radio", { name: "Info" }).click();
+    await expect(page.getByRole("region", { name: "Image info" })).toContainText("48 × 32 pixels");
+    await noViolations(page);
+    await notices.getByRole("button", { name: "Dismiss" }).click();
+    await expect(notices.getByRole("listitem")).toHaveCount(0);
   });
 
   test("exports with the keyboard only, after a summary of what's removed", async ({ page }) => {

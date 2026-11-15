@@ -147,9 +147,41 @@
     gap: var(--hm-gap-normal);
   }
 
-  .hm-image-stage-error {
+  /* The notices and a failure, stacked at the stage's foot, over the image. */
+  .hm-image-stage-foot {
+    /* Positioned, so it paints over the canvas, which is too. */
+    position: relative;
     align-self: end;
+    display: grid;
+    gap: var(--hm-gap-tight);
     margin: var(--hm-inset-normal);
+  }
+
+  .hm-image-stage-notices ul {
+    display: grid;
+    gap: var(--hm-gap-tight);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .hm-image-stage-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-editor--styled .hm-image-stage-notice {
+    padding-inline-start: var(--hm-inset-normal);
+    color: var(--hm-color-text);
+    background: var(--hm-color-surface);
+    border: var(--hm-border-width) solid var(--hm-color-border-strong);
+    border-radius: var(--hm-radius-control);
+  }
+
+  .hm-image-stage-error {
+    margin: 0;
   }
 
   /*
@@ -158,7 +190,6 @@
    */
   .hm-image-stage-drop .hm-image-stage-error {
     align-self: center;
-    margin: 0;
   }
 
   .hm-image-editor--styled .hm-image-stage-error {
@@ -282,6 +313,27 @@
   /* A slider's field: its visible name above it, and the slider across the column. */
   .hm-image-slider-field {
     justify-items: stretch;
+  }
+
+  /* The Info panel: each term over its value. */
+  .hm-image-info-list {
+    display: grid;
+    gap: var(--hm-gap-tight);
+    margin: 0;
+  }
+
+  .hm-image-info-list dt {
+    color: var(--hm-color-text-muted);
+    font-size: var(--hm-font-size-small);
+  }
+
+  .hm-image-info-list dd {
+    margin: 0 0 var(--hm-gap-tight);
+  }
+
+  .hm-image-info-list ul {
+    margin: 0;
+    padding-inline-start: var(--hm-space-4);
   }
 
   .hm-image-adjust-actions {

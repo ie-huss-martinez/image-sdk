@@ -401,6 +401,28 @@ export const imageMessages: {
     readonly "inspector.label": "Panels";
     readonly "inspector.adjust": "Adjust";
     readonly "inspector.filters": "Filters";
+    readonly "inspector.info": "Info";
+    readonly "notices.label": "Notices";
+    readonly "notices.dismiss": "Dismiss";
+    readonly "notices.colourProfile": "This image has a colour profile. Colours outside sRGB will be clipped in the exported file.";
+    readonly "info.panel": "Image info";
+    readonly "info.size": "Size";
+    readonly "info.sizeValue": "{width, number} × {height, number} pixels";
+    readonly "info.format": "Format";
+    readonly "info.formats.png": "PNG";
+    readonly "info.formats.jpeg": "JPEG";
+    readonly "info.formats.webp": "WebP";
+    readonly "info.formats.gif": "GIF";
+    readonly "info.formats.avif": "AVIF";
+    readonly "info.formats.heif": "HEIF";
+    readonly "info.formats.bmp": "BMP";
+    readonly "info.frames": "Frames";
+    readonly "info.fileSize": "File size";
+    readonly "info.fileSizeValue": "{size, fileSize}";
+    readonly "info.metadata": "Metadata in the file";
+    readonly "info.metadataNone": "None";
+    readonly "info.kept": "Kept on export";
+    readonly "info.keptNone": "Nothing";
     readonly "develop.panel": "Adjust";
     readonly "develop.temperature": "Temperature";
     readonly "develop.tint": "Tint";
@@ -706,6 +728,7 @@ export interface ImageSessionSnapshot {
 
 // @public
 export interface ImageSessionSource extends ImageSourceInfo {
+    readonly fileSize: number;
     readonly keepable: ImageKeepableMetadata;
     readonly metadata: ImageMetadataPresence;
 }

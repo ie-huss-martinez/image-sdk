@@ -161,6 +161,17 @@ export function quadrantsPng(orientation: number, place: "before IDAT" | "after 
   return concat([png.subarray(0, at), chunk, png.subarray(at)]);
 }
 
+/**
+ * The four-colour PNG with a cICP chunk after IHDR: BT.709 primaries and
+ * sRGB's transfer, which decodes as the image does, and which the probe
+ * reports as a colour profile.
+ */
+export function quadrantsPngWithColourProfile(): Uint8Array {
+  const png = fixture("quadrants.png");
+  const at = 8 + 8 + 13 + 4;
+  return concat([png.subarray(0, at), pngChunk("cICP", [1, 13, 0, 1]), png.subarray(at)]);
+}
+
 /** The four-colour JPEG with EXIF orientation in APP1. */
 export function quadrantsJpeg(orientation: number): Uint8Array {
   return afterSoi(fixture("quadrants.jpg"), [
