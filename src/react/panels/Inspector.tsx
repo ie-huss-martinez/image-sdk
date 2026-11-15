@@ -4,12 +4,13 @@ import { ImageCropPanel } from "../crop/CropPanel.js";
 import { useImageDocument, useImageEditorState, useImageMessages } from "../hooks.js";
 import { ImageAdjustPanel } from "./AdjustPanel.js";
 import { ImageFilterPanel } from "./FilterPanel.js";
+import { ImageInfoPanel } from "./InfoPanel.js";
 
-type Panel = "adjust" | "filters";
+type Panel = "adjust" | "filters" | "info";
 
 /**
  * The inspector (docs/adr/0007): the crop panel while cropping; otherwise
- * a choice of the Adjust and Filters panels, once an image is open.
+ * a choice of the Adjust, Filters and Info panels, once an image is open.
  */
 export function ImageInspector(): ReactNode {
   const { plan } = useImageDocument();
@@ -27,10 +28,13 @@ export function ImageInspector(): ReactNode {
         options={[
           { value: "adjust", label: messages.t("inspector.adjust") },
           { value: "filters", label: messages.t("inspector.filters") },
+          { value: "info", label: messages.t("inspector.info") },
         ]}
         onValueChange={(value) => setPanel(value as Panel)}
       />
-      {panel === "adjust" ? <ImageAdjustPanel /> : <ImageFilterPanel />}
+      {panel === "adjust" ? <ImageAdjustPanel /> : null}
+      {panel === "filters" ? <ImageFilterPanel /> : null}
+      {panel === "info" ? <ImageInfoPanel /> : null}
     </>
   );
 }

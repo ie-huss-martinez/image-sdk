@@ -34,6 +34,8 @@ export type { ImageAdjustPanelProps } from "./react/panels/AdjustPanel.js";
 export { ImageAdjustPanel } from "./react/panels/AdjustPanel.js";
 export type { ImageFilterPanelProps } from "./react/panels/FilterPanel.js";
 export { ImageFilterPanel } from "./react/panels/FilterPanel.js";
+export type { ImageInfoPanelProps } from "./react/panels/InfoPanel.js";
+export { ImageInfoPanel } from "./react/panels/InfoPanel.js";
 export type { ImageStageProps } from "./react/stage/ImageStage.js";
 export { ImageStage } from "./react/stage/ImageStage.js";
 export type { ImageToolbarProps } from "./react/toolbar/ImageToolbar.js";

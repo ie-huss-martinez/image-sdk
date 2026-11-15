@@ -10,6 +10,7 @@ import {
   useImageInternals,
   useImageView,
 } from "../hooks.js";
+import { StageNotices } from "./StageNotices.js";
 
 /**
  * Props of {@link ImageStage}.
@@ -222,8 +223,13 @@ export function ImageStage(props: ImageStageProps): ReactNode {
           </Button>
         </div>
       ) : null}
-      {/* Over an image, it's a banner at the stage's foot. */}
-      {empty ? null : error}
+      {/* Over an image, the notices and a failure stack at the stage's foot. */}
+      {empty ? null : (
+        <div className="hm-image-stage-foot">
+          <StageNotices />
+          {error}
+        </div>
+      )}
     </div>
   );
 }

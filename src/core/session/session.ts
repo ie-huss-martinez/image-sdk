@@ -34,6 +34,8 @@ import type { ImageExportFormat, ImageProcessor } from "../ports/image-processor
  * @public
  */
 export interface ImageSessionSource extends ImageSourceInfo {
+  /** The file's size in bytes, as it was opened. Never its name. */
+  readonly fileSize: number;
   /** Which kinds of metadata the file carried, never their values. */
   readonly metadata: ImageMetadataPresence;
   /** The fields the user may choose to keep, as the file had them. */
@@ -375,7 +377,12 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
 
         // From here to the end nothing awaits, so nothing can change under us.
         const previous = source;
-        source = { ...info, metadata: probe.metadata, keepable: probe.keepable };
+        source = {
+          ...info,
+          fileSize: file.size,
+          metadata: probe.metadata,
+          keepable: probe.keepable,
+        };
         plan = createPlan(id);
         history.clear();
         generation += 1;
