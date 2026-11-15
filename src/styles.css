@@ -240,44 +240,49 @@
     border-radius: var(--hm-radius-sm);
   }
 
+  /*
+   * Handles sit by the image's own edges, which are physical: an image isn't
+   * mirrored in a right-to-left page, so "e" stays its right edge, where the
+   * handle moves it (docs/adr/0007).
+   */
   .hm-image-crop-handle[data-hm-handle="nw"] {
-    inset-block-start: 0;
-    inset-inline-start: 0;
+    top: 0;
+    left: 0;
     cursor: nwse-resize;
   }
   .hm-image-crop-handle[data-hm-handle="n"] {
-    inset-block-start: 0;
-    inset-inline-start: 50%;
+    top: 0;
+    left: 50%;
     cursor: ns-resize;
   }
   .hm-image-crop-handle[data-hm-handle="ne"] {
-    inset-block-start: 0;
-    inset-inline-start: 100%;
+    top: 0;
+    left: 100%;
     cursor: nesw-resize;
   }
   .hm-image-crop-handle[data-hm-handle="e"] {
-    inset-block-start: 50%;
-    inset-inline-start: 100%;
+    top: 50%;
+    left: 100%;
     cursor: ew-resize;
   }
   .hm-image-crop-handle[data-hm-handle="se"] {
-    inset-block-start: 100%;
-    inset-inline-start: 100%;
+    top: 100%;
+    left: 100%;
     cursor: nwse-resize;
   }
   .hm-image-crop-handle[data-hm-handle="s"] {
-    inset-block-start: 100%;
-    inset-inline-start: 50%;
+    top: 100%;
+    left: 50%;
     cursor: ns-resize;
   }
   .hm-image-crop-handle[data-hm-handle="sw"] {
-    inset-block-start: 100%;
-    inset-inline-start: 0;
+    top: 100%;
+    left: 0;
     cursor: nesw-resize;
   }
   .hm-image-crop-handle[data-hm-handle="w"] {
-    inset-block-start: 50%;
-    inset-inline-start: 0;
+    top: 50%;
+    left: 0;
     cursor: ew-resize;
   }
 
