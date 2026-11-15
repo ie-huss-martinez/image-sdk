@@ -1,5 +1,24 @@
 # @hussmartinez/image-sdk
 
+## 0.2.0
+
+### Minor Changes
+
+- [#47](https://github.com/ie-huss-martinez/image-sdk/pull/47) [`a8f145b`](https://github.com/ie-huss-martinez/image-sdk/commit/a8f145b52115b0aabab588b78ddc855793e7782c) Thanks [@hussmartinez](https://github.com/hussmartinez)! - `<ImageEditor>` takes `features` and `theme` (docs/adr/0007).
+  
+  - **`features`** turns capabilities on and off: `adjust`, `filters` and `info`, the inspector's panels, and `export`, the Export tool and its dialog. Each is on unless it's `false`. With one panel on, the inspector shows it without a choice of panels. With `export` off, nothing in the editor exports, and the ref handle's `export()` still gives the host the file.
+  - **`theme`**, `light`, `dark` or `system`, sets ui's colour mode on the editor's root. Unset, the editor follows the page's.
+
+- [#46](https://github.com/ie-huss-martinez/image-sdk/pull/46) [`740c6e9`](https://github.com/ie-huss-martinez/image-sdk/commit/740c6e985a0d45fe7a57607edcaa3e428cbd8e5a) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The editor shows the stage's warnings and a new Info panel (docs/adr/0007).
+  
+  - **Notices:** the limits an opened image comes near, such as a large file or many frames, and, when it has a colour profile, that colours outside sRGB will be clipped in the exported file. They're polite notices at the foot of the stage, each with a Dismiss button. A dismissed notice shows again for another image that has it.
+  - **`ImageInfoPanel`:** a third inspector panel, Info, with the image's upright size, format, frames and file size, the kinds of metadata it carries, and the fields kept on export. It never shows the file's name.
+  - **`ImageSessionSource.fileSize`:** the opened file's size in bytes.
+
+### Patch Changes
+
+- [#42](https://github.com/ie-huss-martinez/image-sdk/pull/42) [`a5eb52a`](https://github.com/ie-huss-martinez/image-sdk/commit/a5eb52a9adef79b1f8e213bf082b0914b5703ffa) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The editor shows a failed first open inside the empty stage's drop zone, under its text and by the button that retries, instead of as a banner over the drop zone's border. Over an open image, a failure is still a banner at the foot of the stage.
+
 ## 0.1.0
 
 ### Minor Changes
