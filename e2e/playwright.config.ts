@@ -26,8 +26,8 @@ export default defineConfig({
   )
     .filter(([name]) => allBrowsers || name === "chromium")
     .map(([name, device]) => ({ name, use: { ...devices[device] } })),
-  // Started with Node directly, so the suite also runs in the pinned browser
-  // image, which has no pnpm (tools/update-capabilities.sh).
+  // Started with Node directly, as in the pinned browser image, where
+  // hm-in-image runs the suite (sdk-core ADR 0049).
   webServer: {
     command: "node node_modules/vite/bin/vite.js preview --port 4320 --strictPort",
     cwd: "../examples/vite",

@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:e2e": "tsc --noEmit && playwright test"
+    "test:e2e": "tsc --noEmit && hm-in-image playwright test",
+    "update:capabilities": "hm-in-image env UPDATE_CAPABILITIES=1 playwright test"
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
