@@ -1,6 +1,11 @@
 // The hooks the example pages expose (examples/vite/src/main.ts, engine.ts, editor.tsx and element.ts).
 interface Window {
-  imageEditor: { open(bytes: ArrayBuffer): Promise<void>; status(): string };
+  imageEditor: {
+    open(bytes: ArrayBuffer): Promise<void>;
+    status(): string;
+    /** The session's plan, as plain data, or null before an image is open. */
+    plan(): unknown;
+  };
   imageElementEvents: { name: string; json: string }[];
   imageSdk: {
     run(

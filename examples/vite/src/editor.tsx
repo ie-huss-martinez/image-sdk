@@ -10,13 +10,18 @@ const handle = createRef<ImageEditorHandle>();
 declare global {
   interface Window {
     /** The editor's handle, for the end-to-end tests. */
-    imageEditor: { open(bytes: ArrayBuffer): Promise<void>; status(): string };
+    imageEditor: {
+      open(bytes: ArrayBuffer): Promise<void>;
+      status(): string;
+      plan(): unknown;
+    };
   }
 }
 
 window.imageEditor = {
   open: async (bytes) => handle.current?.open(new Blob([bytes])),
   status: () => handle.current?.session.getSnapshot().status ?? "empty",
+  plan: () => handle.current?.session.getSnapshot().plan ?? null,
 };
 
 const element = document.querySelector("#editor");
