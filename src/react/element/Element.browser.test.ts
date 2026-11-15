@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
+import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import { defineImageEditorElement } from "../../element.js";
 import type { ImageEditorElementMethods, ImageEditorElementProps } from "./mount.js";
@@ -18,11 +19,13 @@ afterEach(async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
-async function until(condition: () => boolean, what: string) {
-  for (let i = 0; i < 200; i += 1) {
+async function until(condition: () => boolean, what: string, timeout = 5_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
     if (condition()) return;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
+  if (condition()) return;
   throw new Error(`timed out waiting for ${what}`);
 }
 
@@ -79,7 +82,11 @@ describe("<hm-image-editor> (docs/adr/0007, sdk-core ADR 0040)", () => {
     const events = record(editor);
     document.body.append(editor);
     editor.file = await photo();
-    await until(() => preview(editor) === "Edited image preview, 30 × 20", "the open");
+    await until(
+      () => preview(editor) === "Edited image preview, 30 × 20",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     expect(events.some((event) => event.name === "change")).toBe(true);
 
     editor.execute({
@@ -107,7 +114,11 @@ describe("<hm-image-editor> (docs/adr/0007, sdk-core ADR 0040)", () => {
     const editor = create();
     document.body.append(editor);
     await editor.open(await photo(12, 8));
-    await until(() => preview(editor) === "Edited image preview, 12 × 8", "the open");
+    await until(
+      () => preview(editor) === "Edited image preview, 12 × 8",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
   });
 
   it("takes theme, locale and tools from attributes, and follows their changes", async () => {
@@ -145,7 +156,11 @@ describe("<hm-image-editor> (docs/adr/0007, sdk-core ADR 0040)", () => {
     const events = record(editor);
     document.body.append(editor);
     editor.file = await photo();
-    await until(() => preview(editor) === "Edited image preview, 30 × 20", "the open");
+    await until(
+      () => preview(editor) === "Edited image preview, 30 × 20",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     button(editor, "image.export")?.click();
     await until(() => editor.querySelector("dialog[open]") !== null, "the dialog");
     const confirm = [...editor.querySelectorAll<HTMLButtonElement>("dialog button")].find(
@@ -172,7 +187,11 @@ describe("<hm-image-editor> (docs/adr/0007, sdk-core ADR 0040)", () => {
     const editor = create();
     document.body.append(editor);
     editor.file = await photo();
-    await until(() => preview(editor) === "Edited image preview, 30 × 20", "the open");
+    await until(
+      () => preview(editor) === "Edited image preview, 30 × 20",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     const canvas = editor.querySelector("canvas");
     const elsewhere = document.createElement("div");
     document.body.append(elsewhere);

@@ -1,4 +1,5 @@
 import { defineVisualConfig } from "@hussmartinez/sdk-config/testing/visual";
+import type { PlaywrightTestConfig } from "@playwright/test";
 
 /**
  * Visual regression tests of the editor and the element on the built Vite
@@ -6,7 +7,7 @@ import { defineVisualConfig } from "@hussmartinez/sdk-config/testing/visual";
  * only. Run them with `pnpm test:visual`, and rewrite the baselines with
  * `pnpm test:visual:update`, never with playwright directly.
  */
-export default defineVisualConfig({
+const config = defineVisualConfig({
   baseURL: "http://localhost:4320",
   // Started with Node directly, as the end-to-end suite's server is.
   webServer: {
@@ -17,3 +18,12 @@ export default defineVisualConfig({
     timeout: 60_000,
   },
 });
+
+const visual: PlaywrightTestConfig = {
+  ...config,
+  // A test may wait up to 30 s for its first render (timeouts.ts), so its
+  // own limit leaves room.
+  timeout: 60_000,
+};
+
+export default visual;

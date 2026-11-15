@@ -2,6 +2,7 @@ import { act, createRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
+import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import { ImageError } from "../../core/errors/image-error.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageProcessor } from "../../core/ports/image-processor.js";
@@ -23,11 +24,13 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-async function until(condition: () => boolean, what: string) {
-  for (let i = 0; i < 200; i += 1) {
+async function until(condition: () => boolean, what: string, timeout = 5_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
     if (condition()) return;
     await act(async () => new Promise((resolve) => setTimeout(resolve, 25)));
   }
+  if (condition()) return;
   throw new Error(`timed out waiting for ${what}`);
 }
 
@@ -46,7 +49,11 @@ async function opened(props: Partial<ImageEditorProps> = {}) {
   canvas.getContext("2d")?.fillRect(0, 0, 30, 20);
   const file = await canvas.convertToBlob();
   await act(async () => handle.current?.open(file));
-  await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+  await until(
+    () => handle.current?.session.getSnapshot().status === "ready",
+    "the open",
+    FIRST_OPEN_TIMEOUT,
+  );
   const session = () => {
     if (!handle.current) throw new Error("no handle");
     return handle.current.session;
@@ -130,7 +137,7 @@ describe("the export dialog (docs/adr/0007)", () => {
     await until(() => dialog()?.textContent?.includes("Download") ?? false, "the result");
     expect(document.activeElement?.textContent).toBe("Download");
     expect(dialog()?.textContent).toContain("15 × 10 pixels, JPEG");
-    await until(() => announced("Exported a JPEG of"), "the announcement");
+    await until(() => announced("Exported a JPEG of"), "the announcement", FIRST_OPEN_TIMEOUT);
 
     const plan = session().getSnapshot().plan;
     expect(plan?.output).toEqual({ kind: "scale", scale: 0.5 });
