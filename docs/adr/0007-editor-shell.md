@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-13
+- **Amended:** 2026-11-15: `features` and `theme` on `<ImageEditor>` are defined, under "The React API"
 
 ## Context
 
@@ -108,6 +109,8 @@ A browser that can't encode WebP fails the export with `UNSUPPORTED_FORMAT` ([AD
 ### The React API
 
 - **`<ImageEditor>`** takes the family's props. `initialFile` is opened on mount; `plan` and `onChange` are the controlled form, where `onChange` gets the plan after each committed command, never during a gesture. Then `engine`, `processor` and `renderer`, which default to the SDK's own on one engine; `filePolicy`, `assetsUrl`, `tools`, `toolbar` and `features`, `theme`, `className`, `classNames`, `unstyled`, `messages` and `locale`, `icons`, `onEvent`, and `onExport`, which gets the `Blob` instead of the download.
+- **`features`** turns the editor's capabilities on and off, as STANDARDS's props table says, beside `tools` and `toolbar`, which choose the toolbar's tools. Its keys are `adjust`, `filters` and `info`, the inspector's panels, and `export`, the Export tool and its dialog. Each is on unless it's `false`. With one panel on, the inspector shows it without a choice of panels; with none, it shows only the crop panel while cropping. With `export` off, no button or key exports, and the ref handle's `export()` still gives the host the file.
+- **`theme`** is `ui`'s colour mode, `light`, `dark` or `system`, set as `data-hm-theme` on the editor's root, as the element sets it on itself. Unset, the editor follows the page's.
 - **The ref handle** has `open(file)`, `execute(commands)`, `export(format)`, `undo()` and `redo()`.
 - **Building blocks:** `ImageStage`, `ImageToolbar`, `ImageCropPanel`, `ImageAdjustPanel`, `ImageFilterPanel`, `ImageInfoPanel` and `ImageExportDialog`, each usable inside an `ImageEditorProvider`.
 - **Hooks:** `useImageSession`, which reads the session's snapshot with `useSyncExternalStore`, and `useImageView`, for zoom and pan.
