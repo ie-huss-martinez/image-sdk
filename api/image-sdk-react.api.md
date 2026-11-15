@@ -41,6 +41,14 @@ export interface ImageCropPanelProps {
 export const ImageEditor: ForwardRefExoticComponent<ImageEditorProps & RefAttributes<ImageEditorHandle>>;
 
 // @public
+export interface ImageEditorFeatures {
+    readonly adjust?: boolean;
+    readonly export?: boolean;
+    readonly filters?: boolean;
+    readonly info?: boolean;
+}
+
+// @public
 export interface ImageEditorHandle {
     // Warning: (ae-forgotten-export) The symbol "ImageCommand" needs to be exported by the entry point react.d.ts
     execute(commands: ImageCommand | readonly ImageCommand[]): void;
@@ -61,12 +69,14 @@ export type ImageEditorPart = "root" | "toolbar" | "stage" | "inspector";
 export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "children"> {
     readonly className?: string;
     readonly classNames?: Readonly<Partial<Record<ImageEditorPart, string>>>;
+    readonly features?: ImageEditorFeatures;
     readonly icons?: Readonly<Record<string, IconComponent>>;
     readonly initialFile?: Blob;
     readonly onChange?: (plan: ImagePlan) => void;
     readonly onExport?: (blob: Blob, details: ImageSessionExport) => void;
     // Warning: (ae-forgotten-export) The symbol "ImagePlan" needs to be exported by the entry point react.d.ts
     readonly plan?: ImagePlan;
+    readonly theme?: ImageEditorTheme;
     readonly toolbar?: readonly (readonly string[])[];
     readonly tools?: readonly string[];
     readonly unstyled?: boolean;
@@ -103,6 +113,9 @@ export interface ImageEditorState {
     readonly preview: ImagePlan | null;
     readonly tool: "crop" | null;
 }
+
+// @public
+export type ImageEditorTheme = "light" | "dark" | "system";
 
 // @public
 export function ImageExportDialog(props: ImageExportDialogProps): ReactNode;

@@ -308,6 +308,54 @@ describe("ImageEditor (docs/adr/0007)", () => {
     expect(container.querySelector(".hm-image-stage-error")?.getAttribute("role")).toBe("alert");
   });
 
+  it("sets its theme on its root, and inherits the page's without one", async () => {
+    const container = await mount(<ImageEditor theme="dark" />);
+    expect(container.querySelector("section")?.getAttribute("data-hm-theme")).toBe("dark");
+    await act(async () => root?.render(<ImageEditor />));
+    expect(container.querySelector("section")?.hasAttribute("data-hm-theme")).toBe(false);
+  });
+
+  it("offers no export with export off, and its handle still exports", async () => {
+    const handle = createRef<ImageEditorHandle>();
+    const container = await mount(<ImageEditor ref={handle} features={{ export: false }} />);
+    await act(async () => handle.current?.open(await photo()));
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
+    expect(container.querySelector('button[data-tool="image.export"]')).toBeNull();
+    expect(container.querySelector("dialog")).toBeNull();
+    const exported = await handle.current?.export({ type: "png" });
+    expect(exported?.blob.type).toBe("image/png");
+  });
+
+  it("shows only the panels that are on, without a choice when one is left", async () => {
+    const handle = createRef<ImageEditorHandle>();
+    const container = await mount(
+      <ImageEditor ref={handle} features={{ adjust: false, filters: false }} />,
+    );
+    await act(async () => handle.current?.open(await photo()));
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
+    const inspector = container.querySelector(".hm-image-editor-inspector");
+    expect(inspector?.querySelector('[role="radiogroup"]')).toBeNull();
+    expect(inspector?.querySelector('section[aria-label="Image info"]')).not.toBeNull();
+
+    // With every panel off, only cropping shows a panel.
+    await act(async () =>
+      root?.render(
+        <ImageEditor ref={handle} features={{ adjust: false, filters: false, info: false }} />,
+      ),
+    );
+    expect(inspector?.childElementCount).toBe(0);
+    await act(async () => button(container, "image.crop").click());
+    expect(inspector?.querySelector('section[aria-label="Crop"]')).not.toBeNull();
+  });
+
   it("renders its empty state on a server, with no canvas", () => {
     const html = renderToString(<ImageEditor />);
     expect(html).toContain("Choose an image");

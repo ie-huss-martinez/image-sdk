@@ -13,6 +13,35 @@ import type { ImageEditorProviderProps } from "../ImageEditorProvider.js";
 export type ImageEditorPart = "root" | "toolbar" | "stage" | "inspector";
 
 /**
+ * Which of the editor's capabilities are on (docs/adr/0007): the inspector's
+ * panels and export. Each is on unless set to `false`. The toolbar's tools
+ * are chosen with `tools` and `toolbar` instead.
+ *
+ * @public
+ */
+export interface ImageEditorFeatures {
+  /** The Adjust panel's develop sliders. */
+  readonly adjust?: boolean;
+  /** The Filters panel's presets. */
+  readonly filters?: boolean;
+  /** The Info panel. */
+  readonly info?: boolean;
+  /**
+   * The Export tool and its dialog. Off, the editor offers no export, and
+   * the ref handle's `export()` still returns the file to the host.
+   */
+  readonly export?: boolean;
+}
+
+/**
+ * The editor's colour mode: ui's light or dark theme, or the system's. Unset,
+ * it inherits the page's.
+ *
+ * @public
+ */
+export type ImageEditorTheme = "light" | "dark" | "system";
+
+/**
  * Props of {@link ImageEditor}. The session props are the provider's: pass
  * a `session` of your own over your `engine`, or let the editor create one.
  *
@@ -41,6 +70,10 @@ export interface ImageEditorProps extends Omit<ImageEditorProviderProps, "childr
   readonly classNames?: Readonly<Partial<Record<ImageEditorPart, string>>>;
   /** Drop the visual styles, keeping layout and accessibility. */
   readonly unstyled?: boolean;
+  /** Which capabilities are on: the inspector's panels and export. All of them by default. */
+  readonly features?: ImageEditorFeatures;
+  /** The colour mode, set as `data-hm-theme` on the editor's root. Unset, it inherits the page's. */
+  readonly theme?: ImageEditorTheme;
   /**
    * Takes the exported file instead of the export dialog's download button;
    * the dialog closes once it's called.

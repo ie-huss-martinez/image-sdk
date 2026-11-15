@@ -37,6 +37,8 @@ interface BodyProps
     | "classNames"
     | "unstyled"
     | "onExport"
+    | "features"
+    | "theme"
   > {
   readonly handle: ForwardedRef<ImageEditorHandle>;
   readonly events: { current: ((event: ImageSessionEvent) => void) | undefined };
@@ -52,18 +54,19 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   const latestOnChange = useRef(onChange);
   latestOnChange.current = onChange;
 
-  const registry = useMemo(
-    () =>
-      createToolRegistry(imageTools, {
-        ...(props.tools ? { tools: props.tools } : {}),
-        toolbar:
-          props.toolbar ??
-          DEFAULT_TOOLBAR.map((group) =>
-            group.filter((id) => !props.tools || props.tools.includes(id)),
-          ),
-      }),
-    [props.tools, props.toolbar],
-  );
+  // Export off takes its tool out of the registry, so no button or key runs it.
+  const exportOn = props.features?.export !== false;
+  const registry = useMemo(() => {
+    const wanted = (id: string) =>
+      (!props.tools || props.tools.includes(id)) && (exportOn || id !== "image.export");
+    const tools = props.tools ?? imageTools.map((tool) => tool.id);
+    return createToolRegistry(imageTools, {
+      tools: tools.filter(wanted),
+      toolbar: (props.toolbar ?? DEFAULT_TOOLBAR)
+        .map((group) => group.filter(wanted))
+        .filter((group) => group.length > 0),
+    });
+  }, [props.tools, props.toolbar, exportOn]);
   // "other" on the server and during hydration, then the device's own keys.
   const platform = usePlatform();
   const shortcuts = useMemo(
@@ -225,6 +228,8 @@ function ImageEditorBody(props: BodyProps): ReactNode {
       )}
       onKeyDown={onKeyDown}
       aria-label={messages.t("editor.label")}
+      // ui's colour mode for the editor alone; unset, it inherits the page's.
+      {...(props.theme ? { "data-hm-theme": props.theme } : {})}
     >
       <input
         ref={input}
@@ -248,10 +253,12 @@ function ImageEditorBody(props: BodyProps): ReactNode {
         />
         <ImageStage className={join("hm-image-editor-stage", classNames.stage)} />
         <div className={join("hm-image-editor-inspector", classNames.inspector)}>
-          <ImageInspector />
+          <ImageInspector {...(props.features ? { features: props.features } : {})} />
         </div>
       </div>
-      <ImageExportDialog {...(props.onExport ? { onExport: props.onExport } : {})} />
+      {exportOn ? (
+        <ImageExportDialog {...(props.onExport ? { onExport: props.onExport } : {})} />
+      ) : null}
     </section>
   );
 }
@@ -287,6 +294,8 @@ export const ImageEditor = forwardRef(function ImageEditor(
     unstyled,
     onEvent,
     onExport,
+    features,
+    theme,
     ...provider
   } = props;
   // The editor listens to the session's events for its announcements, and
@@ -319,6 +328,8 @@ export const ImageEditor = forwardRef(function ImageEditor(
           {...(classNames ? { classNames } : {})}
           {...(unstyled === undefined ? {} : { unstyled })}
           {...(onExport ? { onExport } : {})}
+          {...(features ? { features } : {})}
+          {...(theme ? { theme } : {})}
         />
       </AnnouncerProvider>
     </ImageEditorProvider>
