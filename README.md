@@ -34,7 +34,7 @@ pnpm verify        # everything CI runs
 pnpm verify:fast   # the subset the pre-push hook runs
 ```
 
-Browser tests need Playwright's browsers once: `pnpm exec playwright install chromium`, plus `firefox webkit` to run all three engines with `CI=1` or `pnpm test:browser:all`.
+The browser and end-to-end tests need Docker: they run in the pinned browser test image from [`ci/Dockerfile`](ci/Dockerfile), as in CI, through `hm-in-image` from `@hussmartinez/sdk-config` ([sdk-core ADR 0049](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0049-local-browser-tests-in-the-pinned-image.md)). The first run builds the image and installs the dependencies into its volumes. `pnpm test:browser:all` runs all three engines, as CI does.
 
 `pnpm verify` runs, in order:
 
@@ -44,11 +44,13 @@ Browser tests need Playwright's browsers once: `pnpm exec playwright install chr
 | CSS rules | `lint:css` | stylelint, with the `hm-` namespace and token rules |
 | Types | `typecheck` | TypeScript |
 | Dependency rules | `lint:deps` | dependency-cruiser, through `hm-lint-deps` |
+| One copy of each family package | `check:single-copy` | `hm-check-single-copy` (sdk-core ADR 0047) |
 | Build | `build` | Vite, then api-extractor for the type declarations |
 | Unit tests | `test` | Vitest |
-| Browser tests | `test:browser` | Vitest in Chromium, and in Firefox and WebKit too in CI |
+| Browser tests | `test:browser` | Vitest in Chromium in the browser test image, and in Firefox and WebKit too in CI |
 | Examples | `build:examples` | Vite, building `examples/vite` against the built package |
-| End-to-end tests | `test:e2e` | Playwright against the built example: the engine on every format it reads, upright, with the inlined worker under `worker-src blob:` and the self-hosted one under `worker-src 'self'`; the [browser capability matrix](docs/capabilities.md); and no requests to other origins |
+| End-to-end tests | `test:e2e` | Playwright in the browser test image, against the built example: the engine on every format it reads, upright, with the inlined worker under `worker-src blob:` and the self-hosted one under `worker-src 'self'`; the [browser capability matrix](docs/capabilities.md); and no requests to other origins |
+| Screenshots | `test:visual` | Playwright in the browser test image, comparing each designed state with its committed screenshot (sdk-core ADR 0048); `test:visual:update` rewrites them |
 | Size budgets | `check:size` | size-limit, brotli size of each entry point |
 | API reports | `check:api` | api-extractor, one report per entry point in [`api`](api) |
 | Package checks | `check:package` | publint and Are the Types Wrong? |
