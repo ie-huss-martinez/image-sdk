@@ -39,9 +39,13 @@ async function until(condition: () => boolean, what: string, timeout = 5_000) {
   throw new Error(`timed out waiting for ${what}`);
 }
 
-async function opened(extra: { onChange?: (plan: ImagePlan) => void } = {}) {
+async function opened(
+  extra: { onChange?: (plan: ImagePlan) => void } = {},
+  dir: "ltr" | "rtl" = "ltr",
+) {
   const handle = createRef<ImageEditorHandle>();
   host = document.createElement("div");
+  host.dir = dir;
   // Inside the test page's viewport, so hit tests reach every handle.
   host.style.width = "380px";
   host.style.height = "480px";
@@ -274,5 +278,49 @@ describe("the controlled plan (docs/adr/0007)", () => {
     });
     expect(handle.current?.session.undo()).toBe(true);
     expect(handle.current?.session.getSnapshot().canUndo).toBe(false);
+  });
+});
+
+describe("cropping in a right-to-left page (docs/adr/0007)", () => {
+  it("keeps each handle on the edge of the image it moves", async () => {
+    await opened({}, "rtl");
+    await key(document.activeElement, { key: "c" });
+    await until(() => frame() !== null, "the frame");
+    const box = frame()?.getBoundingClientRect();
+    if (!box) throw new Error("no frame");
+    const handles = frame()?.querySelectorAll<HTMLElement>("[data-hm-handle]") ?? [];
+    expect(handles).toHaveLength(8);
+    for (const handle of handles) {
+      const name = handle.getAttribute("data-hm-handle") ?? "";
+      const at = handle.getBoundingClientRect();
+      const centre = at.left + at.width / 2;
+      const middle = at.top + at.height / 2;
+      // The image isn't mirrored in a right-to-left page, so east is still
+      // its right edge on screen.
+      if (name.includes("e")) expect(Math.abs(centre - box.right), name).toBeLessThanOrEqual(1);
+      else if (name.includes("w")) expect(Math.abs(centre - box.left), name).toBeLessThanOrEqual(1);
+      else expect(Math.abs(centre - (box.left + box.width / 2)), name).toBeLessThanOrEqual(1);
+      if (name.includes("n")) expect(Math.abs(middle - box.top), name).toBeLessThanOrEqual(1);
+      else if (name.includes("s"))
+        expect(Math.abs(middle - box.bottom), name).toBeLessThanOrEqual(1);
+      else expect(Math.abs(middle - (box.top + box.height / 2)), name).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("moves the frame with the arrows as the image is seen, left for ArrowLeft", async () => {
+    await opened({}, "rtl");
+    await key(document.activeElement, { key: "c" });
+    await until(() => frame() !== null, "the frame");
+    // Narrower than the image, and off its left edge, so it can move both ways.
+    for (let i = 0; i < 10; i += 1) await key(frame(), { key: "ArrowLeft", altKey: true });
+    await key(frame(), { key: "ArrowRight" });
+    await key(frame(), { key: "ArrowRight" });
+    const start = frame()?.getBoundingClientRect().left ?? 0;
+    await key(frame(), { key: "ArrowRight" });
+    const right = frame()?.getBoundingClientRect().left ?? 0;
+    expect(right).toBeGreaterThan(start);
+    await key(frame(), { key: "ArrowLeft" });
+    await key(frame(), { key: "ArrowLeft" });
+    expect(frame()?.getBoundingClientRect().left ?? 0).toBeLessThan(start);
   });
 });

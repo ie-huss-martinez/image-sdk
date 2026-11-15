@@ -20,6 +20,8 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `notices` | An image with a colour profile, and the notice that its colours are clipped on export |
  * | `info` | The Info panel, for that image |
  * | `element-empty`, `element-open` | `<hm-image-editor>`, whose styles arrive through the host's imports |
+ * | `rtl-open`, `rtl-crop` | An image, and cropping it, in a right-to-left page: the layout mirrors, the image and its crop handles don't |
+ * | `long-text`, `long-text-export` | A host's longer text, as a translation can be: the panels and the export dialog wrap it |
  *
  * No state is masked: every one renders committed fixtures, at a fixed time,
  * and the editor shows no time or random value. The stage's canvas is drawn
@@ -94,6 +96,22 @@ const EDITOR: Readonly<Record<string, State>> = {
   },
 };
 
+/** On the editor page with `?dir=rtl`. */
+const RIGHT_TO_LEFT: Readonly<Record<string, State>> = {
+  "rtl-open": opened,
+  "rtl-crop": EDITOR["crop"] as State,
+};
+
+/** On the editor page with `?long-text`, the example's longer overrides. */
+const LONG_TEXT: Readonly<Record<string, State>> = {
+  "long-text": opened,
+  "long-text-export": async (page) => {
+    await opened(page);
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Bild als Datei exportieren" })).toBeVisible();
+  },
+};
+
 const ELEMENT: Readonly<Record<string, State>> = {
   "element-empty": async (page) => {
     await expect(page.getByRole("button", { name: "Choose an image" })).toBeVisible();
@@ -114,6 +132,8 @@ const ELEMENT: Readonly<Record<string, State>> = {
 
 for (const [path, states] of [
   ["/editor.html", EDITOR],
+  ["/editor.html?dir=rtl", RIGHT_TO_LEFT],
+  ["/editor.html?long-text", LONG_TEXT],
   ["/element.html", ELEMENT],
 ] as const) {
   for (const [state, reach] of Object.entries(states)) {

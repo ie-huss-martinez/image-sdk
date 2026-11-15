@@ -1,11 +1,40 @@
 import "@hussmartinez/ui/styles.css";
 import "@hussmartinez/image-sdk/styles.css";
-import { ImageEditor, type ImageEditorHandle } from "@hussmartinez/image-sdk/react";
+import {
+  ImageEditor,
+  type ImageEditorHandle,
+  type ImageEditorProps,
+} from "@hussmartinez/image-sdk/react";
 import { createRef } from "react";
 import { createRoot } from "react-dom/client";
 
 /** The editor, as a host renders it: ui's stylesheet first, then the SDK's (sdk-core ADR 0036). */
 const handle = createRef<ImageEditorHandle>();
+
+/**
+ * Text much longer than English, as a translation can be, for the visual
+ * tests' long-text states (sdk-core ADR 0048): `?long-text`. `?dir=rtl` lays
+ * the page out right to left.
+ */
+const LONG_TEXT: NonNullable<ImageEditorProps["messages"]> = {
+  "editor.empty":
+    "Öffnen Sie ein Bild, um mit der Bearbeitung zu beginnen. Es bleibt jederzeit auf diesem Gerät.",
+  "editor.choose": "Ein Bild von diesem Gerät auswählen",
+  "inspector.adjust": "Anpassungen",
+  "inspector.filters": "Bildfilter",
+  "inspector.info": "Informationen",
+  "develop.temperature": "Farbtemperatur (Weißabgleich)",
+  "develop.highlights": "Lichter und sehr helle Bildbereiche",
+  "develop.resetAll": "Alle Anpassungen zurücksetzen",
+  "export.title": "Bild als Datei exportieren",
+  "export.fields": "Angaben, die in die Datei geschrieben werden",
+  "export.removed": "Aus der exportierten Datei entfernte Metadaten",
+  "export.confirm": "Jetzt exportieren",
+  "export.cancel": "Abbrechen",
+};
+const params = new URLSearchParams(location.search);
+if (params.get("dir") === "rtl") document.documentElement.dir = "rtl";
+const messages = params.has("long-text") ? LONG_TEXT : undefined;
 
 declare global {
   interface Window {
@@ -28,7 +57,7 @@ const element = document.querySelector("#editor");
 if (element) {
   createRoot(element).render(
     <div style={{ height: "70vh" }}>
-      <ImageEditor ref={handle} />
+      <ImageEditor ref={handle} {...(messages ? { messages, locale: "de" } : {})} />
     </div>,
   );
 }
