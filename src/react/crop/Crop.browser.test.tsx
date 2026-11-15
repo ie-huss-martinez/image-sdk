@@ -2,6 +2,7 @@ import { act, createRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
+import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle } from "../editor/types.js";
@@ -28,11 +29,13 @@ afterEach(async () => {
   host?.remove();
 });
 
-async function until(condition: () => boolean, what: string) {
-  for (let i = 0; i < 200; i += 1) {
+async function until(condition: () => boolean, what: string, timeout = 5_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
     if (condition()) return;
     await act(async () => new Promise((resolve) => setTimeout(resolve, 25)));
   }
+  if (condition()) return;
   throw new Error(`timed out waiting for ${what}`);
 }
 
@@ -46,7 +49,11 @@ async function opened(extra: { onChange?: (plan: ImagePlan) => void } = {}) {
   root = createRoot(host);
   await act(async () => root?.render(<ImageEditor ref={handle} {...extra} />));
   await act(async () => handle.current?.open(await photo()));
-  await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+  await until(
+    () => handle.current?.session.getSnapshot().status === "ready",
+    "the open",
+    FIRST_OPEN_TIMEOUT,
+  );
   const session = () => {
     const current = handle.current;
     if (!current) throw new Error("no handle");
@@ -246,7 +253,11 @@ describe("the controlled plan (docs/adr/0007)", () => {
     root = createRoot(host);
     await act(async () => root?.render(<Host />));
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     const current = handle.current?.session.getSnapshot().plan;
     if (!current) throw new Error("no plan");
     await act(async () =>

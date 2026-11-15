@@ -12,6 +12,9 @@ const allBrowsers = ci || Boolean(process.env["UPDATE_CAPABILITIES"]);
  */
 export default defineConfig({
   testDir: "tests",
+  // A test may wait up to 30 s for its first render (timeouts.ts), so
+  // its own limit leaves room.
+  timeout: 60_000,
   forbidOnly: ci,
   retries: 0,
   reporter: ci ? "line" : "list",

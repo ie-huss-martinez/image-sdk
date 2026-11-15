@@ -4,6 +4,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
+import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import { ImageEditorProvider } from "../ImageEditorProvider.js";
 import { ImageEditor } from "./ImageEditor.js";
@@ -51,11 +52,13 @@ async function mount(element: Parameters<Root["render"]>[0]) {
 }
 
 /** Waits for a condition the editor reaches asynchronously, such as an open. */
-async function until(condition: () => boolean, what: string) {
-  for (let i = 0; i < 200; i += 1) {
+async function until(condition: () => boolean, what: string, timeout = 5_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
     if (condition()) return;
     await act(async () => new Promise((resolve) => setTimeout(resolve, 25)));
   }
+  if (condition()) return;
   throw new Error(`timed out waiting for ${what}`);
 }
 
@@ -79,7 +82,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
     const handle = createRef<ImageEditorHandle>();
     const container = await mount(<ImageEditor ref={handle} />);
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     const canvas = container.querySelector("canvas");
     expect(canvas?.getAttribute("role")).toBe("img");
     expect(canvas?.getAttribute("aria-label")).toBe("Edited image preview, 30 × 20");
@@ -96,7 +103,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
       <ImageEditor ref={handle} onChange={(plan) => changes.push(plan)} />,
     );
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     const opened = changes.length;
     await act(async () => button(container, "image.rotate-right").click());
     expect(handle.current?.session.getSnapshot().plan?.base.orientation.rotate).toBe(90);
@@ -116,7 +127,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
     const handle = createRef<ImageEditorHandle>();
     const container = await mount(<ImageEditor ref={handle} />);
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     await act(async () => button(container, "image.flip-horizontal").click());
     await act(async () => button(container, "image.flip-vertical").click());
     expect(handle.current?.session.getSnapshot().plan?.base.orientation).toEqual({
@@ -138,7 +153,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
     const handle = createRef<ImageEditorHandle>();
     const container = await mount(<ImageEditor ref={handle} />);
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     const press = (target: EventTarget, key: string) =>
       act(async () => {
         target.dispatchEvent(
@@ -161,7 +180,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
       </StrictMode>,
     );
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     expect(container.querySelectorAll("canvas")).toHaveLength(1);
     expect(container.querySelector("canvas")?.getAttribute("aria-label")).toBe(
       "Edited image preview, 30 × 20",
@@ -173,7 +196,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
     const container = await mount(<ImageEditor ref={handle} />);
     container.style.width = "320px";
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     const editor = container.querySelector("section");
     expect(editor?.getBoundingClientRect().width).toBeLessThanOrEqual(320);
     expect(editor?.scrollWidth).toBeLessThanOrEqual(320);
@@ -192,7 +219,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
       root = createRoot(host);
       await act(async () => root?.render(<ImageEditor ref={handle} />));
       await act(async () => handle.current?.open(await photo()));
-      await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+      await until(
+        () => handle.current?.session.getSnapshot().status === "ready",
+        "the open",
+        FIRST_OPEN_TIMEOUT,
+      );
       await act(async () => {
         button(dialog, "image.rotate-left").dispatchEvent(
           new KeyboardEvent("keydown", { key: "]", bubbles: true, cancelable: true }),
@@ -263,7 +294,11 @@ describe("ImageEditor (docs/adr/0007)", () => {
     expect(Math.abs(centre(box) - centre(zone))).toBeLessThanOrEqual(1);
 
     await act(async () => handle.current?.open(await photo()));
-    await until(() => handle.current?.session.getSnapshot().status === "ready", "the open");
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
     await act(async () => handle.current?.open(broken));
     await until(
       () => container.querySelector(".hm-image-stage-error") !== null,

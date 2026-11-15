@@ -1,6 +1,7 @@
 import { applyVisualVariant, visualVariants } from "@hussmartinez/sdk-config/testing/visual";
 import { expect, type Page, test } from "@playwright/test";
 import { fixture, jpegWithPrivateMetadata } from "../fixtures.js";
+import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**
  * The editor's designed states, as screenshots (sdk-core ADR 0048). Each is
@@ -36,11 +37,15 @@ const open = (bytes: Uint8Array) => async (page: Page) => {
 };
 const opened = async (page: Page) => {
   await open(fixture("quadrants.png"))(page);
-  await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+    timeout: FIRST_RENDER_TIMEOUT,
+  });
 };
 const exportDialog = async (page: Page) => {
   await open(jpegWithPrivateMetadata())(page);
-  await expect(page.getByRole("img", { name: /Edited image preview/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: /Edited image preview/ })).toBeVisible({
+    timeout: FIRST_RENDER_TIMEOUT,
+  });
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Export image" })).toBeVisible();
 };
@@ -87,7 +92,9 @@ const ELEMENT: Readonly<Record<string, State>> = {
       },
       Array.from(fixture("quadrants.png")),
     );
-    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
   },
 };
 

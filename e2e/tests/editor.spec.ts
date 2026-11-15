@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { fixture, jpegWithPrivateMetadata } from "../fixtures.js";
+import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**
  * The React editor on the built example, as a host renders it (docs/adr/0007):
@@ -47,7 +48,7 @@ test.describe("the image editor", () => {
       buffer: Buffer.from(fixture("quadrants.png")),
     });
     const preview = page.getByRole("img", { name: "Edited image preview, 48 × 32" });
-    await expect(preview).toBeVisible();
+    await expect(preview).toBeVisible({ timeout: FIRST_RENDER_TIMEOUT });
     // The canvas isn't a tab stop; focus moved to the first tool.
     await expect(preview).not.toHaveAttribute("tabindex");
     await expect(page.getByRole("button", { name: "Rotate left" })).toBeFocused();
@@ -66,7 +67,9 @@ test.describe("the image editor", () => {
       (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
       Array.from(fixture("quadrants.png")),
     );
-    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
     await page.getByRole("button", { name: "Rotate left" }).focus();
     await page.keyboard.press("c");
     const frame = page.getByRole("group", { name: "Crop area" });
@@ -86,7 +89,9 @@ test.describe("the image editor", () => {
       (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
       Array.from(fixture("quadrants.png")),
     );
-    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
     await page.getByRole("button", { name: "Crop" }).click();
     const frame = page.getByRole("group", { name: "Crop area" });
     await expect(frame).toBeFocused();
@@ -124,7 +129,9 @@ test.describe("the image editor", () => {
       (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
       Array.from(jpegWithPrivateMetadata()),
     );
-    await expect(page.getByRole("img", { name: /Edited image preview/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: /Edited image preview/ })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
     await page.getByRole("button", { name: "Export", exact: true }).focus();
     await page.keyboard.press("Enter");
     const dialog = page.getByRole("dialog", { name: "Export image" });

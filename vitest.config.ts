@@ -33,6 +33,9 @@ export default defineConfig(({ mode }) => {
           optimizeDeps: { include: ["@hussmartinez/sdk-core/element"] },
           test: {
             name: "browser",
+            // A test may wait up to 30 s for its first open
+            // (test/browser/timeouts.ts), so its own limit leaves room.
+            testTimeout: 60_000,
             include: ["src/**/*.browser.test.{ts,tsx}", "test/**/*.browser.test.ts"],
             browser: {
               enabled: true,

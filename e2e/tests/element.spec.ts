@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { fixture } from "../fixtures.js";
+import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**
  * `<hm-image-editor>` on a page without React of its own (docs/adr/0007,
@@ -37,7 +38,9 @@ test.describe("the image editor element", () => {
       },
       Array.from(fixture("quadrants.png")),
     );
-    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
     await noViolations(page);
 
     await page.getByRole("button", { name: "Rotate right" }).click();
