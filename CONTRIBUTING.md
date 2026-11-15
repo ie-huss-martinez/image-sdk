@@ -20,7 +20,7 @@ pnpm verify        # everything CI runs
 pnpm verify:fast   # the subset the pre-push hook runs
 ```
 
-Browser tests need Playwright's browsers once: `pnpm exec playwright install chromium`. Add `firefox webkit` to run all three engines, as CI does, with `CI=1 pnpm verify` or `pnpm test:browser:all`.
+The browser and end-to-end tests need Docker: they run in the pinned browser test image from [`ci/Dockerfile`](ci/Dockerfile), as in CI, through `hm-in-image` from `@hussmartinez/sdk-config` ([sdk-core ADR 0049](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0049-local-browser-tests-in-the-pinned-image.md)). The first run builds the image and installs the dependencies into its volumes. `pnpm test:browser:all` runs all three engines, as CI does.
 
 The repository root is the published package, laid out as in the family's [standard layout](https://github.com/ie-huss-martinez/sdk-core/blob/main/STANDARDS.md#repository-layout): the source is in `src/`, and the workspace adds `examples/`, pages that run in the browser as hosts do, and `e2e/`, the end-to-end suite.
 
