@@ -74,6 +74,21 @@ const key = (target: Element | null, init: KeyboardEventInit) =>
   });
 
 const frame = () => document.querySelector<HTMLElement>('[role="group"][aria-label="Crop area"]');
+const stageBox = () => document.querySelector(".hm-image-stage")?.getBoundingClientRect();
+const handlesInsideStage = () => {
+  const box = stageBox();
+  const handles = [...(frame()?.querySelectorAll("[data-hm-handle]") ?? [])];
+  return (
+    box !== undefined &&
+    handles.length === 8 &&
+    handles.every((handle) => {
+      const h = handle.getBoundingClientRect();
+      return (
+        h.top >= box.top && h.left >= box.left && h.bottom <= box.bottom && h.right <= box.right
+      );
+    })
+  );
+};
 
 describe("cropping (docs/adr/0007)", () => {
   it("starts with C, on a focused, named frame over the whole image", async () => {
@@ -95,15 +110,7 @@ describe("cropping (docs/adr/0007)", () => {
     await until(() => frame() !== null, "the frame");
     // Cropping swaps the inspector's panel, which resizes the stage under it;
     // the frame follows once the stage's resize observer reports.
-    const stageBox = () => document.querySelector(".hm-image-stage")?.getBoundingClientRect();
-    const handlesInside = () => {
-      const box = stageBox();
-      return [...(frame()?.querySelectorAll("[data-hm-handle]") ?? [])].every((handle) => {
-        const h = handle.getBoundingClientRect();
-        return box !== undefined && h.bottom <= box.bottom && h.right <= box.right;
-      });
-    };
-    await until(handlesInside, "the frame to follow the stage's size");
+    await until(handlesInsideStage, "the frame to follow the stage's size");
     const stage = stageBox();
     if (!stage) throw new Error("no stage");
     for (const handle of frame()?.querySelectorAll("[data-hm-handle]") ?? []) {
@@ -193,6 +200,9 @@ describe("cropping (docs/adr/0007)", () => {
     const { session } = await opened();
     await key(document.activeElement, { key: "c" });
     await until(() => frame() !== null, "the frame");
+    // Opening the crop panel resizes the stage. Measure pointer coordinates
+    // only after its observer has placed the handles inside the current stage.
+    await until(handlesInsideStage, "the frame to follow the stage's size");
     const rect = frame()?.getBoundingClientRect();
     if (!rect) throw new Error("no frame");
     // The stage has its own size, not the canvas's, so the frame has one too.

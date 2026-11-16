@@ -20,7 +20,7 @@ catalog:
   "@hussmartinez/sdk-config": ^0.9.0
   # The browser test image's version (ci/Dockerfile): the visual tests'
   # screenshots depend on its Chromium build (sdk-core ADR 0048).
-  "@playwright/test": 1.65.0
+  "@playwright/test": 1.65.1
   "@hussmartinez/sdk-core": ^0.4.4
   "@hussmartinez/ui": ^0.7.0
   "@microsoft/api-extractor": ^7.60.1
@@ -34,7 +34,7 @@ catalog:
   fast-check: ^4.10.2
   husky: ^9.1.7
   lint-staged: ^17.6.0
-  playwright: 1.65.0
+  playwright: 1.65.1
   publint: ^0.3.25
   react: ^19.3.0
   react-dom: ^19.3.0
