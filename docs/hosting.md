@@ -13,14 +13,14 @@ By default the worker code is bundled into the package and starts from a `blob:`
 3. Set `assetsUrl` to that directory, on the editor or on `createImageEngine`. Use your own origin; the worker is a module worker.
 
 ```tsx
-<ImageEditor assetsUrl="https://app.example.com/image-sdk/" />
+<ImageEditor assetsUrl="/image-sdk/" />
 ```
 
 ```ts
 const engine = createImageEngine({ assetsUrl: "/image-sdk/" });
 ```
 
-A page-relative base works in a browser. For server rendering, use an absolute URL with this version: the engine resolves `assetsUrl` during construction, before there is a browser page against which to resolve a relative base. The root import itself remains server-safe. URLs with a query or fragment are rejected with `TypeError`.
+The base may be an absolute URL, a root-relative path such as `/image-sdk/`, or a path relative to the page such as `assets/image-sdk/`. Relative bases are safe to configure during server rendering: `createAssetsResolver` from `sdk-core` validates the URL at construction, then resolves it against the browser page when the worker first starts. The resolved base is reused after that. No worker starts during construction or server rendering. Malformed URLs and URLs with a query or fragment still fail at setup with `TypeError`.
 
 Copy the assets again on every package upgrade. Deploy page bundles and worker assets from the same package version, preferably under a versioned directory so cached pages keep their matching worker. The worker handshake checks the package version before accepting calls; stale or missing versions fail with `WORKER_START_FAILED`, with `asset`, `expected` and `actual` in `details`. This version check is not an integrity signature: serve the files over HTTPS from trusted application assets.
 
