@@ -2,7 +2,7 @@
 
 What each browser engine decodes, draws and encodes in a worker, measured by the end-to-end suite (`e2e/tests/capabilities.spec.ts`) on the example page. ADR 0001 says every claim about a browser is checked here before code relies on it.
 
-The engines are those of the pinned browser image in `ci/Dockerfile`, where CI runs: Chromium 158.0.8127.18, Firefox 159.0 and WebKit 27.2, on Linux. Results depend on how a browser was built, and **Playwright's WebKit isn't Safari**: it doesn't have Safari's system decoders, such as HEIC, or iOS's canvas limits. Those need a device, and the records that rely on them say so.
+The engines are those of the pinned browser image in `ci/Dockerfile`, where CI runs: Chromium 159.0.8154.6, Firefox 159.0 and WebKit 27.2, on Linux. Results depend on how a browser was built, and **Playwright's WebKit isn't Safari**: it doesn't have Safari's system decoders, such as HEIC, or iOS's canvas limits. Those need a device, and the records that rely on them say so.
 
 In the pinned image, the suite fails when a browser's outcome differs from these tables. After the image or Playwright changes, regenerate them with `pnpm build:examples && pnpm --filter @hussmartinez/image-sdk-e2e update:capabilities`, which runs the suite in that image through `hm-in-image` (sdk-core ADR 0049), and review the difference.
 
