@@ -64,11 +64,13 @@ Set `filePolicy` when constructing the session or mounting the editor, based on 
 />
 ```
 
-Sizes use decimal bytes, time uses milliseconds, and decoded-size accounting uses four bytes per pixel. Default resource maxima include 100 MB per file, 50 MP, 16,384 pixels per side, 300 frames and 1 GB decoded size. See [`imageLimitDefinitions`](../src/core/errors/image-limits.ts) for all maxima, warning thresholds and error codes, and [ADR 0004](adr/0004-image-limits.md) for the policy.
+Sizes use decimal bytes, time uses milliseconds, and decoded-size accounting uses four bytes per pixel. Default resource maxima include 100 MB per file, 50 MP, 16,384 pixels per side, 300 frames, 1 GB decoded size and 120 seconds per session open/export. See [`imageLimitDefinitions`](../src/core/errors/image-limits.ts) for all maxima, warning thresholds and error codes, and [ADR 0004](adr/0004-image-limits.md) for the policy.
 
 The session checks source memory against `maxSessionSize`, and the processor bounds output dimensions before export allocation. The engine also checks per-file limits against its own probe. Hosts using the low-level ports directly must supply their resolved policy.
 
-The current session does not automatically enforce the defined `maxProcessingTime` policy. Callers of `session.open()` and `session.export()` can pass an `AbortSignal` with their own deadline; low-level callers must also manage cancellation themselves. Do not rely on a policy override alone to impose a time bound.
+The session applies `maxProcessingTime` to each open (one budget for probing and registration) and export. At the deadline, the adapter's signal aborts with `PROCESSING_TIME_EXCEEDED` and limit details. The built-in RPC rejects the call and requests cancellation; if its handler does not settle within the separate 30-second cancellation grace period, it terminates the worker and rejects other calls with `WORKER_TERMINATED`. The session cannot preempt a host-injected adapter that ignores its signal. Late results are rejected when they arrive.
+
+Callers of `session.open()` and `session.export()` may also pass their own `AbortSignal`; caller cancellation and timeout reasons retain their distinct codes. Successful and failed operations clear their deadline timers. Low-level port calls still require host-managed time bounds. Terminating the render worker discards its decoded sources while the session and engine can still retain their IDs; reopen the image before continuing. Automatic source recovery is not provided by this deadline mechanism.
 
 Limits are ceilings, not a guarantee that a device can allocate that much memory. Browser canvas caps and available memory may be lower, especially on mobile. Keep bounds finite: `Infinity` disables the corresponding protection. Unknown policy keys fail with `TypeError`. The session snapshot's `warnings` lists limits approaching their maximum; the editor displays applicable file/output warnings.
 

@@ -3,6 +3,7 @@ import {
   createHistory,
   createStore,
   type HistoryStep,
+  withProcessingTime,
 } from "@hussmartinez/sdk-core";
 import { asImageError, throwIfAborted } from "../errors/error-helpers.js";
 import { ImageError, isImageError } from "../errors/image-error.js";
@@ -132,7 +133,8 @@ export interface ImageSession {
    * ADR 0004). The newest open wins: an open that finishes after a later one
    * started applies nothing, releases its source and rejects with
    * `ABORTED`. A failed or cancelled open leaves the current document as it
-   * was.
+   * was. Probing and registration share the policy's `maxProcessingTime`
+   * deadline, which aborts their signal with `PROCESSING_TIME_EXCEEDED`.
    */
   open(file: Blob, options?: { readonly signal?: AbortSignal }): Promise<ImageSessionSource>;
   /**
@@ -160,7 +162,10 @@ export interface ImageSession {
   redo(): boolean;
   /**
    * Renders and encodes the document (ADR 0003). An export that finishes
-   * after another file was opened rejects with `ABORTED`.
+   * after another file was opened rejects with `ABORTED`. The policy's
+   * `maxProcessingTime` aborts the processor's signal with
+   * `PROCESSING_TIME_EXCEEDED`. Custom adapters must observe that signal;
+   * a session cannot preempt an arbitrary adapter that ignores it.
    */
   export(
     format: ImageExportFormat,
@@ -262,13 +267,13 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
   let destroyed = false;
 
   const snapshot = (): ImageSessionSnapshot => ({
-    status: plan !== null ? "ready" : opening > 0 ? "opening" : "empty",
+    status: plan !== null ? "ready" : !destroyed && opening > 0 ? "opening" : "empty",
     plan,
     source,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
-    opening: opening > 0,
-    exporting: exporting > 0,
+    opening: !destroyed && opening > 0,
+    exporting: !destroyed && exporting > 0,
     warnings,
     error,
   });
@@ -351,7 +356,6 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
 
     async open(file, openOptions = {}) {
       assertAlive();
-      const { signal } = openOptions;
       opens += 1;
       const ticket = opens;
       nextId += 1;
@@ -360,18 +364,23 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       opening += 1;
       publish();
       try {
-        throwIfAborted(signal);
-        // Before reading anything, then the rest against the probe (ADR 0004).
-        policy.check("maxFileSize", file.size);
-        const probe = await engine.probe(file, signal ? { signal } : {});
-        const near = checkSource(policy, file, probe);
-        if (ticket !== opens) throw superseded();
-        const info = await engine.register(id, file, probe, {
-          filePolicy: policy,
-          ...(signal ? { signal } : {}),
-        });
-        registered = true;
-        throwIfAborted(signal);
+        const { probe, near, info } = await withProcessingTime(
+          policy,
+          async (signal) => {
+            throwIfAborted(signal);
+            // One deadline covers both probing and decoding (sdk-core ADR 0020).
+            policy.check("maxFileSize", file.size);
+            const probe = await engine.probe(file, { signal });
+            throwIfAborted(signal);
+            const near = checkSource(policy, file, probe);
+            if (ticket !== opens) throw superseded();
+            const info = await engine.register(id, file, probe, { filePolicy: policy, signal });
+            registered = true;
+            throwIfAborted(signal);
+            return { probe, near, info };
+          },
+          openOptions,
+        );
         assertAlive();
         if (ticket !== opens) throw superseded();
 
@@ -396,12 +405,12 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         const failure = isImageError(reason) ? reason : asImageError(reason);
         const cancelled = failure.code === "ABORTED";
         // A superseded or cancelled open isn't the document's failure.
-        if (!cancelled) fail(failure);
+        if (!cancelled && !destroyed && ticket === opens) fail(failure);
         emit({ type: "open", outcome: cancelled ? "cancelled" : "failed", commands: [] });
         throw failure;
       } finally {
         opening -= 1;
-        publish();
+        if (!destroyed) publish();
       }
     },
 
@@ -429,7 +438,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
 
     async export(format, exportOptions = {}) {
       assertAlive();
-      const { signal, onProgress } = exportOptions;
+      const { onProgress } = exportOptions;
       if (plan === null || source === null) {
         throw new ImageError("INVALID_COMMAND", "There's nothing to export before a file is open.");
       }
@@ -440,13 +449,22 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       publish();
       try {
         const size = outputSize(exported.output, compositionSize(exported, from));
-        const blob = await processor.export(
-          { plan: exported, format },
-          {
-            filePolicy: policy,
-            ...(signal ? { signal } : {}),
-            ...(onProgress ? { onProgress } : {}),
+        const blob = await withProcessingTime(
+          policy,
+          async (signal) => {
+            throwIfAborted(signal);
+            const blob = await processor.export(
+              { plan: exported, format },
+              {
+                filePolicy: policy,
+                signal,
+                ...(onProgress ? { onProgress } : {}),
+              },
+            );
+            throwIfAborted(signal);
+            return blob;
           },
+          exportOptions,
         );
         // The document was replaced while this export ran: it applies nothing.
         if (started !== generation || destroyed) {
@@ -468,7 +486,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       } catch (reason) {
         const failure = isImageError(reason) ? reason : asImageError(reason);
         const cancelled = failure.code === "ABORTED";
-        if (!cancelled) fail(failure);
+        if (!cancelled && !destroyed && started === generation) fail(failure);
         emit({ type: "export", outcome: cancelled ? "cancelled" : "failed", commands: [] });
         throw failure;
       } finally {
