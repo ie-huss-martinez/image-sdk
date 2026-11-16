@@ -294,6 +294,12 @@ describe("the self-hosted worker (docs/adr/0002)", () => {
       .probe(await jpegWith(quadrants()))
       .catch((reason: unknown) => reason);
     expect(isImageError(error, "WORKER_START_FAILED")).toBe(true);
+    if (!isImageError(error)) throw new Error("not an ImageError");
+    expect(error.details).toEqual({
+      asset: new URL("/hm-test-assets-stale/image/render.worker.js", location.href).href,
+      expected: __IMAGE_SDK_VERSION__,
+      actual: "0.0.0-stale",
+    });
     await engine.destroy();
   });
 });

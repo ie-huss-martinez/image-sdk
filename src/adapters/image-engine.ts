@@ -1,6 +1,6 @@
 import {
+  createAssetsResolver,
   createWorkerClient,
-  resolveAssetsBase,
   type WorkerClient,
   type WorkerLike,
 } from "@hussmartinez/sdk-core";
@@ -24,7 +24,10 @@ export interface ImageEngineOptions {
    * worker is then `image/render.worker.js` there, and a Content Security
    * Policy needs `worker-src 'self'` and no `blob:` (docs/adr/0002). Copy
    * `dist/assets` again after every upgrade: a worker from another version
-   * is refused with `WORKER_START_FAILED`. By default the worker is inlined.
+   * is refused with `WORKER_START_FAILED`. The base may be absolute or
+   * relative to the page, including during server rendering: it is checked
+   * at setup and resolved only when the worker starts. By default the
+   * worker is inlined.
    */
   readonly assetsUrl?: string | URL;
 }
@@ -89,14 +92,20 @@ export interface EngineEnvironment {
  * @public
  */
 export function createImageEngine(options: ImageEngineOptions = {}): ImageEngine {
-  const base = options.assetsUrl === undefined ? undefined : resolveAssetsBase(options.assetsUrl);
-  const selfHosted = base === undefined ? undefined : `${base}image/render.worker.js`;
+  const asset =
+    options.assetsUrl === undefined ? undefined : createAssetsResolver(options.assetsUrl);
+  let workerUrl: string | undefined;
   return createEngine({
-    loadWorker: selfHosted
-      ? async () => () => new Worker(selfHosted, { type: "module", name: "hm-image-render" })
+    loadWorker: asset
+      ? async () => () => {
+          workerUrl = asset("image/render.worker.js");
+          return new Worker(workerUrl, { type: "module", name: "hm-image-render" });
+        }
       : async () => (await import("./render-worker/inline-worker.js")).createInlineWorker,
     version: __IMAGE_SDK_VERSION__,
-    ...(selfHosted ? { asset: selfHosted } : {}),
+    get asset() {
+      return workerUrl ?? "inline";
+    },
   });
 }
 
@@ -131,7 +140,11 @@ export function createEngine(
     // but runs older code: sdk-core refuses it before any call, with
     // WORKER_START_FAILED and the asset and both versions (ADR 0038).
     packageVersion: environment.version,
-    workerAsset: environment.asset ?? "inline",
+    // Read the final asset URL after worker creation, without resolving it
+    // during setup just to populate diagnostics.
+    get workerAsset() {
+      return environment.asset ?? "inline";
+    },
   });
 
   async function ready(): Promise<void> {
