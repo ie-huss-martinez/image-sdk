@@ -1,5 +1,19 @@
 # @hussmartinez/image-sdk
 
+## 0.3.0
+
+### Minor Changes
+
+- [#57](https://github.com/ie-huss-martinez/image-sdk/pull/57) [`7ea0d2d`](https://github.com/ie-huss-martinez/image-sdk/commit/7ea0d2d2fde2b69167dfe479f5afb5b234b5fb80) Thanks [@hussmartinez](https://github.com/hussmartinez)! - An image engine that loses worker-owned sources or a transferred canvas now becomes terminal. Processing rejects `WORKER_TERMINATED` with `details.reason: "engine-invalidated"`; explicitly recreate the engine, processor and session, plus any renderer and its DOM canvas, then reopen the image. React hosts must remount and replace supplied resources; custom-element hosts must create a new element instance. The editor shows a translatable recovery notice. Unsaved edits need host-managed preservation; no automatic reload, remount or re-decoding occurs.
+
+### Patch Changes
+
+- [#54](https://github.com/ie-huss-martinez/image-sdk/pull/54) [`ee00acc`](https://github.com/ie-huss-martinez/image-sdk/commit/ee00acc737a4e3a6f172da3bd3ec16dc85b89e88) Thanks [@hussmartinez](https://github.com/hussmartinez)! - `ImageSession.open()` and `export()` now apply `filePolicy.maxProcessingTime` (120 seconds by default), aborting with `PROCESSING_TIME_EXCEEDED` and limit details. Custom adapters must honor the supplied signal; arbitrary host adapters cannot be preempted.
+
+- [#51](https://github.com/ie-huss-martinez/image-sdk/pull/51) [`22b2286`](https://github.com/ie-huss-martinez/image-sdk/commit/22b22867280133f4b34c5064723b7120b1ac1a4b) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Fix crop handles in ImageEditor on right-to-left pages so each handle stays on the image edge it resizes.
+
+- [#55](https://github.com/ie-huss-martinez/image-sdk/pull/55) [`fbcdb41`](https://github.com/ie-huss-martinez/image-sdk/commit/fbcdb4190762d3908dfc3a38306402592f50d149) Thanks [@hussmartinez](https://github.com/hussmartinez)! - `ImageEditor` and `createImageEngine` now accept relative `assetsUrl` values during server rendering without starting a worker. Asset URLs are validated at setup and resolved against the browser page only when the worker starts. The minimum `@hussmartinez/sdk-core` dependency is now `^0.4.4`.
+
 ## 0.2.0
 
 ### Minor Changes
