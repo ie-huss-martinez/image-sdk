@@ -10,12 +10,14 @@ import {
   useMemo,
   useRef,
 } from "react";
+import { engineInternals } from "../../adapters/image-engine.js";
 import type { ImageSessionEvent } from "../../core/session/session.js";
 import type { ImageToolContext } from "../../features/tool-types.js";
 import { DEFAULT_TOOLBAR, imageTools } from "../../features/tools.js";
+import { EngineBoundary } from "../EngineBoundary.js";
 import { ImageExportDialog } from "../export/ExportDialog.js";
 import { useImageDocument, useImageEditorState, useImageInternals } from "../hooks.js";
-import { ImageEditorProvider } from "../ImageEditorProvider.js";
+import { ImageProvider } from "../ImageEditorProvider.js";
 import { ImageInspector } from "../panels/Inspector.js";
 import { ImageStage } from "../stage/ImageStage.js";
 import { ImageToolbar } from "../toolbar/ImageToolbar.js";
@@ -46,7 +48,7 @@ interface BodyProps
 
 function ImageEditorBody(props: BodyProps): ReactNode {
   const { initialFile, onChange, classNames = {}, unstyled = false, handle, events } = props;
-  const { session, messages, view, editor, opener } = useImageInternals();
+  const { engine, session, messages, view, editor, opener } = useImageInternals();
   const snapshot = useImageDocument();
   const announce = useAnnounce();
   const root = useRef<HTMLElement>(null);
@@ -83,7 +85,10 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     handle,
     () => ({
       session,
-      open: (file) => opener.open(file),
+      open: async (file) => {
+        engineInternals(engine)?.check();
+        await opener.open(file);
+      },
       execute: (commands) => session.execute(commands),
       export: (format) => session.export(format),
       undo: () => {
@@ -93,7 +98,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
         session.redo();
       },
     }),
-    [session, opener],
+    [engine, session, opener],
   );
 
   // The host's first image opens on mount; a later one replaces it.
@@ -202,6 +207,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   }, [tool]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (engineInternals(engine)?.getSnapshot()) return;
     // The root bounds the search for a modal dialog: keys from one inside the
     // editor, such as export's, stay its own, while a host's dialog holding
     // the whole editor doesn't stop its shortcuts (sdk-core 0.4.2).
@@ -231,34 +237,36 @@ function ImageEditorBody(props: BodyProps): ReactNode {
       // ui's colour mode for the editor alone; unset, it inherits the page's.
       {...(props.theme ? { "data-hm-theme": props.theme } : {})}
     >
-      <input
-        ref={input}
-        type="file"
-        accept="image/*"
-        hidden
-        tabIndex={-1}
-        onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
-          event.currentTarget.value = "";
-          if (file) void opener.open(file);
-        }}
-      />
-      <div className="hm-image-editor-layout">
-        <ImageToolbar
-          registry={registry}
-          shortcuts={shortcuts}
-          context={context}
-          icons={icons}
-          className={join("hm-image-editor-toolbar", classNames.toolbar)}
+      <EngineBoundary>
+        <input
+          ref={input}
+          type="file"
+          accept="image/*"
+          hidden
+          tabIndex={-1}
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (file) void opener.open(file);
+          }}
         />
-        <ImageStage className={join("hm-image-editor-stage", classNames.stage)} />
-        <div className={join("hm-image-editor-inspector", classNames.inspector)}>
-          <ImageInspector {...(props.features ? { features: props.features } : {})} />
+        <div className="hm-image-editor-layout">
+          <ImageToolbar
+            registry={registry}
+            shortcuts={shortcuts}
+            context={context}
+            icons={icons}
+            className={join("hm-image-editor-toolbar", classNames.toolbar)}
+          />
+          <ImageStage className={join("hm-image-editor-stage", classNames.stage)} />
+          <div className={join("hm-image-editor-inspector", classNames.inspector)}>
+            <ImageInspector {...(props.features ? { features: props.features } : {})} />
+          </div>
         </div>
-      </div>
-      {exportOn ? (
-        <ImageExportDialog {...(props.onExport ? { onExport: props.onExport } : {})} />
-      ) : null}
+        {exportOn ? (
+          <ImageExportDialog {...(props.onExport ? { onExport: props.onExport } : {})} />
+        ) : null}
+      </EngineBoundary>
     </section>
   );
 }
@@ -313,7 +321,7 @@ export const ImageEditor = forwardRef(function ImageEditor(
     [],
   );
   return (
-    <ImageEditorProvider {...provider} onEvent={onSessionEvent}>
+    <ImageProvider {...provider} onEvent={onSessionEvent} boundary={false}>
       <AnnouncerProvider>
         <ImageEditorBody
           handle={ref}
@@ -332,6 +340,6 @@ export const ImageEditor = forwardRef(function ImageEditor(
           {...(theme ? { theme } : {})}
         />
       </AnnouncerProvider>
-    </ImageEditorProvider>
+    </ImageProvider>
   );
 });

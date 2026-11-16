@@ -95,9 +95,9 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   const [frame, setFrame] = useState<HTMLDivElement | null>(null);
   const size = useStageSize(frame);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<{ renderer: ImageRenderer; attached: Promise<void> } | undefined>(
-    undefined,
-  );
+  const rendererRef = useRef<
+    { renderer: ImageRenderer; attached: Promise<void>; failed: boolean } | undefined
+  >(undefined);
   const [editorState] = useImageEditorState();
   const { source, status } = snapshot;
   const cropping = editorState.tool === "crop";
@@ -120,10 +120,11 @@ export function ImageStage(props: ImageStageProps): ReactNode {
     frame.append(canvas);
     canvasRef.current = canvas;
     const renderer = createImageRenderer(engine);
-    const attached = renderer.attach(canvas);
-    // A failure to attach shows as an unrendered stage; renders report it.
-    attached.catch(() => {});
-    rendererRef.current = { renderer, attached };
+    const current = { renderer, attached: renderer.attach(canvas), failed: false };
+    current.attached.catch(() => {
+      current.failed = true;
+    });
+    rendererRef.current = current;
     return () => {
       rendererRef.current = undefined;
       canvasRef.current = null;
@@ -156,8 +157,18 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   useEffect(() => {
     const current = rendererRef.current;
     if (!current || !plan || !size || size.width < 1 || size.height < 1) return;
-    const { renderer, attached } = current;
-    void attached
+    const { renderer } = current;
+    // A later explicit open may succeed after a startup/handshake failure.
+    // No canvas was transferred before setup succeeded. Terminal engines
+    // reject here and their boundary removes this stage; nothing restarts.
+    if (current.failed && canvasRef.current) {
+      current.failed = false;
+      current.attached = renderer.attach(canvasRef.current);
+      current.attached.catch(() => {
+        current.failed = true;
+      });
+    }
+    void current.attached
       .then(() =>
         renderer.render(plan, {
           width: size.width,

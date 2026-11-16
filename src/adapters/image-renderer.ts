@@ -1,5 +1,5 @@
-import { abortError, asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
-import { ImageError } from "../core/errors/image-error.js";
+import { asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
+import { ImageError, isImageError } from "../core/errors/image-error.js";
 import { checkOutputLimits, imageLimits, OUTPUT_LIMITS } from "../core/errors/image-limits.js";
 import type { ImagePlan } from "../core/model/plan.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
@@ -104,22 +104,30 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
     request.signal?.addEventListener("abort", onAbort, { once: true });
     inFlight = { controller };
     internals
-      .client()
-      .then((client) =>
-        client.call(
-          "render",
-          { id, plan: request.plan, view: request.view, limits: request.limits },
-          { signal: controller.signal },
-        ),
+      .call(
+        "render",
+        { id, plan: request.plan, view: request.view, limits: request.limits },
+        { signal: controller.signal },
       )
       .then(
         () => {
+          try {
+            internals.check();
+          } catch (error) {
+            request.reject(error);
+            return;
+          }
           drawn += 1;
           request.resolve("drawn");
         },
         (error: unknown) => {
-          if (request.signal?.aborted) request.reject(abortError(request.signal));
-          else if (controller.signal.aborted) request.resolve("superseded");
+          if (
+            !internals.getSnapshot() &&
+            controller.signal.aborted &&
+            !request.signal?.aborted &&
+            isImageError(error, "ABORTED")
+          )
+            request.resolve("superseded");
           else request.reject(error instanceof TypeError ? error : asImageError(error));
         },
       )
@@ -132,12 +140,13 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
 
   const renderer: ImageRenderer & { readonly [RENDERER_INTERNALS]: RendererInternals } = {
     [RENDERER_INTERNALS]: {
-      snapshot: async () => (await internals.client()).call("snapshot", { id }),
+      snapshot: async () => internals.call("snapshot", { id }),
       drawn: () => drawn,
     },
 
     async attach(canvas: HTMLCanvasElement): Promise<void> {
       if (destroyed) throw new Error("The image renderer has been destroyed.");
+      internals.check();
       if (attached) throw new TypeError("The renderer already has a canvas.");
       if (typeof canvas.transferControlToOffscreen !== "function") {
         throw new ImageError(
@@ -148,10 +157,17 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
           },
         );
       }
-      const offscreen = canvas.transferControlToOffscreen();
       try {
-        const client = await internals.client();
-        await client.call("attachCanvas", { id, canvas: offscreen }, { transfer: true });
+        const generation = await internals.prepare();
+        internals.check(generation);
+        if (destroyed) throw new Error("The image renderer has been destroyed.");
+        const offscreen = canvas.transferControlToOffscreen();
+        await internals.call("attachCanvas", { id, canvas: offscreen }, { transfer: true });
+        internals.check(generation);
+        if (destroyed) {
+          await internals.call("detachCanvas", { id });
+          throw new Error("The image renderer has been destroyed.");
+        }
         attached = true;
       } catch (error) {
         throw asImageError(error);
@@ -164,6 +180,11 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
       options?: ImageRenderOptions,
     ): Promise<ImageRenderOutcome> {
       if (destroyed) return Promise.reject(new Error("The image renderer has been destroyed."));
+      try {
+        internals.check();
+      } catch (error) {
+        return Promise.reject(error);
+      }
       if (!attached) return Promise.reject(new TypeError("Attach a canvas before rendering."));
       if (!internals.has(plan.base.source)) {
         return Promise.reject(
@@ -197,12 +218,19 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
     async destroy(): Promise<void> {
       if (destroyed) return;
       destroyed = true;
-      pending?.resolve("superseded");
+      if (pending) {
+        try {
+          internals.check();
+          pending.resolve("superseded");
+        } catch (error) {
+          pending.reject(error);
+        }
+      }
       pending = undefined;
       inFlight?.controller.abort(new DOMException("The renderer was destroyed.", "AbortError"));
-      if (attached) {
+      if (attached && !internals.getSnapshot()) {
         try {
-          await (await internals.client()).call("detachCanvas", { id });
+          await internals.call("detachCanvas", { id });
         } catch {
           // The engine may already be destroyed, with its worker.
         }

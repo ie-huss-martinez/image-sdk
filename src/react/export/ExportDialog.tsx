@@ -10,6 +10,7 @@ import {
   useAnnounce,
 } from "@hussmartinez/ui/react";
 import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { engineInternals } from "../../adapters/image-engine.js";
 import { isImageError } from "../../core/errors/image-error.js";
 import { compositionSize, outputSize } from "../../core/model/geometry.js";
 import type { ImageOutput, ImagePlan } from "../../core/model/plan.js";
@@ -25,6 +26,7 @@ import type { ImageSessionExport, ImageSessionSource } from "../../core/session/
 import {
   useImageDocument,
   useImageEditorState,
+  useImageInternals,
   useImageMessages,
   useImageSession,
 } from "../hooks.js";
@@ -135,6 +137,7 @@ const formatOf = (draft: Draft): ImageExportFormat =>
  */
 export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
   const { onExport, fileName = "image" } = props;
+  const lifecycle = engineInternals(useImageInternals().engine);
   const session = useImageSession();
   const { plan, source } = useImageDocument();
   const [editor, editorStore] = useImageEditorState();
@@ -218,7 +221,7 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
           setPhase((now) => (now.kind === "exporting" ? { kind: "exporting", progress } : now)),
       });
       // Closed while it ran: the result belongs to no one.
-      if (controller.current !== running) return;
+      if (controller.current !== running || lifecycle?.getSnapshot()) return;
       controller.current = null;
       announce(
         messages.t("export.done", { format: formatName(current.format), size: result.blob.size }),
@@ -239,7 +242,7 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
       setPhase({ kind: "done", result, format: current.format });
     } catch (reason) {
       // Closed while it ran: the reset dialog shows nothing of it.
-      if (controller.current !== running) return;
+      if (controller.current !== running || lifecycle?.getSnapshot()) return;
       controller.current = null;
       setPhase({ kind: "choose" });
       if (isImageError(reason) && reason.code === "ABORTED") {
@@ -253,7 +256,7 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
   const stop = () => controller.current?.abort();
 
   const download = () => {
-    if (phase.kind !== "done") return;
+    if (phase.kind !== "done" || lifecycle?.getSnapshot()) return;
     revoke();
     objectUrl.current = URL.createObjectURL(phase.result.blob);
     const link = document.createElement("a");

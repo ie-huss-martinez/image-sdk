@@ -1,8 +1,9 @@
 # 0008. Fail closed after a render worker loses its resources
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-16
-- **Supersedes on acceptance:** [ADR 0002](0002-workers-and-assets.md), only its automatic source/canvas recovery and lossless worker-recreation claims and the corresponding recovery test requirement
+- **Accepted:** 2026-11-16
+- **Partially supersedes:** [ADR 0002](0002-workers-and-assets.md), only its automatic source/canvas recovery and lossless worker-recreation claims and the corresponding recovery test requirement
 
 ## Context
 
@@ -12,9 +13,9 @@ The [deadline integration test](../../test/integration/session-deadline.browser.
 
 Clearing IDs in a call's error handler is insufficient. The deadline call has already rejected when the grace period expires, and there may be no other pending call to report the termination. The processor and renderer also call the raw client through `EngineInternals.client()`, bypassing the engine's `run()` helper. The renderer can have work queued after its initial source check, and the stage currently suppresses rendering failures while retaining the previous frame.
 
-The family's [ADR 0018](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0018-worker-rpc-protocol.md) deliberately excludes cancellation-forced termination, idle shutdown and client destruction from `onCrash`. Reinterpreting that callback locally would change a shared contract. The client remains responsible for RPC cancellation, timeouts, error adaptation and closing connections; this proposal governs the image adapter's resource lifetime above it.
+The family's [ADR 0018](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0018-worker-rpc-protocol.md) deliberately excludes cancellation-forced termination, idle shutdown and client destruction from `onCrash`. Reinterpreting that callback locally would change a shared contract. The client remains responsible for RPC cancellation, timeouts, error adaptation and closing connections; this decision governs the image adapter's resource lifetime above it.
 
-This is a proposed design, not a description of shipped behavior. This ADR-only pull request implements none of it. Acceptance and a separately reviewed implementation are required before changing runtime behavior or host guidance.
+This decision governs the built-in adapter and its bindings. It does not include transparent source or canvas recovery.
 
 ## Decision
 
@@ -105,7 +106,7 @@ The implementation must demonstrate:
 - all public error/event distinctions survive, and the translated recovery notice, focus handling, hidden stale surface/dialog and absence of automatic retries/downloads work in the three browser engines;
 - explicit recreation with a new engine and canvas followed by a user-directed reopen succeeds, without reusing a terminated worker fixture or a transferred DOM canvas.
 
-Run the normal full verification and package/API/size checks for that implementation. This ADR-only change needs no package changeset. A later implementation changes observable behavior for headless callers that can currently reopen on the same engine; document the recreate-and-reopen migration and use the repository's pre-1.0 minor changeset rule for that breaking restriction.
+Run the normal full verification and package/API/size checks for that implementation. The implementation changes observable behavior for headless callers that can currently reopen on the same engine; document the recreate-and-reopen migration and use the repository's pre-1.0 minor changeset rule for that breaking restriction.
 
 ## Alternatives considered
 
@@ -119,4 +120,4 @@ Run the normal full verification and package/API/size checks for that implementa
 
 Known worker resource loss becomes a visible, stable failure rather than stale IDs, swallowed render errors or a misleading successful reopen. Cancellation and lifecycle notification remain distinct, and no shared worker contract or public reset API is added.
 
-Users must explicitly recreate resources and reopen an image after terminal loss; unsaved edits require host-managed preservation. The adapter gains generation accounting, four transport-method delegations and one guarded dispatch boundary, whose correctness must be proved before implementation merges. The accepted parts of ADR 0002 about worker-owned pixels, DOM interaction, typed RPC and assets remain in force; only its automatic recovery claims and recovery test requirement are replaced if this proposal is accepted.
+Users must explicitly recreate resources and reopen an image after terminal loss; unsaved edits require host-managed preservation. The adapter gains generation accounting, four transport-method delegations and one guarded dispatch boundary, whose correctness must be proved before implementation merges. The accepted parts of ADR 0002 about worker-owned pixels, DOM interaction, typed RPC and assets remain in force; only its automatic recovery claims and recovery test requirement are replaced by this decision.

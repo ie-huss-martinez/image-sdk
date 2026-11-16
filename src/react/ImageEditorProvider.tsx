@@ -14,6 +14,7 @@ import {
 import { createEditorStore } from "../features/editor-state.js";
 import { type ImageMessageCatalogue, imageMessages } from "../messages/en.js";
 import { createOpener, ImageContext } from "./context.js";
+import { EngineBoundary } from "./EngineBoundary.js";
 import { createViewStore } from "./view-store.js";
 
 /**
@@ -98,6 +99,13 @@ function own(props: ImageEditorProviderProps): Owned {
  * @public
  */
 export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode {
+  return <ImageProvider {...props} />;
+}
+
+/** The full editor keeps its labelled/theme root around its own boundary. */
+export function ImageProvider(
+  props: ImageEditorProviderProps & { readonly boundary?: boolean },
+): ReactNode {
   const { messages: overrides, locale = "en", children } = props;
   const [owned] = useState(() => own(props));
   const [view] = useState(createViewStore);
@@ -129,7 +137,9 @@ export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode 
   // `messages` reach the drop zone and dialogs too (sdk-core ADR 0046).
   return (
     <ImageContext.Provider value={value}>
-      <UiMessagesProvider messages={messages}>{children}</UiMessagesProvider>
+      <UiMessagesProvider messages={messages}>
+        {props.boundary === false ? children : <EngineBoundary>{children}</EngineBoundary>}
+      </UiMessagesProvider>
     </ImageContext.Provider>
   );
 }

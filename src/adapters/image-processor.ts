@@ -1,4 +1,4 @@
-import { abortError, asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
+import { asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
 import { imageLimits, OUTPUT_LIMITS } from "../core/errors/image-limits.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageExportJob, ImageProcessor } from "../core/ports/image-processor.js";
@@ -47,6 +47,7 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
           throw new RangeError("quality must be from 0 to 1.");
         }
       }
+      internals.check();
       if (!internals.has(plan.base.source)) {
         throw new TypeError(`There's no source with the id "${plan.base.source}".`);
       }
@@ -54,8 +55,7 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
       throwIfAborted(signal);
       const policy = options?.filePolicy ?? imageLimits.resolve();
       try {
-        const client = await internals.client();
-        const blob = await client.call(
+        const blob = await internals.call(
           "export",
           {
             plan,
@@ -67,10 +67,10 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
           signal ? { signal } : {},
         );
         options?.onProgress?.(1);
+        internals.check();
         return blob;
       } catch (error) {
         if (error instanceof TypeError) throw error;
-        if (signal?.aborted) throw abortError(signal);
         throw asImageError(error);
       }
     },

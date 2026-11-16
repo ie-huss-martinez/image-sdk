@@ -313,6 +313,7 @@ export type ImageMessageCatalogue = typeof imageMessages;
 
 // @public
 export const imageMessages: {
+    readonly "editor.engineUnavailable": "Image processing stopped. Reload this page or reopen the editor, then choose the image again. Unsaved edits will be lost unless your application has saved them.";
     readonly "errors.INVALID_IMAGE": "This file isn't a valid image, or it's too damaged to open.";
     readonly "errors.UNSUPPORTED_FORMAT": "This image format isn't supported. Try converting the file to PNG or JPEG, then open it again.";
     readonly "errors.DECODE_FAILED": "This browser can't open this kind of image. Try another browser, or convert the file to PNG or JPEG.";

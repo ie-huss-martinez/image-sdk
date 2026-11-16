@@ -104,6 +104,8 @@ The editor requires Web Workers, worker `createImageBitmap`, a 2D `OffscreenCanv
 
 Images are parsed, decoded, drawn and encoded in workers. The SDK has no upload or telemetry service; `onEvent` calls only the host. Exports keep no source metadata by default. Users can explicitly keep title, description, artist and copyright in PNG/JPEG; WebP exports carry no metadata. Location is never written. The export dialog shows the removal summary before download.
 
+If a worker loses its image/canvas resources, the built-in engine becomes terminal and the editor shows a recovery notice. Explicitly recreate the editor and any host-owned processing resources, then reopen the image; opening it on the old engine cannot restore the preview. Unsaved edits require host-managed preservation.
+
 See [host integration and security](docs/hosting.md) for resource limits, error handling, asset deployment, exact tested CSP directives and the host's responsibilities. Report vulnerabilities through the [security policy](SECURITY.md).
 
 ## Development

@@ -57,7 +57,11 @@ const element = document.querySelector("#editor");
 if (element) {
   createRoot(element).render(
     <div style={{ height: "70vh" }}>
-      <ImageEditor ref={handle} {...(messages ? { messages, locale: "de" } : {})} />
+      <ImageEditor
+        ref={handle}
+        {...(messages ? { messages, locale: "de" } : {})}
+        {...(params.has("failure") ? { assetsUrl: "/image-sdk-failure/" } : {})}
+      />
     </div>,
   );
 }
