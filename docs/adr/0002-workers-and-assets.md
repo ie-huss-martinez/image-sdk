@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-12
+- **Partially superseded by:** [0008](0008-terminal-engine-invalidation.md), for automatic source/canvas recovery claims and the corresponding recovery test requirement
 
 ## Context
 

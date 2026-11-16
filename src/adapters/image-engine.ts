@@ -4,13 +4,18 @@ import {
   type WorkerClient,
   type WorkerLike,
 } from "@hussmartinez/sdk-core";
-import { abortError, asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
+import { asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
 import { ImageError } from "../core/errors/image-error.js";
 import { imageLimits, PER_FILE_LIMITS } from "../core/errors/image-limits.js";
 import type { ImageProbe, ImageSourceInfo, ImageThumbnail } from "../core/model/source.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageCallOptions, ImageRegisterOptions } from "../core/ports/options.js";
 import type { RenderWorkerContract } from "./render-worker/contract.js";
+import {
+  closeRejectedResult,
+  createWorkerLifecycle,
+  type WorkerGeneration,
+} from "./worker-lifecycle.js";
 
 /**
  * Options for {@link createImageEngine}.
@@ -40,7 +45,11 @@ export interface ImageEngineOptions {
  * @internal
  */
 export interface EngineInternals {
-  readonly client: () => Promise<WorkerClient<RenderWorkerContract>>;
+  readonly call: WorkerClient<RenderWorkerContract>["call"];
+  readonly prepare: () => Promise<WorkerGeneration>;
+  readonly check: (generation?: WorkerGeneration) => void;
+  readonly getSnapshot: () => boolean;
+  readonly subscribe: (listener: () => void) => () => void;
   readonly has: (id: string) => boolean;
 }
 
@@ -75,6 +84,11 @@ export interface EngineEnvironment {
  * calibration shows, the worker applies it itself. Every decode must have
  * the probe's oriented size exactly. The worker holds the sources until
  * they're released or the engine is destroyed.
+ *
+ * Loss of a worker that owns sources or a transferred canvas makes this
+ * engine terminal (ADR 0008). Later processing rejects with
+ * `WORKER_TERMINATED` and `details.reason: "engine-invalidated"`; explicitly
+ * recreate processing resources and reopen the image. No work is replayed.
  *
  * Nothing starts until the first call. By default the worker is inlined,
  * which needs `worker-src blob:` in a Content Security Policy; with
@@ -120,22 +134,30 @@ export function createEngine(
   let startWorker: (() => WorkerLike) | undefined;
   let destroyed = false;
   /** Sources the worker holds, or is decoding, by id. */
-  const ids = new Set<string>();
+  const ids = new Map<
+    string,
+    { generation?: WorkerGeneration; registered: boolean; released: boolean }
+  >();
+  const lifecycle = createWorkerLifecycle(
+    () => ids.clear(),
+    (id, generation) => {
+      const reservation = ids.get(id);
+      if (reservation) reservation.generation = generation;
+    },
+  );
 
   const client: WorkerClient<RenderWorkerContract> = createWorkerClient<RenderWorkerContract>({
     createWorker: () => {
       if (!startWorker) {
         throw new ImageError("WORKER_START_FAILED", "The render worker hasn't loaded.");
       }
-      return startWorker();
+      return lifecycle.wrap(startWorker());
     },
     errorClasses: { ImageError },
     // The worker holds the sources, so it lives as long as the engine, and a
     // cancelled decode may finish rather than take the sources with it.
     idleTimeout: 0,
     cancelTimeout: 30_000,
-    // A crashed worker has lost every source.
-    onCrash: () => ids.clear(),
     // A self-hosted worker copied before an upgrade speaks the same protocol
     // but runs older code: sdk-core refuses it before any call, with
     // WORKER_START_FAILED and the asset and both versions (ADR 0038).
@@ -152,32 +174,57 @@ export function createEngine(
     startWorker ??= await environment.loadWorker();
   }
 
-  async function run<T>(signal: AbortSignal | undefined, work: () => Promise<T>): Promise<T> {
-    throwIfAborted(signal);
+  const call: WorkerClient<RenderWorkerContract>["call"] = async (method, input, options) => {
+    lifecycle.check();
+    throwIfAborted(options?.signal);
+    await ready();
+    lifecycle.check();
+    // Keep startup cancellation in the RPC: start() alone has no signal.
+    const pending = client.call(method, input, options);
+    const generation = lifecycle.current();
+    const result = await pending.catch((error: unknown) => {
+      throw error instanceof TypeError ? error : asImageError(error);
+    });
     try {
-      await ready();
-      return await work();
+      lifecycle.check(generation);
     } catch (error) {
-      if (error instanceof TypeError) throw error;
-      if (signal?.aborted) throw abortError(signal);
+      closeRejectedResult(result);
+      throw error;
+    }
+    return result;
+  };
+
+  const prepare = async () => {
+    lifecycle.check();
+    await ready();
+    lifecycle.check();
+    const pending = client.start();
+    const generation = lifecycle.current();
+    try {
+      await pending;
+    } catch (error) {
       throw asImageError(error);
     }
-  }
+    lifecycle.check(generation);
+    if (!generation) throw new Error("The worker did not create a generation.");
+    return generation;
+  };
 
   const callOptions = (options: ImageCallOptions | undefined) =>
     options?.signal ? { signal: options.signal } : {};
 
   return {
     [ENGINE_INTERNALS]: {
-      client: async () => {
-        await ready();
-        return client;
-      },
-      has: (id) => ids.has(id),
+      call,
+      prepare,
+      check: lifecycle.check,
+      getSnapshot: lifecycle.getSnapshot,
+      subscribe: lifecycle.subscribe,
+      has: (id) => ids.get(id)?.registered === true,
     },
 
     probe(file: Blob, options?: ImageCallOptions): Promise<ImageProbe> {
-      return run(options?.signal, () => client.call("probe", { file }, callOptions(options)));
+      return call("probe", { file }, callOptions(options));
     },
 
     async register(
@@ -186,30 +233,35 @@ export function createEngine(
       probe: ImageProbe,
       options?: ImageRegisterOptions,
     ): Promise<ImageSourceInfo> {
-      if (destroyed) throw new Error("The image engine has been destroyed.");
+      lifecycle.check();
       if (ids.has(id)) throw new TypeError(`The source id "${id}" is already in use.`);
-      ids.add(id);
+      const reservation: { generation?: WorkerGeneration; registered: boolean; released: boolean } =
+        { registered: false, released: false };
+      ids.set(id, reservation);
       try {
-        const size = await run(options?.signal, () =>
-          client.call(
-            "register",
-            {
-              id,
-              file,
-              probe,
-              // The maxima cross to the worker, which checks them against its
-              // own probe (docs/adr/0004).
-              limits: Object.fromEntries(
-                PER_FILE_LIMITS.map((limit) => [
-                  limit,
-                  (options?.filePolicy ?? imageLimits.resolve()).limits[limit].maximum,
-                ]),
-              ) as Record<(typeof PER_FILE_LIMITS)[number], number>,
-            },
-            callOptions(options),
-          ),
+        const size = await call(
+          "register",
+          {
+            id,
+            file,
+            probe,
+            // The maxima cross to the worker, which checks them against its
+            // own probe (docs/adr/0004).
+            limits: Object.fromEntries(
+              PER_FILE_LIMITS.map((limit) => [
+                limit,
+                (options?.filePolicy ?? imageLimits.resolve()).limits[limit].maximum,
+              ]),
+            ) as Record<(typeof PER_FILE_LIMITS)[number], number>,
+          },
+          callOptions(options),
         );
+        lifecycle.check(reservation.generation);
+        if (reservation.released)
+          throw new TypeError("The source was released during registration.");
+        reservation.registered = true;
         options?.onProgress?.(1);
+        lifecycle.check(reservation.generation);
         return {
           id,
           format: probe.format,
@@ -222,10 +274,16 @@ export function createEngine(
           decodedBytes: size.width * size.height * 4,
         };
       } catch (error) {
-        ids.delete(id);
+        if (ids.get(id) === reservation) ids.delete(id);
         // A cancelled decode may still finish in the worker; release it.
-        if (options?.signal?.aborted && !destroyed) {
-          client.call("release", { id }).catch(() => undefined);
+        if (
+          (options?.signal?.aborted || reservation.released) &&
+          reservation.generation &&
+          !reservation.generation.closed &&
+          !destroyed &&
+          !lifecycle.getSnapshot()
+        ) {
+          call("release", { id }).catch(() => undefined);
         }
         throw error;
       }
@@ -236,22 +294,28 @@ export function createEngine(
       maxSize: number,
       options?: ImageCallOptions,
     ): Promise<ImageThumbnail> {
-      if (!ids.has(id)) throw new TypeError(`There's no source with the id "${id}".`);
+      lifecycle.check();
+      if (!ids.get(id)?.registered) throw new TypeError(`There's no source with the id "${id}".`);
       if (!(maxSize >= 1)) throw new RangeError("maxSize must be at least 1.");
-      return run(options?.signal, () =>
-        client.call("thumbnail", { id, maxSize }, callOptions(options)),
-      );
+      return call("thumbnail", { id, maxSize }, callOptions(options));
     },
 
     async release(id: string): Promise<void> {
-      if (!ids.delete(id) || destroyed) return;
-      await run(undefined, () => client.call("release", { id }));
+      const reservation = ids.get(id);
+      if (!reservation) return;
+      if (!reservation.registered) {
+        reservation.released = true;
+        return;
+      }
+      ids.delete(id);
+      if (destroyed || lifecycle.getSnapshot() || reservation.generation?.closed) return;
+      await call("release", { id });
     },
 
     async destroy(): Promise<void> {
       if (destroyed) return;
       destroyed = true;
-      ids.clear();
+      lifecycle.destroy();
       client.destroy();
     },
   };

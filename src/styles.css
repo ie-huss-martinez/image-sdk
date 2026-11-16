@@ -9,6 +9,21 @@
 @layer hm.tokens, hm.base, hm.components, hm.sdk;
 
 @layer hm.sdk {
+  .hm-image-engine-boundary {
+    display: contents;
+  }
+  .hm-image-engine-unavailable {
+    margin: 0;
+    padding: var(--hm-inset-normal);
+  }
+  .hm-image-editor--styled .hm-image-engine-unavailable {
+    color: var(--hm-color-text);
+    background: var(--hm-color-surface);
+  }
+  .hm-image-engine-unavailable:focus {
+    outline: var(--hm-border-width-2) solid var(--hm-color-accent);
+  }
+
   /*
    * The element (docs/adr/0007) is a block, as the editor inside it is;
    * custom elements are inline by default. A host's CSS sizes it.

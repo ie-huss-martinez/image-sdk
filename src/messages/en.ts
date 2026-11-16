@@ -27,6 +27,8 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
   // ui's components' text, so hosts translate the drop zone and dialogs
   // through the editor's `messages` too (sdk-core ADR 0046).
   ...uiMessages,
+  "editor.engineUnavailable":
+    "Image processing stopped. Reload this page or reopen the editor, then choose the image again. Unsaved edits will be lost unless your application has saved them.",
   "errors.INVALID_IMAGE": "This file isn't a valid image, or it's too damaged to open.",
   "errors.UNSUPPORTED_FORMAT":
     "This image format isn't supported. Try converting the file to PNG or JPEG, then open it again.",

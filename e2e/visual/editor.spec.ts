@@ -21,6 +21,7 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `info` | The Info panel, for that image |
  * | `element-empty`, `element-open` | `<hm-image-editor>`, whose styles arrive through the host's imports |
  * | `rtl-open`, `rtl-crop` | An image, and cropping it, in a right-to-left page: the layout mirrors, the image and its crop handles don't |
+ * | `engine-unavailable` | Terminal engine recovery notice after resource loss; stale preview, controls and dialogs removed |
  * | `long-text`, `long-text-export` | A host's longer text, as a translation can be: the panels and the export dialog wrap it |
  *
  * No state is masked: every one renders committed fixtures, at a fixed time,
@@ -112,6 +113,21 @@ const LONG_TEXT: Readonly<Record<string, State>> = {
   },
 };
 
+const ENGINE_UNAVAILABLE: Readonly<Record<string, State>> = {
+  "engine-unavailable": async (page) => {
+    await opened(page);
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    await page.evaluate(() =>
+      window.imageEditor.open(new TextEncoder().encode("hm-image-test-crash!").buffer),
+    );
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Image processing stopped." }),
+    ).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator("canvas")).toHaveCount(0);
+  },
+};
+
 const ELEMENT: Readonly<Record<string, State>> = {
   "element-empty": async (page) => {
     await expect(page.getByRole("button", { name: "Choose an image" })).toBeVisible();
@@ -134,6 +150,7 @@ for (const [path, states] of [
   ["/editor.html", EDITOR],
   ["/editor.html?dir=rtl", RIGHT_TO_LEFT],
   ["/editor.html?long-text", LONG_TEXT],
+  ["/editor.html?failure", ENGINE_UNAVAILABLE],
   ["/element.html", ELEMENT],
 ] as const) {
   for (const [state, reach] of Object.entries(states)) {

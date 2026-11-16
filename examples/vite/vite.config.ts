@@ -14,10 +14,14 @@ function imageSdkAssets(): Plugin {
   return {
     name: "copy-image-sdk-assets",
     generateBundle() {
+      const source = readFileSync(join(root, "dist/assets", worker));
+      this.emitFile({ type: "asset", fileName: `image-sdk/${worker}`, source });
+      // An explicit test page uses the real worker plus a bounded crash hook;
+      // the normal example and packaged SDK have no such handler.
       this.emitFile({
         type: "asset",
-        fileName: `image-sdk/${worker}`,
-        source: readFileSync(join(root, "dist/assets", worker)),
+        fileName: `image-sdk-failure/${worker}`,
+        source: `${source.toString()}\n${readFileSync(new URL("../../test/fixtures/worker-crash-hook.js", import.meta.url), "utf8")}`,
       });
     },
   };
