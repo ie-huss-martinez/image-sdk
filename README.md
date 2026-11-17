@@ -126,11 +126,12 @@ A redaction costs memory while it exists: one more canvas the size of the image,
 The editor adds text, rectangles, ellipses and other images over an image as layers, and its Layers tool lists them and lets people arrange them ([ADR 0013](docs/adr/0013-layers-in-the-editor.md)).
 
 - **Adding:** the toolbar's "Add text" (or `T`), "Add a rectangle", "Add an ellipse" and "Add an image". Each puts a layer in the middle of the image, the right way up, and selects it. Text starts empty with focus in its field; an image is chosen in a file picker and never leaves the device. From a host, `insertImage(file)` on the editor's handle or on `<hm-image-editor>` adds one.
+- **Drawing:** press `D` or the toolbar's Draw button, then drag across the image, with a pen or a highlighter in any colour and width. Each stroke is one undo step, and "Remove last stroke" takes the last one back. Drawing needs a mouse, a pen or a finger; "Add an arrow" is the keyboard's way to point at something ([ADR 0015](docs/adr/0015-drawing-in-the-editor.md)).
 - **Arranging:** press `L` or the toolbar's Layers button.
 
 - **In the panel:** the layers, the top one first, each with a button that selects it and one that shows or hides it; buttons that move the selected layer up and down, duplicate it and delete it; fields for its name, position, size, turn and opacity; and its own fields: a text layer's text, font, alignment, weight and colour, or a shape's fill and outline.
 - **On the image:** each layer has a frame. Press one to select the top layer under the pointer, drag it to move the layer, and drag a handle of the selected one to resize it.
-- **With the keyboard:** on a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it and `Delete` removes it. In the list, `Alt` (`Option` on macOS) with the Up or Down arrow moves the focused layer up or down the stack, and `Delete` removes it.
+- **With the keyboard:** on a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it, or moves an arrow's tip, and `Delete` removes it. In the list, `Alt` (`Option` on macOS) with the Up or Down arrow moves the focused layer up or down the stack, and `Delete` removes it.
 
 Text is drawn with the device's own fonts, in one of three generic families, so the same plan can look different on another device; the preview and the export of one session always agree ([ADR 0009](docs/adr/0009-scene-space-layers-and-plan-versions.md)). A new layer is set against the image's rotation and flips, so text added to a turned or mirrored image reads as text; "Mirror" in the panel flips a layer about its own box.
 

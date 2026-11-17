@@ -158,7 +158,10 @@ export const imageEditorMessages: {
     readonly "tools.add-text": "Add text";
     readonly "tools.add-rectangle": "Add a rectangle";
     readonly "tools.add-ellipse": "Add an ellipse";
+    readonly "tools.add-arrow": "Add an arrow";
     readonly "tools.add-image": "Add an image";
+    readonly "tools.draw": "Draw";
+    readonly "toolbar.groups.draw": "Draw";
     readonly "toolbar.groups.add": "Add";
     readonly "editor.inserting": "Adding the image…";
     readonly "layers.text": "Text";
@@ -172,6 +175,11 @@ export const imageEditorMessages: {
     readonly "layers.alignments.end": "End";
     readonly "layers.bold": "Bold";
     readonly "layers.colour": "Colour";
+    readonly "layers.arrow.from.x": "Tail, left";
+    readonly "layers.arrow.from.y": "Tail, top";
+    readonly "layers.arrow.to.x": "Tip, left";
+    readonly "layers.arrow.to.y": "Tip, top";
+    readonly "layers.arrow.width": "Width";
     readonly "layers.fill": "Fill";
     readonly "layers.outline": "Outline";
     readonly "layers.fillColour": "Fill colour";
@@ -183,6 +191,16 @@ export const imageEditorMessages: {
     readonly "layers.colours.yellow": "Yellow";
     readonly "layers.colours.green": "Green";
     readonly "layers.colours.blue": "Blue";
+    readonly "draw.panel": "Draw";
+    readonly "draw.intro": "Drag across the image to draw. Drawing needs a mouse, a pen or a finger; to point at something with the keyboard, add an arrow.";
+    readonly "draw.mode": "Draw with";
+    readonly "draw.modes.pen": "Pen";
+    readonly "draw.modes.highlighter": "Highlighter";
+    readonly "draw.colour": "Colour";
+    readonly "draw.width": "Width";
+    readonly "draw.removeLast": "Remove last stroke";
+    readonly "draw.removed": "Removed the last stroke.";
+    readonly "draw.done": "Done";
     readonly "tools.layers": "Layers";
     readonly "toolbar.groups.layers": "Layers";
     readonly "layers.panel": "Layers";
@@ -211,6 +229,13 @@ export const imageEditorMessages: {
     readonly "layers.done": "Done";
     readonly "layers.frame": "Layer {index, number} of {count, number}: {name}";
     readonly "layers.frameDescription": "{width, number} × {height, number} pixels, from {x, number}, {y, number}, turned {degrees, number}°. Arrow keys move it; with Shift, they resize it; Delete removes it and Escape closes the layers.";
+    readonly "layers.drawingDescription": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "{count} stroke, {width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; Delete removes it and Escape closes the layers.";
+        readonly other: "{count, number} strokes, {width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; Delete removes it and Escape closes the layers.";
+    };
+    readonly "layers.arrowDescription": "From {fromX, number}, {fromY, number} to {toX, number}, {toY, number}. Arrow keys move it; with Shift, they move its tip; Delete removes it and Escape closes the layers.";
     readonly "layers.movedUp": "Moved {name} up. It's layer {index, number} of {count, number}.";
     readonly "layers.movedDown": "Moved {name} down. It's layer {index, number} of {count, number}.";
     readonly "layers.duplicated": "Duplicated {name}.";

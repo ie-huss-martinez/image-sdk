@@ -9,6 +9,7 @@ import {
   type ImageRect,
 } from "../../core/model/redaction-geometry.js";
 import type { ImageCommand } from "../../core/operations/commands.js";
+import { NO_TOOL } from "../../features/editor-state.js";
 import { DEFAULT_REDACTION_COLOUR } from "../../features/redact/redact-tool.js";
 import { type Gesture, useSharedGesture } from "../gesture.js";
 import { useImageInternals } from "../hooks.js";
@@ -194,7 +195,7 @@ export function useRedactActions(): RedactActions {
       done() {
         gesture.commit();
         editor.set((state) =>
-          state.tool === "redact" ? { ...state, tool: null, redact: null, preview: null } : state,
+          state.tool === "redact" ? { ...state, ...NO_TOOL, preview: null } : state,
         );
       },
     };

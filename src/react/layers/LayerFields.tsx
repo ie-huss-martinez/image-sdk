@@ -8,10 +8,12 @@ import {
 } from "@hussmartinez/ui/react";
 import { type ReactNode, useEffect, useState } from "react";
 import {
+  type ImageArrowLayer,
   type ImageShapeLayer,
   type ImageTextLayer,
   LAYER_ALIGNMENTS,
   LAYER_FONTS,
+  MAX_SCENE_COORDINATE,
   MAX_STROKE_WIDTH,
 } from "../../core/model/plan.js";
 import {
@@ -32,7 +34,7 @@ const SWATCHES = [
   { value: "#2060e0", name: "blue" },
 ] as const;
 
-function useSwatches() {
+export function useSwatches() {
   const messages = useImageMessages();
   return SWATCHES.map(({ value, name }) => ({
     value,
@@ -207,6 +209,71 @@ export function ShapeLayerFields(props: FieldsProps<ImageShapeLayer>): ReactNode
           disabled={off || stroke === null}
           onValueChange={(width) => {
             if (stroke) set({ stroke: { ...stroke, width: Math.round(width) } });
+          }}
+        />
+      </Field>
+    </div>
+  );
+}
+
+/**
+ * An arrow's fields (docs/adr/0015): where its tail and its tip are, in
+ * scene pixels, its colour and its width. They re-aim it without a drag
+ * (WCAG 2.5.7). An arrow's ends differ, so a value that would put one on
+ * the other isn't set.
+ */
+export function ArrowLayerFields(props: FieldsProps<ImageArrowLayer>): ReactNode {
+  const { layer, actions, run } = props;
+  const messages = useImageMessages();
+  const swatches = useSwatches();
+  const off = layer === null;
+  const end = (which: "from" | "to", axis: "x" | "y") => (
+    <Field key={`${which}.${axis}`} label={messages.t(`layers.arrow.${which}.${axis}`)}>
+      <NumberField
+        value={layer ? layer[which][axis] : 0}
+        min={-MAX_SCENE_COORDINATE}
+        max={MAX_SCENE_COORDINATE}
+        step={1}
+        largeStep={10}
+        disabled={off}
+        onValueChange={(value) => {
+          if (!layer) return;
+          const moved = { ...layer[which], [axis]: Math.round(value) };
+          const other = layer[which === "from" ? "to" : "from"];
+          if (moved.x === other.x && moved.y === other.y) return;
+          run(() => actions.set(layer.key, { [which]: moved }));
+        }}
+      />
+    </Field>
+  );
+  return (
+    <div className="hm-image-layer-kind" data-hm-inactive={off ? "" : undefined}>
+      <div className="hm-image-layer-ends">
+        {end("from", "x")}
+        {end("from", "y")}
+        {end("to", "x")}
+        {end("to", "y")}
+      </div>
+      <Field label={messages.t("layers.colour")}>
+        <ColorField
+          value={layer?.colour ?? DEFAULT_SHAPE_COLOUR}
+          swatches={swatches}
+          disabled={off}
+          onValueChange={(colour) => {
+            if (layer && colour !== layer.colour) run(() => actions.set(layer.key, { colour }));
+          }}
+        />
+      </Field>
+      <Field label={messages.t("layers.arrow.width")}>
+        <NumberField
+          value={layer?.width ?? 1}
+          min={1}
+          max={MAX_STROKE_WIDTH}
+          step={1}
+          largeStep={5}
+          disabled={off}
+          onValueChange={(width) => {
+            if (layer) run(() => actions.set(layer.key, { width: Math.round(width) }));
           }}
         />
       </Field>

@@ -17,6 +17,8 @@ export type { ImageTool, ImageToolContext, ImageToolState } from "./features/too
 export { imageTools } from "./features/tools.js";
 export type { ImageCropPanelProps } from "./react/crop/CropPanel.js";
 export { ImageCropPanel } from "./react/crop/CropPanel.js";
+export type { ImageDrawPanelProps } from "./react/draw/DrawPanel.js";
+export { ImageDrawPanel } from "./react/draw/DrawPanel.js";
 export { ImageEditor } from "./react/editor/ImageEditor.js";
 export type {
   ImageEditorFeatures,

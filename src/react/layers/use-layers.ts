@@ -3,12 +3,12 @@ import { useAnnounce } from "@hussmartinez/ui/react";
 import { useMemo } from "react";
 import {
   type ImageLayer,
-  type ImageLayerBox,
   MAX_LAYER_NAME_LENGTH,
   MAX_LAYER_TEXT_LENGTH,
   MAX_SCENE_COORDINATE,
 } from "../../core/model/plan.js";
 import { FORBIDDEN_IN_TEXT } from "../../core/operations/layers.js";
+import { NO_TOOL } from "../../features/editor-state.js";
 import type { ImageEditorMessageCatalogue } from "../editor-messages.js";
 import { type Gesture, useSharedGesture } from "../gesture.js";
 import { useImageInternals } from "../hooks.js";
@@ -65,8 +65,12 @@ export interface LayerActions {
   duplicate(key: string): void;
   /** Moves a layer one place up the stack, or down, as one step. */
   shift(key: string, by: 1 | -1): void;
-  /** Shows a layer's box while it's moved or resized, without changing the plan. */
-  moving(key: string, box: ImageLayerBox): void;
+  /**
+   * Shows some of a layer's fields while it's moved, resized or re-aimed,
+   * without changing the plan: a box's place and size, a drawing's origin,
+   * an arrow's ends.
+   */
+  moving(key: string, props: Readonly<Record<string, unknown>>): void;
   /** Ends the gesture as one step: at once, or after the keyboard's delay. */
   commit(soon?: boolean): void;
   /** Ends the gesture with no step. */
@@ -152,11 +156,8 @@ export function useLayerActions(): LayerActions {
           }),
         );
       },
-      moving(key, box) {
-        const { x, y, width, height } = box;
-        gesture.preview([
-          { type: "image.updateLayers", updates: [{ key, props: { x, y, width, height } }] },
-        ]);
+      moving(key, props) {
+        gesture.preview([{ type: "image.updateLayers", updates: [{ key, props }] }]);
       },
       commit(soon = false) {
         if (soon) gesture.commitSoon();
@@ -176,7 +177,7 @@ export function useLayerActions(): LayerActions {
       done() {
         gesture.commit();
         editor.set((state) =>
-          state.tool === "layers" ? { ...state, tool: null, layers: null, preview: null } : state,
+          state.tool === "layers" ? { ...state, ...NO_TOOL, preview: null } : state,
         );
       },
     };

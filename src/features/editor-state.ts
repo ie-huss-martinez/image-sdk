@@ -6,14 +6,14 @@ import type { ImageCrop, ImagePlan, ImageRedactionMode } from "../core/model/pla
 /**
  * The editor's own state, outside the session and its history
  * (docs/adr/0007): the active tool, a crop in progress, the redaction or
- * the layer that's selected, and a gesture's transient plan, which the
+ * the layer that's selected, what's drawn with, and a gesture's transient plan, which the
  * stage renders instead of the session's.
  *
  * @public
  */
 export interface ImageEditorState {
   /** The tool that takes over the stage, such as `crop`, or `null`. */
-  readonly tool: "crop" | "redact" | "layers" | null;
+  readonly tool: "crop" | "redact" | "layers" | "draw" | null;
   /** The crop being made, in whole pixels of the oriented source, and its aspect. */
   readonly crop: { readonly pending: ImageCrop; readonly aspect: ImageAspect } | null;
   /**
@@ -41,6 +41,19 @@ export interface ImageEditorState {
     readonly focus?: "list" | "text";
   } | null;
   /**
+   * While drawing (docs/adr/0015): what the next stroke is drawn with, and
+   * the key of the drawing layer it joins, if there is one.
+   */
+  readonly draw: {
+    /** A pen draws opaque strokes; a highlighter wide ones in a see-through drawing. */
+    readonly mode: "pen" | "highlighter";
+    readonly colour: string;
+    /** In scene pixels. */
+    readonly width: number;
+    /** The drawing the next stroke joins, or `null` to start a new one. */
+    readonly target: string | null;
+  } | null;
+  /**
    * What an editor's own action failed with, such as adding a layer over
    * the limit or an image that can't be read. The stage shows its text
    * until the next such action succeeds, or another image opens.
@@ -55,11 +68,20 @@ export interface ImageEditorState {
   readonly dialog: "export" | null;
 }
 
-export const IDLE: ImageEditorState = Object.freeze({
+/**
+ * No tool on the stage: what a tool spreads before it sets its own state, so
+ * one tool has the stage at a time, and what ends them all.
+ */
+export const NO_TOOL = Object.freeze({
   tool: null,
   crop: null,
   redact: null,
   layers: null,
+  draw: null,
+} satisfies Partial<ImageEditorState>);
+
+export const IDLE: ImageEditorState = Object.freeze({
+  ...NO_TOOL,
   error: null,
   preview: null,
   dialog: null,

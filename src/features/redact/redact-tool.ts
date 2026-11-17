@@ -1,4 +1,5 @@
 import { defineTool } from "@hussmartinez/sdk-core";
+import { NO_TOOL } from "../editor-state.js";
 import { hasDocument, type ImageTool } from "../tool-types.js";
 
 /** The fill a new solid redaction takes until another is chosen (docs/adr/0010). */
@@ -19,12 +20,11 @@ export const redactTool: ImageTool = /* @__PURE__ */ defineTool({
   run: ({ editor }) => {
     editor.set((state) =>
       state.tool === "redact"
-        ? { ...state, tool: null, redact: null, preview: null }
+        ? { ...state, ...NO_TOOL, preview: null }
         : {
             ...state,
+            ...NO_TOOL,
             tool: "redact",
-            crop: null,
-            layers: null,
             preview: null,
             redact: { selected: null, mode: "solid", colour: DEFAULT_REDACTION_COLOUR },
           },

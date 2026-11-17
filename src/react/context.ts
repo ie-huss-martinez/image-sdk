@@ -4,7 +4,7 @@ import { asImageError } from "../core/errors/error-helpers.js";
 import { isImageError } from "../core/errors/image-error.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageSession } from "../core/session/session.js";
-import type { ImageEditorState } from "../features/editor-state.js";
+import { type ImageEditorState, NO_TOOL } from "../features/editor-state.js";
 import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
 import type { ImageViewState } from "./view-store.js";
 
@@ -53,9 +53,8 @@ export function createInserter(
         const selected = added?.key ?? null;
         editor.set((state) => ({
           ...state,
+          ...NO_TOOL,
           tool: "layers",
-          crop: null,
-          redact: null,
           preview: null,
           error: null,
           layers: { selected },

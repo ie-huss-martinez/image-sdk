@@ -525,6 +525,84 @@ test.describe("the image editor", () => {
     await expect(page.getByRole("group", { name: "Crop area" })).toBeVisible();
   });
 
+  test("draws with a real mouse, and points with an arrow from the keyboard, with no violations", async ({
+    page,
+  }) => {
+    await page.goto("/editor.html");
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose an image" }).click();
+    await (await chooser).setFiles({
+      name: "photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(fixture("quadrants.png")),
+    });
+    const preview = page.getByRole("img", { name: "Edited image preview, 48 × 32" });
+    await expect(preview).toBeVisible({ timeout: FIRST_RENDER_TIMEOUT });
+    const layers = () =>
+      page.evaluate(
+        () => (window.imageEditor.plan() as { layers: Record<string, unknown>[] }).layers,
+      );
+    // The draw tool, by its key; its panel says that drawing needs a pointer.
+    await page.getByRole("button", { name: "Rotate left" }).focus();
+    await page.keyboard.press("d");
+    await expect(page.getByRole("region", { name: "Draw", exact: true })).toBeVisible();
+    await expect(page.getByText("Drawing needs a mouse, a pen or a finger")).toBeVisible();
+    await noViolations(page);
+    // A stroke with a real mouse: down, across the stage in steps, up.
+    const stage = await page.locator(".hm-image-draw-overlay").boundingBox();
+    if (!stage) throw new Error("no draw overlay");
+    const middle = { x: stage.x + stage.width / 2, y: stage.y + stage.height / 2 };
+    await page.mouse.move(middle.x - 80, middle.y - 20);
+    await page.mouse.down();
+    await page.mouse.move(middle.x, middle.y - 20, { steps: 8 });
+    await page.mouse.move(middle.x + 60, middle.y + 30, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(async () => (await layers()).length).toBe(1);
+    const [drawing] = (await layers()) as {
+      kind: string;
+      opacity: number;
+      strokes: { runs: number[][] }[];
+    }[];
+    expect(drawing).toMatchObject({ kind: "drawing", opacity: 100 });
+    expect(drawing?.strokes).toHaveLength(1);
+    // Right, then down and right: the corner is kept, the samples between aren't.
+    const run = drawing?.strokes[0]?.runs[0] ?? [];
+    expect(run.length).toBeGreaterThanOrEqual(6);
+    expect(run.length).toBeLessThanOrEqual(12);
+    expect(run.slice(0, 2)).toEqual([0, 0]);
+    expect(run.at(-2) ?? 0).toBeGreaterThan(0);
+    expect(run.at(-1) ?? 0).toBeGreaterThan(0);
+    // A second stroke joins the same drawing; the last one can be removed.
+    await page.mouse.move(middle.x - 40, middle.y + 40);
+    await page.mouse.down();
+    await page.mouse.move(middle.x + 40, middle.y + 40, { steps: 5 });
+    await page.mouse.up();
+    await expect
+      .poll(async () => ((await layers())[0] as { strokes: unknown[] }).strokes.length)
+      .toBe(2);
+    await page.getByRole("button", { name: "Remove last stroke" }).click();
+    await expect
+      .poll(async () => ((await layers())[0] as { strokes: unknown[] }).strokes.length)
+      .toBe(1);
+    // An arrow, with the keyboard alone: added from its button, then re-aimed on its frame.
+    await page.getByRole("button", { name: "Add an arrow" }).focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(async () => (await layers()).length).toBe(2);
+    await expect(page.getByRole("region", { name: "Layers", exact: true })).toBeVisible();
+    const arrow = page.getByRole("group", { name: "Layer 1 of 2: Arrow" });
+    await arrow.focus();
+    await expect(arrow).toHaveAccessibleDescription(/^From 18, 16 to 30, 16\./);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press("Shift+ArrowUp");
+    await expect(arrow).toHaveAccessibleDescription(/^From 18, 17 to 31, 16\./);
+    await expect(arrow).toBeFocused();
+    await noViolations(page);
+    // The drawing's frame is there too, and the image is still the one that was opened.
+    await expect(page.getByRole("group", { name: "Layer 2 of 2: Drawing" })).toBeVisible();
+    await expect(preview).toBeVisible();
+  });
+
   test("crops by dragging a handle with a real mouse", async ({ page }) => {
     await page.goto("/editor.html");
     await page.evaluate(

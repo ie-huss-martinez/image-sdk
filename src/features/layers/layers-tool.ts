@@ -1,4 +1,5 @@
 import { defineTool } from "@hussmartinez/sdk-core";
+import { NO_TOOL } from "../editor-state.js";
 import { hasDocument, type ImageTool } from "../tool-types.js";
 
 /**
@@ -18,13 +19,12 @@ export const layersTool: ImageTool = /* @__PURE__ */ defineTool({
     const top = session.getSnapshot().plan?.layers.at(-1)?.key ?? null;
     editor.set((state) =>
       state.tool === "layers"
-        ? { ...state, tool: null, layers: null, preview: null }
+        ? { ...state, ...NO_TOOL, preview: null }
         : {
             ...state,
-            tool: "layers",
             // One tool has the stage at a time.
-            crop: null,
-            redact: null,
+            ...NO_TOOL,
+            tool: "layers",
             preview: null,
             layers: { selected: top, focus: "list" },
           },

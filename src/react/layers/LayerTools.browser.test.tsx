@@ -165,7 +165,7 @@ describe("adding layers (docs/adr/0013)", () => {
     const group = document.querySelector('[role="group"][aria-label="Add"]');
     expect(
       [...(group?.querySelectorAll("button") ?? [])].map((b) => b.getAttribute("aria-label")),
-    ).toEqual(["Add text", "Add a rectangle", "Add an ellipse", "Add an image"]);
+    ).toEqual(["Add text", "Add a rectangle", "Add an ellipse", "Add an arrow", "Add an image"]);
     expect(
       [...(group?.querySelectorAll("button") ?? [])].every(
         (b) => b.disabled || b.getAttribute("aria-disabled") === "true",
@@ -349,7 +349,7 @@ describe("adding layers (docs/adr/0013)", () => {
     const start = await box();
     expect(start.height).toBeGreaterThan(0);
     // Text selected: its fields show, a shape's keep their place, unseen and disabled.
-    expect(kinds().map(shown)).toEqual([true, false]);
+    expect(kinds().map(shown)).toEqual([true, false, false]);
     expect(
       [
         ...(kinds()[1]?.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button") ??
@@ -357,7 +357,7 @@ describe("adding layers (docs/adr/0013)", () => {
       ].every((control) => control.disabled),
     ).toBe(true);
     await click(tool("add-rectangle"));
-    expect(kinds().map(shown)).toEqual([false, true]);
+    expect(kinds().map(shown)).toEqual([false, true, false]);
     expect(textarea()?.disabled).toBe(true);
     expect(await box(), "with a shape selected").toEqual(start);
     // An image layer has no fields of its own.
@@ -365,7 +365,7 @@ describe("adding layers (docs/adr/0013)", () => {
       await session().insertImage(await photo(20, 10, "#ffffff"));
     });
     await click(document.querySelector(".hm-image-layers-list .hm-image-layer-select"));
-    expect(kinds().map(shown)).toEqual([false, false]);
+    expect(kinds().map(shown)).toEqual([false, false, false]);
     expect(await box(), "with an image selected").toEqual(start);
     // Nothing selected.
     const edge = stage();
@@ -379,7 +379,7 @@ describe("adding layers (docs/adr/0013)", () => {
         }),
       );
     });
-    expect(kinds().map(shown)).toEqual([false, false]);
+    expect(kinds().map(shown)).toEqual([false, false, false]);
     expect(await box(), "with nothing selected").toEqual(start);
   });
 

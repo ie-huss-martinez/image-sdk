@@ -1,6 +1,7 @@
 import { defineTool } from "@hussmartinez/sdk-core";
 import { wholeCrop } from "../../core/model/crop.js";
 import type { ImageOrientation } from "../../core/model/plan.js";
+import { NO_TOOL } from "../editor-state.js";
 import { hasDocument, type ImageTool, type ImageToolContext } from "../tool-types.js";
 
 /** Starts cropping: the stage shows the whole image, with the current crop as the frame. */
@@ -9,11 +10,10 @@ function startCrop({ session, editor }: ImageToolContext): void {
   if (!plan || !source) return;
   editor.set((state) => ({
     ...state,
+    // One tool has the stage at a time.
+    ...NO_TOOL,
     tool: "crop",
     crop: { pending: plan.base.crop ?? wholeCrop(source), aspect: "free" },
-    // One tool has the stage at a time.
-    redact: null,
-    layers: null,
     preview: null,
   }));
 }

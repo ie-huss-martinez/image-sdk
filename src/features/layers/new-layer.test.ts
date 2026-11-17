@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { compositionSize, sourceToComposition } from "../../core/model/geometry.js";
 import { createPlan, type ImagePlan } from "../../core/model/plan.js";
 import { createImageReducer } from "../../core/operations/commands.js";
 import {
   defaultStrokeWidth,
   insertOnTop,
+  newArrowLayer,
   newLayerKey,
   newShapeLayer,
   newTextLayer,
@@ -83,5 +85,32 @@ describe("new layers (ADR 0013)", () => {
     expect(newTextLayer(mirrored, SOURCE).flipX).toBe(true);
     expect(newTextLayer(plan(), SOURCE).flipX).toBe(false);
     expect(newShapeLayer(mirrored, SOURCE, "ellipse").flipX).toBe(true);
+  });
+
+  it("aim a new arrow to the right on screen, whatever the plan's turn and flips, with two ends", () => {
+    for (const rotate of [0, 90, 180, 270] as const) {
+      for (const flipX of [false, true]) {
+        for (const flipY of [false, true]) {
+          const turned = plan({ orientation: { rotate, flipX, flipY } });
+          const arrow = newArrowLayer(turned, SOURCE);
+          const composition = compositionSize(turned, SOURCE);
+          const seen = (point: { x: number; y: number }) =>
+            sourceToComposition(point, { x: 0, y: 0, ...SOURCE }, turned.base.orientation);
+          const from = seen(arrow.from);
+          const to = seen(arrow.to);
+          const what = JSON.stringify(turned.base.orientation);
+          // Level, pointing right, across the middle quarter.
+          expect(to.y, what).toBeCloseTo(from.y, 9);
+          expect(to.x - from.x, what).toBeCloseTo(composition.width / 4, 0);
+          expect(Math.abs((from.x + to.x) / 2 - composition.width / 2), what).toBeLessThanOrEqual(
+            1,
+          );
+          expect(Math.abs(from.y - composition.height / 2), what).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+    // On an image one pixel wide the ends still differ.
+    const tiny = newArrowLayer(plan(), { width: 1, height: 1 });
+    expect([tiny.from.x, tiny.from.y]).not.toEqual([tiny.to.x, tiny.to.y]);
   });
 });
