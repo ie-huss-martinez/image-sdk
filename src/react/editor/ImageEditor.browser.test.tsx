@@ -78,6 +78,55 @@ describe("ImageEditor (docs/adr/0007)", () => {
     expect(button(container, "image.rotate-left").disabled).toBe(true);
   });
 
+  it("leaves the buttons of each stage state under the pointer, with nothing over them", async () => {
+    /** Whether the element is what a click at its centre would reach. */
+    const reachable = (element: Element) => {
+      const { left, top, width, height } = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(left + width / 2, top + height / 2);
+      return hit !== null && element.contains(hit);
+    };
+    const handle = createRef<ImageEditorHandle>();
+    const container = await mount(<ImageEditor ref={handle} />);
+
+    // Empty: the drop zone's button, and the zone itself around it.
+    const choose = [...container.querySelectorAll("button")].find(
+      (candidate) => candidate.textContent === "Choose an image",
+    );
+    if (!choose) throw new Error("no button to choose an image");
+    expect(reachable(choose)).toBe(true);
+    const zone = container.querySelector(".hm-image-stage-drop");
+    const frame = container.querySelector(".hm-image-stage-frame")?.getBoundingClientRect();
+    if (!zone || !frame) throw new Error("no drop zone");
+    // A drop a quarter of the way down the stage lands in the zone.
+    const dropTarget = document.elementFromPoint(
+      frame.left + frame.width / 2,
+      frame.top + frame.height / 4,
+    );
+    expect(dropTarget !== null && zone.contains(dropTarget)).toBe(true);
+
+    // Opening: the Cancel button, checked the moment it's shown, since the
+    // open may finish before a later look.
+    let cancelReachable: boolean | undefined;
+    const observer = new MutationObserver(() => {
+      const cancel = container.querySelector(".hm-image-stage-opening button");
+      if (cancel && cancelReachable === undefined) cancelReachable = reachable(cancel);
+    });
+    observer.observe(container, { childList: true, subtree: true });
+    await act(async () => handle.current?.open(await photo()));
+    await until(
+      () => handle.current?.session.getSnapshot().status === "ready",
+      "the open",
+      FIRST_OPEN_TIMEOUT,
+    );
+    observer.disconnect();
+    expect(cancelReachable).toBe(true);
+
+    // Open: the canvas is under the pointer, so the stage still takes it.
+    const canvas = container.querySelector("canvas");
+    if (!canvas) throw new Error("no canvas");
+    expect(reachable(canvas)).toBe(true);
+  });
+
   it("opens an image into a named, unfocusable canvas, and moves focus to the first tool", async () => {
     const handle = createRef<ImageEditorHandle>();
     const container = await mount(<ImageEditor ref={handle} />);
