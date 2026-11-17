@@ -134,8 +134,8 @@ describe("cropping (docs/adr/0007)", () => {
     const count = changes.length;
     await key(before, { key: "c" });
     await until(() => frame() !== null, "the frame");
-    for (let i = 0; i < 10; i += 1) await key(frame(), { key: "ArrowLeft", altKey: true });
-    await key(frame(), { key: "ArrowDown", altKey: true, shiftKey: true });
+    for (let i = 0; i < 10; i += 1) await key(frame(), { key: "ArrowLeft", shiftKey: true });
+    await key(frame(), { key: "ArrowDown", shiftKey: true });
     await key(frame(), { key: "ArrowRight" });
     // Nothing is an edit until Enter.
     expect(changes).toHaveLength(count);
@@ -150,13 +150,47 @@ describe("cropping (docs/adr/0007)", () => {
     expect(session().getSnapshot().canUndo).toBe(false);
   });
 
+  it("takes the arrows alone and with Shift, and leaves Alt, Control and Meta to the browser", async () => {
+    await opened();
+    await key(document.activeElement, { key: "c" });
+    await until(() => frame() !== null, "the frame");
+    const described = () =>
+      document.getElementById(frame()?.getAttribute("aria-describedby") ?? "")?.textContent ?? "";
+    /** Presses a key on the frame, and says whether the frame took it from the browser. */
+    const press = async (init: KeyboardEventInit) => {
+      const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+      await act(async () => {
+        frame()?.dispatchEvent(event);
+      });
+      return event.defaultPrevented;
+    };
+    // Shift resizes, by the right and bottom edges, one pixel a press.
+    expect(await press({ key: "ArrowLeft", shiftKey: true })).toBe(true);
+    expect(await press({ key: "ArrowUp", shiftKey: true })).toBe(true);
+    expect(described()).toContain("29 × 19 pixels, from 0, 0");
+    // The arrows alone move it, one pixel a press.
+    expect(await press({ key: "ArrowRight" })).toBe(true);
+    expect(await press({ key: "ArrowDown" })).toBe(true);
+    expect(described()).toContain("29 × 19 pixels, from 1, 1");
+    // Alt+Left and Alt+Right are the browser's Back and Forward, and the
+    // other modifiers have their own uses: none is prevented, none moves it.
+    for (const modifier of ["altKey", "ctrlKey", "metaKey"] as const) {
+      for (const arrow of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]) {
+        expect(await press({ key: arrow, [modifier]: true }), `${modifier} ${arrow}`).toBe(false);
+        expect(await press({ key: arrow, [modifier]: true, shiftKey: true })).toBe(false);
+      }
+    }
+    expect(described()).toContain("29 × 19 pixels, from 1, 1");
+    expect(described()).toContain("with Shift, they resize it");
+  });
+
   it("cancels with Escape, changing nothing", async () => {
     const changes: ImagePlan[] = [];
     const { session } = await opened({ onChange: (plan) => changes.push(plan) });
     const count = changes.length;
     await key(document.activeElement, { key: "c" });
     await until(() => frame() !== null, "the frame");
-    await key(frame(), { key: "ArrowLeft", altKey: true });
+    await key(frame(), { key: "ArrowLeft", shiftKey: true });
     await key(frame(), { key: "Escape" });
     expect(frame()).toBeNull();
     expect(session().getSnapshot()).toMatchObject({
@@ -238,7 +272,7 @@ describe("cropping (docs/adr/0007)", () => {
     await until(() => frame() !== null, "the frame");
     // Turned clockwise, the screen's right edge is the source's top: shrink it,
     // then move the frame right on screen, which is up in the source.
-    for (let i = 0; i < 5; i += 1) await key(frame(), { key: "ArrowLeft", altKey: true });
+    for (let i = 0; i < 5; i += 1) await key(frame(), { key: "ArrowLeft", shiftKey: true });
     // The frame's own placement: these tests don't load the stylesheet.
     const left = () => Number.parseFloat(frame()?.style.left ?? "0");
     const startLeft = left();
@@ -322,7 +356,7 @@ describe("cropping in a right-to-left page (docs/adr/0007)", () => {
     await key(document.activeElement, { key: "c" });
     await until(() => frame() !== null, "the frame");
     // Narrower than the image, and off its left edge, so it can move both ways.
-    for (let i = 0; i < 10; i += 1) await key(frame(), { key: "ArrowLeft", altKey: true });
+    for (let i = 0; i < 10; i += 1) await key(frame(), { key: "ArrowLeft", shiftKey: true });
     await key(frame(), { key: "ArrowRight" });
     await key(frame(), { key: "ArrowRight" });
     const start = frame()?.getBoundingClientRect().left ?? 0;

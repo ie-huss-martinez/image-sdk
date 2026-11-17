@@ -71,7 +71,7 @@ test("edits and exports with the keyboard alone, with focus where it belongs", a
   // applies it, returning focus to where cropping started.
   await page.keyboard.press("c");
   await expect(page.getByRole("group", { name: "Crop area" })).toBeFocused();
-  await page.keyboard.press("Alt+Shift+ArrowLeft");
+  for (let i = 0; i < 10; i += 1) await page.keyboard.press("Shift+ArrowLeft");
   const left = page.getByRole("spinbutton", { name: "Left" });
   await tabTo(page, left);
   await page.keyboard.press("ControlOrMeta+a");

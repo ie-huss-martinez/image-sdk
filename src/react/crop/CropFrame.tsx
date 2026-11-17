@@ -37,7 +37,7 @@ export interface CropFrameProps {
 /**
  * The crop frame (docs/adr/0007): DOM over the canvas, placed with the
  * renderer's geometry. One focusable group, named "Crop area" and described
- * by its size, which arrow keys move (Shift for 10 pixels, Alt to resize),
+ * by its size, which arrow keys move and Shift with them resizes,
  * Enter applies and Escape cancels. Its handles are pointer targets only,
  * hidden from assistive technology: the keys and the crop panel's fields do
  * what they do.
@@ -87,6 +87,10 @@ export function CropFrame(props: CropFrameProps): ReactNode {
       return;
     }
     if (!ARROWS.has(event.key)) return;
+    // Only the plain arrows and Shift with them are the frame's. With Alt,
+    // Control or Meta they're the browser's or the system's, such as Back
+    // and Forward on Alt+Left and Alt+Right, and are left alone (ADR 0007).
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
     event.preventDefault();
     // Handled here, so the editor's shortcuts don't also take the arrows.
     event.stopPropagation();
@@ -94,8 +98,8 @@ export function CropFrame(props: CropFrameProps): ReactNode {
       nudgeCropOnScreen(
         crop.pending,
         event.key as "ArrowLeft",
-        event.shiftKey ? 10 : 1,
-        event.altKey,
+        1,
+        event.shiftKey,
         orientation,
         source,
         ratio,

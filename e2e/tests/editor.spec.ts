@@ -146,10 +146,60 @@ test.describe("the image editor", () => {
     await expect(page.getByRole("region", { name: "Crop" })).toBeVisible();
     await noViolations(page);
     // Shrink it by 10 from the right edge, then apply: one crop, and focus returns.
-    await page.keyboard.press("Alt+Shift+ArrowLeft");
+    for (let i = 0; i < 10; i += 1) await page.keyboard.press("Shift+ArrowLeft");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("img", { name: "Edited image preview, 38 × 32" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Rotate left" })).toBeFocused();
+  });
+
+  test("keeps the crop frame's keys from the browser: nothing navigates or scrolls", async ({
+    page,
+  }) => {
+    await page.goto("/editor.html");
+    // A page taller than the window, with a history entry to go back to: a
+    // key that reached the browser would scroll it or leave it.
+    await page.evaluate(() => {
+      document.body.style.minHeight = "300vh";
+      history.pushState({}, "", "#cropping");
+    });
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose an image" }).click();
+    await (await chooser).setFiles({
+      name: "photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(fixture("quadrants.png")),
+    });
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
+    await page.getByRole("button", { name: "Rotate left" }).focus();
+    await page.keyboard.press("c");
+    const frame = page.getByRole("group", { name: "Crop area" });
+    await expect(frame).toBeFocused();
+    const scrolled = () => page.evaluate(() => [window.scrollX, window.scrollY]);
+    const before = await scrolled();
+    // Every key the frame takes, with a real key press in each engine.
+    for (const keys of [
+      // At the image's full size, growing does nothing; then it shrinks.
+      "Shift+ArrowRight",
+      "Shift+ArrowDown",
+      "Shift+ArrowLeft",
+      "Shift+ArrowUp",
+      "ArrowRight",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowUp",
+    ]) {
+      await page.keyboard.press(keys);
+      expect(page.url(), keys).toContain("/editor.html#cropping");
+      expect(await scrolled(), keys).toEqual(before);
+      await expect(frame, keys).toBeFocused();
+    }
+    // Shift with Left and Up shrank it by one each way, and the moves undid themselves.
+    await expect(frame).toHaveAccessibleDescription(/^47 × 31 pixels, from 0, 0\./);
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("img", { name: "Edited image preview, 47 × 31" })).toBeVisible();
+    expect(page.url()).toContain("/editor.html#cropping");
   });
 
   test("crops by dragging a handle with a real mouse", async ({ page }) => {
