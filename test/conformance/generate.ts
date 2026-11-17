@@ -1061,6 +1061,42 @@ export function geometryCases(): ConformanceFile {
         size: { width: 200, height: 100 },
       }),
     ],
+    [
+      "shows a region where the crop puts it",
+      op("sceneRectToComposition", {
+        region: { x: 50, y: 40, width: 30, height: 20 },
+        crop,
+        orientation: upright,
+      }),
+    ],
+    [
+      "shows a region turned and mirrored with the image, and reaching outside it",
+      op("sceneRectToComposition", {
+        region: { x: -10, y: 20, width: 80, height: 20 },
+        crop,
+        orientation: mirrored,
+      }),
+    ],
+    [
+      "maps a rectangle on a turned composition back to the scene",
+      op("compositionRectToScene", {
+        region: { x: 240, y: 50, width: 20, height: 30 },
+        crop: whole,
+        orientation: turned,
+      }),
+    ],
+    [
+      "fits a dragged rectangle outward to whole pixels",
+      op("fitRedactionRegion", { region: { x: 1.2, y: 2.8, width: 3.1, height: 0.1 } }),
+    ],
+    [
+      "fits an empty rectangle as one pixel",
+      op("fitRedactionRegion", { region: { x: 5, y: 5, width: 0, height: 0 } }),
+    ],
+    [
+      "keeps a rectangle within 65,536 pixels of the origin",
+      op("fitRedactionRegion", { region: { x: -70000, y: 70000, width: 200000, height: 10 } }),
+    ],
   ];
 
   const orientation = fc.record({
@@ -1151,6 +1187,16 @@ export function geometryCases(): ConformanceFile {
     redactionBlocksInScene: fc.record({ region, within: cropArb }),
     redactionRectInOutput: fc.record({ region, crop: cropArb, orientation, size }),
     redactionBlocksInOutput: fc.record({ region, crop: cropArb, orientation, size }),
+    sceneRectToComposition: fc.record({ region, crop: cropArb, orientation }),
+    compositionRectToScene: fc.record({ region, crop: cropArb, orientation }),
+    fitRedactionRegion: fc.record({
+      region: fc.record({
+        x: fc.integer({ min: -4_000, max: 4_000 }).map((n) => n / 8),
+        y: fc.integer({ min: -4_000, max: 4_000 }).map((n) => n / 8),
+        width: fc.integer({ min: 0, max: 4_000 }).map((n) => n / 8),
+        height: fc.integer({ min: 0, max: 4_000 }).map((n) => n / 8),
+      }),
+    }),
   };
   const generated = GEOMETRY_OPERATIONS.flatMap((operation) => {
     const arbitrary = arbitraries[operation];

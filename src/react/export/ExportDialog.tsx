@@ -426,6 +426,14 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
                 format: formatName(current.format),
               })}
             </p>
+            {plan.redactions.length > 0 ? (
+              <p>
+                {messages.t("export.redacted", { count: plan.redactions.length })}
+                {plan.redactions.some((redaction) => redaction.mode === "pixelate")
+                  ? ` ${messages.t("export.redactedPixelated")}`
+                  : null}
+              </p>
+            ) : null}
             {removed.length > 0 ? (
               <>
                 <p>{messages.t("export.removed")}</p>

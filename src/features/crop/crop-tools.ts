@@ -11,6 +11,9 @@ function startCrop({ session, editor }: ImageToolContext): void {
     ...state,
     tool: "crop",
     crop: { pending: plan.base.crop ?? wholeCrop(source), aspect: "free" },
+    // One tool has the stage at a time.
+    redact: null,
+    preview: null,
   }));
 }
 

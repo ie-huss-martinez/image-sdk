@@ -243,7 +243,8 @@
     outline-offset: var(--hm-border-width-2);
   }
 
-  .hm-image-crop-handle {
+  .hm-image-crop-handle,
+  .hm-image-redact-handle {
     position: absolute;
     inline-size: var(--hm-target-size);
     block-size: var(--hm-target-size);
@@ -251,7 +252,8 @@
     touch-action: none;
   }
 
-  .hm-image-crop-handle::after {
+  .hm-image-crop-handle::after,
+  .hm-image-redact-handle::after {
     content: "";
     position: absolute;
     inset: 33%;
@@ -265,68 +267,136 @@
    * mirrored in a right-to-left page, so "e" stays its right edge, where the
    * handle moves it (docs/adr/0007).
    */
-  .hm-image-crop-handle[data-hm-handle="nw"] {
+  .hm-image-crop-handle[data-hm-handle="nw"],
+  .hm-image-redact-handle[data-hm-handle="nw"] {
     top: 0;
     left: 0;
     cursor: nwse-resize;
   }
-  .hm-image-crop-handle[data-hm-handle="n"] {
+  .hm-image-crop-handle[data-hm-handle="n"],
+  .hm-image-redact-handle[data-hm-handle="n"] {
     top: 0;
     left: 50%;
     cursor: ns-resize;
   }
-  .hm-image-crop-handle[data-hm-handle="ne"] {
+  .hm-image-crop-handle[data-hm-handle="ne"],
+  .hm-image-redact-handle[data-hm-handle="ne"] {
     top: 0;
     left: 100%;
     cursor: nesw-resize;
   }
-  .hm-image-crop-handle[data-hm-handle="e"] {
+  .hm-image-crop-handle[data-hm-handle="e"],
+  .hm-image-redact-handle[data-hm-handle="e"] {
     top: 50%;
     left: 100%;
     cursor: ew-resize;
   }
-  .hm-image-crop-handle[data-hm-handle="se"] {
+  .hm-image-crop-handle[data-hm-handle="se"],
+  .hm-image-redact-handle[data-hm-handle="se"] {
     top: 100%;
     left: 100%;
     cursor: nwse-resize;
   }
-  .hm-image-crop-handle[data-hm-handle="s"] {
+  .hm-image-crop-handle[data-hm-handle="s"],
+  .hm-image-redact-handle[data-hm-handle="s"] {
     top: 100%;
     left: 50%;
     cursor: ns-resize;
   }
-  .hm-image-crop-handle[data-hm-handle="sw"] {
+  .hm-image-crop-handle[data-hm-handle="sw"],
+  .hm-image-redact-handle[data-hm-handle="sw"] {
     top: 100%;
     left: 0;
     cursor: nesw-resize;
   }
-  .hm-image-crop-handle[data-hm-handle="w"] {
+  .hm-image-crop-handle[data-hm-handle="w"],
+  .hm-image-redact-handle[data-hm-handle="w"] {
     top: 50%;
     left: 0;
     cursor: ew-resize;
+  }
+
+  /*
+   * The redactions' frames (docs/adr/0010): the overlay takes a drag across
+   * the image, which draws a new one, and each frame is outlined over the
+   * redaction the canvas already shows, so nothing is dimmed or hidden.
+   */
+  .hm-image-redact-overlay {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  .hm-image-redact-frame {
+    position: absolute;
+    box-sizing: border-box;
+    touch-action: none;
+    cursor: move;
+    outline: var(--hm-border-width) dashed var(--hm-color-accent);
+  }
+
+  .hm-image-redact-frame[data-hm-selected] {
+    outline: var(--hm-border-width-2) solid var(--hm-color-accent);
+  }
+
+  .hm-image-redact-frame:focus-visible {
+    outline: var(--hm-border-width-2) solid var(--hm-color-accent-active);
+    outline-offset: var(--hm-border-width-2);
   }
 
   .hm-image-editor-inspector:empty {
     display: none;
   }
 
-  .hm-image-crop-panel {
+  .hm-image-crop-panel,
+  .hm-image-redact-panel {
     display: grid;
     gap: var(--hm-gap-normal);
   }
 
   /* Left and top, then width and height: two columns that shrink with the inspector. */
-  .hm-image-crop-fields {
+  .hm-image-crop-fields,
+  .hm-image-redact-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--hm-gap-tight);
   }
 
-  .hm-image-crop-actions {
+  .hm-image-crop-actions,
+  .hm-image-redact-actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: end;
     gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-redact-intro,
+  .hm-image-redact-hint,
+  .hm-image-redact-none {
+    margin: 0;
+  }
+
+  .hm-image-editor--styled .hm-image-redact-intro,
+  .hm-image-editor--styled .hm-image-redact-none {
+    color: var(--hm-color-text-muted);
+  }
+
+  .hm-image-redact-areas ul {
+    display: grid;
+    gap: var(--hm-gap-tight);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* An area's button takes the row, and its remove button the end. */
+  .hm-image-redact-areas li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--hm-gap-tight);
+    align-items: center;
   }
 
   .hm-image-adjust-panel,

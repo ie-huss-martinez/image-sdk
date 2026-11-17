@@ -175,11 +175,11 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     editor.set((state) =>
       state.tool === null && state.dialog === null
         ? state
-        : { ...state, tool: null, crop: null, dialog: null },
+        : { ...state, tool: null, crop: null, redact: null, preview: null, dialog: null },
     );
   }, [editor, sourceId]);
 
-  // Focus returns to where it was when cropping started: the crop button, or
+  // Focus returns to where it was when a tool took the stage: its button, or
   // whatever had focus when its shortcut was pressed (docs/adr/0007).
   const [{ tool }] = useImageEditorState();
   const returnTo = useRef<HTMLElement | null>(null);
@@ -187,7 +187,8 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   useEffect(
     () =>
       editor.subscribe(() => {
-        if (editor.getSnapshot().tool === "crop" && previousTool.current !== "crop") {
+        const next = editor.getSnapshot().tool;
+        if (next !== null && previousTool.current !== next) {
           const active = document.activeElement;
           returnTo.current =
             active instanceof HTMLElement && root.current?.contains(active) ? active : null;
@@ -199,10 +200,16 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     if (previousTool.current === tool) return;
     const was = previousTool.current;
     previousTool.current = tool;
-    if (was !== "crop") return;
+    if (tool === "redact") {
+      // Redacting starts on the button that adds an area without dragging;
+      // cropping starts on its frame, which focuses itself.
+      root.current?.querySelector<HTMLElement>(".hm-image-redact-add")?.focus();
+      return;
+    }
+    if (was === null || tool !== null) return;
     const target = returnTo.current?.isConnected
       ? returnTo.current
-      : root.current?.querySelector<HTMLElement>('[data-tool="image.crop"]');
+      : root.current?.querySelector<HTMLElement>(`[data-tool="image.${was}"]`);
     target?.focus();
   }, [tool]);
 

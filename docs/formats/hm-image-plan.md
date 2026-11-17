@@ -156,6 +156,8 @@ The TypeScript tests also check that the schemas agree with the readers. Every d
 | `redactionBlocksInScene` | A pixelated region's blocks in the scene, from its top-left corner, each clipped to `within`, the crop |
 | `redactionRectInOutput` | The output pixels a region covers, through the crop, the rotation, the flips and the output's size, or `null` |
 | `redactionBlocksInOutput` | A pixelated region's blocks in the output, which tile exactly those pixels |
+| `sceneRectToComposition`, `compositionRectToScene` | A rectangle of the scene as the composition shows it, without clipping, and back: where an editor places a region's frame, and what a rectangle dragged on screen covers |
+| `fitRedactionRegion` | A rectangle as a region: whole pixels, rounded outward, at least 1 × 1, within 65,536 pixels of the origin |
 
 The results compare exactly, with no tolerance. They need only IEEE addition, multiplication and division, which give the same doubles in every language, and rounding.
 

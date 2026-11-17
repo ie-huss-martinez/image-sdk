@@ -42,6 +42,9 @@ export function compositionDeltaToSource(dx: number, dy: number, orientation: Im
 };
 
 // @public
+export function compositionRectToScene(rect: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2): ImageRect;
+
+// @public
 export function compositionSize(plan: ImagePlan, source: ImageSize): ImageSize;
 
 // @public
@@ -49,6 +52,9 @@ export function compositionToSource(point: ImagePoint, crop: ImageCrop, orientat
 
 // @public
 export function createImageEngine(options?: ImageEngineOptions): ImageEngine;
+
+// @public
+export function createImageKey(used?: ReadonlySet<string>): string;
 
 // @public
 export function createImageProcessor(engine: ImageEngine): ImageProcessor;
@@ -91,6 +97,9 @@ export const FILTER_PRESETS: readonly ["vivid", "warm", "cool", "fade", "mono", 
 
 // @public
 export function fitAspect(within: ImageCrop, ratio: number | undefined): ImageCrop;
+
+// @public
+export function fitRedactionRegion(rect: ImageRect): ImageRect;
 
 // @public
 export function fittedView(width: number, height: number, pixelRatio?: number): ImageView;
@@ -412,6 +421,44 @@ export const imageMessages: {
     readonly "crop.cancel": "Cancel";
     readonly "crop.reset": "Whole image";
     readonly "crop.applied": "Cropped to {width, number} × {height, number}.";
+    readonly "tools.redact": "Redact";
+    readonly "toolbar.groups.redact": "Redact";
+    readonly "redact.panel": "Redact";
+    readonly "redact.intro": "Cover parts of the image. Only the exported image is redacted: the original stays in the editor.";
+    readonly "redact.add": "Add area";
+    readonly "redact.done": "Done";
+    readonly "redact.mode": "Cover with";
+    readonly "redact.modes.solid": "Solid colour";
+    readonly "redact.modes.pixelate": "Pixelation";
+    readonly "redact.pixelateHint": "Pixelation may not hide text. For text and numbers, use a solid colour.";
+    readonly "redact.colour": "Colour";
+    readonly "redact.colours.black": "Black";
+    readonly "redact.colours.white": "White";
+    readonly "redact.x": "Left";
+    readonly "redact.y": "Top";
+    readonly "redact.width": "Width";
+    readonly "redact.height": "Height";
+    readonly "redact.areas": "Redacted areas";
+    readonly "redact.none": "No areas yet. Drag across the image, or add one.";
+    readonly "redact.area": "Area {index, number}: {mode}, {width, number} × {height, number}";
+    readonly "redact.modeNames.solid": "solid colour";
+    readonly "redact.modeNames.pixelate": "pixelated";
+    readonly "redact.remove": "Remove area {index, number}";
+    readonly "redact.frame": "Redacted area {index, number} of {count, number}";
+    readonly "redact.frameDescription": "{mode}, {width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Shift, they resize it; Delete removes it and Escape ends redacting.";
+    readonly "redact.added": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "Area added. {count} area is redacted.";
+        readonly other: "Area added. {count, number} areas are redacted.";
+    };
+    readonly "redact.removedLast": "Area removed. Nothing is redacted.";
+    readonly "redact.removed": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "Area removed. {count} area is redacted.";
+        readonly other: "Area removed. {count, number} areas are redacted.";
+    };
     readonly "inspector.label": "Panels";
     readonly "inspector.adjust": "Adjust";
     readonly "inspector.filters": "Filters";
@@ -486,6 +533,13 @@ export const imageMessages: {
     readonly "export.output": "{width, number} × {height, number} pixels, {format}";
     readonly "export.removed": "Removed from the file";
     readonly "export.removedNone": "The image had no other details to remove.";
+    readonly "export.redacted": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "{count} area is redacted.";
+        readonly other: "{count, number} areas are redacted.";
+    };
+    readonly "export.redactedPixelated": "Pixelated areas may not hide text.";
     readonly "export.kind.location": "Location";
     readonly "export.kind.camera": "Camera details";
     readonly "export.kind.timestamps": "Dates and times";
@@ -966,6 +1020,9 @@ export interface RestoreRedactionsCommand {
     // (undocumented)
     readonly type: "image.restoreRedactions";
 }
+
+// @public
+export function sceneRectToComposition(rect: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2): ImageRect;
 
 // @public
 export interface SetCropCommand {

@@ -1,5 +1,5 @@
-import { sourceToComposition } from "./geometry.js";
-import type { ImageCrop, ImageOrientation } from "./plan.js";
+import { compositionToSource, sourceToComposition } from "./geometry.js";
+import { type ImageCrop, type ImageOrientation, MAX_SCENE_COORDINATE } from "./plan.js";
 import type { ImageSize } from "./source.js";
 
 /**
@@ -167,4 +167,65 @@ export function redactionBlocksInOutput(
     outputEdges(turned ? alongY : alongX, output.width),
     outputEdges(turned ? alongX : alongY, output.height),
   );
+}
+
+/** The rectangle between two opposite corners, in either order. */
+function between(a: { x: number; y: number }, b: { x: number; y: number }): ImageRect {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return { x, y, width: Math.max(a.x, b.x) - x, height: Math.max(a.y, b.y) - y };
+}
+
+/**
+ * A rectangle of the scene as the composition shows it: through the crop,
+ * the rotation and the flips, in composition pixels, without clipping. The
+ * plan turns by quarters, so it's still a rectangle in whole pixels. The
+ * editor places a region's frame with it.
+ *
+ * @public
+ */
+export function sceneRectToComposition(
+  rect: ImageRect,
+  crop: ImageCrop,
+  orientation: ImageOrientation,
+): ImageRect {
+  return between(
+    sourceToComposition({ x: rect.x, y: rect.y }, crop, orientation),
+    sourceToComposition({ x: rect.x + rect.width, y: rect.y + rect.height }, crop, orientation),
+  );
+}
+
+/**
+ * The inverse of {@link sceneRectToComposition}: a rectangle drawn on the
+ * composition, such as a region dragged out on screen, in scene pixels.
+ *
+ * @public
+ */
+export function compositionRectToScene(
+  rect: ImageRect,
+  crop: ImageCrop,
+  orientation: ImageOrientation,
+): ImageRect {
+  return between(
+    compositionToSource({ x: rect.x, y: rect.y }, crop, orientation),
+    compositionToSource({ x: rect.x + rect.width, y: rect.y + rect.height }, crop, orientation),
+  );
+}
+
+/**
+ * A rectangle as a redaction's region: whole pixels, rounded outward so it
+ * covers everything the rectangle touched, at least 1 × 1, and within
+ * `MAX_SCENE_COORDINATE` of the scene's origin. The editor fits what's
+ * dragged or typed with it before it builds a command, so the reducer never
+ * has to refuse it.
+ *
+ * @public
+ */
+export function fitRedactionRegion(rect: ImageRect): ImageRect {
+  const limit = MAX_SCENE_COORDINATE;
+  const x = clamp(Math.floor(rect.x), -limit, limit - 1);
+  const y = clamp(Math.floor(rect.y), -limit, limit - 1);
+  const right = clamp(Math.ceil(rect.x + rect.width), x + 1, limit);
+  const bottom = clamp(Math.ceil(rect.y + rect.height), y + 1, limit);
+  return { x, y, width: right - x, height: bottom - y };
 }

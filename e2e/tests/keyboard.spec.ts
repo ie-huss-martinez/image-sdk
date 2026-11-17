@@ -6,7 +6,7 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * The keyboard-only path through the editor (docs/adr/0007, "Tests"): open
  * through the drop zone's button; crop with the frame's keys and with the
  * panel's fields; rotate, flip and undo; adjust with a slider's keys; choose
- * a filter; and export, checking the summary. Each step checks where focus
+ * a filter; redact an area; and export, checking the summary. Each step checks where focus
  * is, and nothing is clicked.
  */
 
@@ -17,6 +17,7 @@ type Plan = {
     develop: Record<string, number>;
     filter: { preset: string; strength: number } | null;
   };
+  redactions: Record<string, unknown>[];
 };
 const plan = (page: Page) => page.evaluate(() => window.imageEditor.plan() as Plan);
 
@@ -103,8 +104,43 @@ test("edits and exports with the keyboard alone, with focus where it belongs", a
   await expect(vivid).toBeFocused();
   await expect.poll(async () => (await plan(page)).base.filter?.preset).toBe("vivid");
 
-  // Export: back to the toolbar, to its last tool, then the dialog's summary.
+  // Redact: R starts it on the button that adds an area without dragging;
+  // the area's frame takes the arrows to move and Shift with them to resize;
+  // Done returns focus to where redacting started.
   await tabTo(page, flip, true);
+  await page.keyboard.press("r");
+  const add = page.getByRole("button", { name: "Add area" });
+  await expect(add).toBeFocused();
+  await page.keyboard.press("Enter");
+  const area = page.getByRole("group", { name: "Redacted area 1 of 1" });
+  await expect(area).toBeFocused();
+  for (let i = 0; i < 2; i += 1) await page.keyboard.press("ArrowLeft");
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press("Shift+ArrowRight");
+  // One step, once the keys stop: a quarter of the cropped image, moved and widened.
+  await expect
+    .poll(async () => (await plan(page)).redactions)
+    .toEqual([
+      {
+        key: expect.any(String),
+        mode: "solid",
+        x: 14,
+        y: 12,
+        width: 13,
+        height: 8,
+        colour: "#000000",
+      },
+    ]);
+  await expect(area).toBeFocused();
+  await expect(area).toHaveAccessibleDescription(/^solid colour, 13 × 8 pixels, from 14, 12\./);
+  await tabTo(page, page.getByRole("button", { name: "Done" }));
+  await page.keyboard.press("Enter");
+  await expect(flip).toBeFocused();
+  await page.keyboard.press(undo);
+  expect((await plan(page)).redactions[0]).toMatchObject({ x: 16, width: 10 });
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+Shift+z" : "Control+Shift+z");
+  expect((await plan(page)).redactions[0]).toMatchObject({ x: 14, width: 13 });
+
+  // Export: along the toolbar to its last tool, then the dialog's summary.
   await page.keyboard.press("End");
   const exportTool = page.getByRole("button", { name: "Export", exact: true });
   await expect(exportTool).toBeFocused();
@@ -114,6 +150,9 @@ test("edits and exports with the keyboard alone, with focus where it belongs", a
   await expect(dialog.locator(":focus")).toHaveCount(1);
   await expect(dialog.getByRole("region", { name: "Summary" })).toContainText(
     "38 × 32 pixels, PNG",
+  );
+  await expect(dialog.getByRole("region", { name: "Summary" })).toContainText(
+    "1 area is redacted.",
   );
   await tabTo(page, dialog.getByRole("button", { name: "Export", exact: true }));
   await page.keyboard.press("Enter");

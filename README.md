@@ -90,7 +90,36 @@ export async function brighten(file: Blob): Promise<Blob> {
 }
 ```
 
-Commands set crop, orientation, develop adjustments, filter, output size and kept metadata. `subscribe()` and `getSnapshot()` expose state, errors and limit warnings; `export()` accepts an abort signal and progress callback. A caller-supplied engine, processor or session remains the caller's responsibility to destroy. See the [core API report](api/image-sdk.api.md) and [portable format schemas](formats).
+Commands set crop, orientation, develop adjustments, filter, redactions, output size and kept metadata. `subscribe()` and `getSnapshot()` expose state, errors and limit warnings; `export()` accepts an abort signal and progress callback. A caller-supplied engine, processor or session remains the caller's responsibility to destroy. See the [core API report](api/image-sdk.api.md) and [portable format schemas](formats).
+
+## Redaction
+
+The editor's Redact tool covers parts of an image, and exports don't contain what's covered ([ADR 0010](docs/adr/0010-redaction.md)).
+
+- **Solid colour destroys what it covers.** The exported file doesn't depend on the covered pixels at all: two images that differ only under a solid area export to identical files, at any size, crop and orientation, in PNG, JPEG and WebP. The tests check exactly that, in Chromium, Firefox and WebKit.
+- **Pixelation obscures; it doesn't destroy.** A pixelated area keeps the average colour of each coarse block. That can be enough to recover text or numbers, so use a solid colour for those. The editor says so when pixelation is chosen, and again in the export summary.
+- **Areas follow the image.** They're placed on the image's own pixels, so they stay on what they cover when it's cropped, turned or flipped.
+- **Only the exported file is redacted.** The plan describes the areas; it isn't a redacted image. The original stays in the session while the image is open, and `engine.thumbnail()` returns it unredacted. Don't store or send the source, or a thumbnail of it, in place of an export.
+
+In the editor, press `R` or the toolbar's Redact button. Drag across the image to draw an area, or use "Add area", which needs no dragging. On a focused area, the arrow keys move it, `Shift` with an arrow resizes it and `Delete` removes it; the panel has number fields for its position and size, and lists every area.
+
+Headless, redactions are commands like any other edit:
+
+```ts
+import { createImageKey } from "@hussmartinez/image-sdk";
+
+session.execute({
+  type: "image.insertRedactions",
+  at: 0,
+  redactions: [
+    // Whole pixels of the image as it's opened, before any crop or rotation.
+    { key: createImageKey(), mode: "solid", x: 120, y: 80, width: 240, height: 60, colour: "#000000" },
+  ],
+});
+const { blob } = await session.export({ type: "png" });
+```
+
+A redaction costs memory while it exists: one more canvas the size of the image, checked against the file policy before it's allocated. If it can't be allocated, the preview keeps its last frame and the export fails; the image is never drawn without its redactions.
 
 ## Formats and browsers
 

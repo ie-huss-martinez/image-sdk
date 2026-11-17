@@ -202,6 +202,62 @@ test.describe("the image editor", () => {
     expect(page.url()).toContain("/editor.html#cropping");
   });
 
+  test("redacts with no violations, and keeps the frame's keys from the browser", async ({
+    page,
+  }) => {
+    await page.goto("/editor.html");
+    // A page taller than the window, with a history entry to go back to: a
+    // key that reached the browser would scroll it or leave it.
+    await page.evaluate(() => {
+      document.body.style.minHeight = "300vh";
+      history.pushState({}, "", "#redacting");
+    });
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose an image" }).click();
+    await (await chooser).setFiles({
+      name: "photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(fixture("quadrants.png")),
+    });
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
+    await page.getByRole("button", { name: "Redact" }).click();
+    await expect(page.getByRole("region", { name: "Redact", exact: true })).toBeVisible();
+    await noViolations(page);
+    await page.getByRole("button", { name: "Add area" }).click();
+    const area = page.getByRole("group", { name: "Redacted area 1 of 1" });
+    await expect(area).toBeFocused();
+    await noViolations(page);
+    const scrolled = () => page.evaluate(() => [window.scrollX, window.scrollY]);
+    const before = await scrolled();
+    for (const keys of [
+      "Shift+ArrowLeft",
+      "Shift+ArrowUp",
+      "Shift+ArrowRight",
+      "Shift+ArrowDown",
+      "ArrowRight",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowUp",
+    ]) {
+      await page.keyboard.press(keys);
+      expect(page.url(), keys).toContain("/editor.html#redacting");
+      expect(await scrolled(), keys).toEqual(before);
+      await expect(area, keys).toBeFocused();
+    }
+    // Pixelation, with its warning, is still free of violations.
+    await page.getByRole("radio", { name: "Pixelation" }).click();
+    await expect(page.getByText("Pixelation may not hide text.")).toBeVisible();
+    await noViolations(page);
+    // Backspace removes the area, and doesn't go back a page.
+    await area.focus();
+    await page.keyboard.press("Backspace");
+    await expect(page.getByRole("group", { name: /Redacted area/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Add area" })).toBeFocused();
+    expect(page.url()).toContain("/editor.html#redacting");
+  });
+
   test("crops by dragging a handle with a real mouse", async ({ page }) => {
     await page.goto("/editor.html");
     await page.evaluate(
