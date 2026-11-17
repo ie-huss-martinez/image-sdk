@@ -143,10 +143,10 @@ export interface ImageCallOptions {
 }
 
 // @public
-export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand | InsertRedactionsCommand | RemoveRedactionsCommand | MoveRedactionsCommand | UpdateRedactionsCommand | ImageInverseCommand;
+export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand | InsertLayersCommand | RemoveLayersCommand | MoveLayersCommand | UpdateLayersCommand | InsertRedactionsCommand | RemoveRedactionsCommand | MoveRedactionsCommand | UpdateRedactionsCommand | ImageInverseCommand;
 
 // @public
-export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "invalid-key" | "duplicate-key" | "invalid-index" | "invalid-order" | "unknown-redaction" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unexpected-colour" | "missing-colour" | "too-many-layers";
+export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "invalid-key" | "duplicate-key" | "invalid-index" | "invalid-order" | "unknown-layer" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "wrong-kind" | "unknown-redaction" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unexpected-colour" | "missing-colour" | "too-many-layers";
 
 // @public
 export interface ImageCrop {
@@ -177,7 +177,7 @@ export interface ImageDevelop {
 }
 
 // @public
-export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "duplicate-key" | "invalid-key" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour";
+export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "duplicate-key" | "invalid-key" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "too-many-layers";
 
 // @public
 export interface ImageEngine {
@@ -246,7 +246,15 @@ export type ImageFilterPreset = (typeof FILTER_PRESETS)[number];
 export type ImageFormat = "png" | "jpeg" | "webp" | "gif" | "avif" | "heif" | "bmp";
 
 // @public
-export type ImageInverseCommand = RestoreRedactionsCommand | SetRedactionOrderCommand;
+export interface ImageImageLayer extends ImageLayerCommon, ImageLayerBox {
+    readonly crop: ImageCrop | null;
+    // (undocumented)
+    readonly kind: "image";
+    readonly source: string;
+}
+
+// @public
+export type ImageInverseCommand = RestoreLayersCommand | SetLayerOrderCommand | RestoreRedactionsCommand | SetRedactionOrderCommand;
 
 // @public
 export interface ImageKeepableMetadata {
@@ -259,6 +267,29 @@ export interface ImageKeepableMetadata {
     // (undocumented)
     readonly title: string;
 }
+
+// @public
+export type ImageLayer = ImageTextLayer | ImageShapeLayer | ImageImageLayer;
+
+// @public
+export interface ImageLayerBox {
+    readonly height: number;
+    readonly rotation: number;
+    readonly width: number;
+    readonly x: number;
+    readonly y: number;
+}
+
+// @public
+export interface ImageLayerCommon {
+    readonly key: string;
+    readonly name: string;
+    readonly opacity: number;
+    readonly visible: boolean;
+}
+
+// @public
+export type ImageLayerKind = ImageLayer["kind"];
 
 // @public
 export type ImageLimitDefinitions = typeof imageLimitDefinitions;
@@ -381,6 +412,12 @@ export const imageMessages: {
     readonly "actions.image.setMetadata": "metadata";
     readonly "actions.image.setDevelop": "adjustment";
     readonly "actions.image.setFilter": "filter";
+    readonly "actions.image.insertLayers": "layer";
+    readonly "actions.image.removeLayers": "layer";
+    readonly "actions.image.restoreLayers": "layer";
+    readonly "actions.image.moveLayers": "layer order";
+    readonly "actions.image.setLayerOrder": "layer order";
+    readonly "actions.image.updateLayers": "layer change";
     readonly "actions.image.insertRedactions": "redaction";
     readonly "actions.image.removeRedactions": "redaction";
     readonly "actions.image.restoreRedactions": "redaction";
@@ -651,7 +688,7 @@ export interface ImagePlan {
     readonly animation: null;
     // (undocumented)
     readonly base: ImageBase;
-    readonly layers: readonly [];
+    readonly layers: readonly ImageLayer[];
     readonly metadata: ImageKeepableMetadata;
     // (undocumented)
     readonly output: ImageOutput;
@@ -856,6 +893,19 @@ export interface ImageSessionSource extends ImageSourceInfo {
 }
 
 // @public
+export interface ImageShapeLayer extends ImageLayerCommon, ImageLayerBox {
+    readonly fill: string | null;
+    // (undocumented)
+    readonly kind: "shape";
+    // (undocumented)
+    readonly shape: (typeof LAYER_SHAPES)[number];
+    readonly stroke: {
+        readonly colour: string;
+        readonly width: number;
+    } | null;
+}
+
+// @public
 export interface ImageSize {
     // (undocumented)
     readonly height: number;
@@ -878,6 +928,20 @@ export interface ImageSourceInfo {
     readonly id: string;
     // (undocumented)
     readonly width: number;
+}
+
+// @public
+export interface ImageTextLayer extends ImageLayerCommon, ImageLayerBox {
+    // (undocumented)
+    readonly align: (typeof LAYER_ALIGNMENTS)[number];
+    // (undocumented)
+    readonly bold: boolean;
+    readonly colour: string;
+    // (undocumented)
+    readonly font: (typeof LAYER_FONTS)[number];
+    // (undocumented)
+    readonly kind: "text";
+    readonly text: string;
 }
 
 // @public
@@ -907,6 +971,15 @@ export interface ImageView {
 }
 
 // @public
+export interface InsertLayersCommand {
+    readonly at: number;
+    // (undocumented)
+    readonly layers: readonly ImageLayer[];
+    // (undocumented)
+    readonly type: "image.insertLayers";
+}
+
+// @public
 export interface InsertRedactionsCommand {
     readonly at: number;
     // (undocumented)
@@ -921,7 +994,25 @@ export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value
 };
 
 // @public
+export const LAYER_ALIGNMENTS: readonly ["start", "center", "end"];
+
+// @public
+export const LAYER_FONTS: readonly ["sans-serif", "serif", "monospace"];
+
+// @public
+export const LAYER_KINDS: readonly ["text", "shape", "image"];
+
+// @public
+export const LAYER_SHAPES: readonly ["rectangle", "ellipse"];
+
+// @public
 export const MAX_KEY_LENGTH = 64;
+
+// @public
+export const MAX_LAYER_NAME_LENGTH = 100;
+
+// @public
+export const MAX_LAYER_TEXT_LENGTH = 1000;
 
 // @public
 export const MAX_METADATA_LENGTH = 2000;
@@ -936,7 +1027,20 @@ export const MAX_PLAN_ITEMS = 1024;
 export const MAX_SCENE_COORDINATE = 65536;
 
 // @public
+export const MAX_STROKE_WIDTH = 1024;
+
+// @public
 export function moveCrop(crop: ImageCrop, dx: number, dy: number, source: ImageSize): ImageCrop;
+
+// @public
+export interface MoveLayersCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly to: number;
+    // (undocumented)
+    readonly type: "image.moveLayers";
+}
 
 // @public
 export interface MoveRedactionsCommand {
@@ -1003,11 +1107,30 @@ export function redactionBlockSize(region: ImageSize): number;
 export function redactionRectInOutput(region: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2, output: ImageSize): ImageRect | null;
 
 // @public
+export interface RemoveLayersCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly type: "image.removeLayers";
+}
+
+// @public
 export interface RemoveRedactionsCommand {
     // (undocumented)
     readonly keys: readonly string[];
     // (undocumented)
     readonly type: "image.removeRedactions";
+}
+
+// @public
+export interface RestoreLayersCommand {
+    // (undocumented)
+    readonly entries: readonly {
+        readonly at: number;
+        readonly layer: ImageLayer;
+    }[];
+    // (undocumented)
+    readonly type: "image.restoreLayers";
 }
 
 // @public
@@ -1049,6 +1172,14 @@ export interface SetFilterCommand {
 }
 
 // @public
+export interface SetLayerOrderCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly type: "image.setLayerOrder";
+}
+
+// @public
 export interface SetMetadataCommand {
     // (undocumented)
     readonly field: keyof ImageKeepableMetadata;
@@ -1087,6 +1218,17 @@ export function sourceToComposition(point: ImagePoint, crop: ImageCrop, orientat
 
 // @public
 export function toImagePlanDocument(plan: ImagePlan, sources: Readonly<Record<string, ImagePlanDocumentSource>>): ImagePlanDocument;
+
+// @public
+export interface UpdateLayersCommand {
+    // (undocumented)
+    readonly type: "image.updateLayers";
+    // (undocumented)
+    readonly updates: readonly {
+        readonly key: string;
+        readonly props: Readonly<Record<string, unknown>>;
+    }[];
+}
 
 // @public
 export interface UpdateRedactionsCommand {

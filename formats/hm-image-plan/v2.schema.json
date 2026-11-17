@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v2.schema.json",
   "title": "hm-image-plan, version 2",
-  "description": "An image-sdk plan: one source, its crop, orientation, develop adjustments and filter, the redactions over it, the export's size, and the metadata fields the user keeps (docs/formats/hm-image-plan.md, sdk-core ADR 0045). Positions are whole pixels of the oriented source, which is also the scene that redactions are placed in. Layers and an animation arrive in later versions: here layers is empty and animation is null. Beyond this schema, readers check that the base's source is one the document lists, that its crop fits inside that source, and that no two items share a key.",
+  "description": "An image-sdk plan: one source, its crop, orientation, develop adjustments and filter, the layers over it, the redactions over those, the export's size, and the metadata fields the user keeps (docs/formats/hm-image-plan.md, sdk-core ADR 0045). Positions are whole pixels of the oriented source, which is also the scene that layers and redactions are placed in. An animation arrives in a later version: here animation is null. Beyond this schema, readers check that the base's source and every image layer's are ones the document lists, that their crops fit inside them, that a shape has a fill or a stroke, that no two items share a key, and that layers and redactions together are at most 1,024.",
   "type": "object",
   "required": [
     "format",
@@ -37,9 +37,12 @@
       "$ref": "#/$defs/base"
     },
     "layers": {
-      "description": "The layers over the base. Always empty in this version.",
+      "description": "The layers over the base, bottom to top.",
       "type": "array",
-      "maxItems": 0
+      "maxItems": 1024,
+      "items": {
+        "$ref": "#/$defs/layer"
+      }
     },
     "redactions": {
       "description": "The redactions, applied over everything else, in order.",
@@ -467,6 +470,388 @@
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/key"
+      }
+    },
+    "text": {
+      "description": "Text with no control character other than a line feed, and no bidirectional embedding, override or isolate control.",
+      "type": "string",
+      "pattern": "^[^\\u0000-\\u0009\\u000B-\\u001F\\u007F\\u202A-\\u202E\\u2066-\\u2069]*$"
+    },
+    "opacity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "rotation": {
+      "description": "Tenths of a degree, clockwise about the box's centre.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3599
+    },
+    "font": {
+      "enum": ["sans-serif", "serif", "monospace"]
+    },
+    "align": {
+      "enum": ["start", "center", "end"]
+    },
+    "shape": {
+      "enum": ["rectangle", "ellipse"]
+    },
+    "stroke": {
+      "type": "object",
+      "required": ["colour", "width"],
+      "additionalProperties": false,
+      "properties": {
+        "colour": {
+          "$ref": "#/$defs/colour"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        }
+      }
+    },
+    "layer": {
+      "description": "A layer over the base: text, a shape or another image, in a box of the scene turned about its centre.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "key",
+            "kind",
+            "name",
+            "visible",
+            "opacity",
+            "x",
+            "y",
+            "width",
+            "height",
+            "rotation",
+            "text",
+            "font",
+            "bold",
+            "colour",
+            "align"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/key"
+            },
+            "name": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/text"
+                },
+                {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              ]
+            },
+            "visible": {
+              "type": "boolean"
+            },
+            "opacity": {
+              "$ref": "#/$defs/opacity"
+            },
+            "x": {
+              "$ref": "#/$defs/scenePosition"
+            },
+            "y": {
+              "$ref": "#/$defs/scenePosition"
+            },
+            "width": {
+              "$ref": "#/$defs/sceneLength"
+            },
+            "height": {
+              "$ref": "#/$defs/sceneLength"
+            },
+            "rotation": {
+              "$ref": "#/$defs/rotation"
+            },
+            "kind": {
+              "const": "text"
+            },
+            "text": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/text"
+                },
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                }
+              ]
+            },
+            "font": {
+              "$ref": "#/$defs/font"
+            },
+            "bold": {
+              "type": "boolean"
+            },
+            "colour": {
+              "$ref": "#/$defs/colour"
+            },
+            "align": {
+              "$ref": "#/$defs/align"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "key",
+            "kind",
+            "name",
+            "visible",
+            "opacity",
+            "x",
+            "y",
+            "width",
+            "height",
+            "rotation",
+            "shape",
+            "fill",
+            "stroke"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/key"
+            },
+            "name": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/text"
+                },
+                {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              ]
+            },
+            "visible": {
+              "type": "boolean"
+            },
+            "opacity": {
+              "$ref": "#/$defs/opacity"
+            },
+            "x": {
+              "$ref": "#/$defs/scenePosition"
+            },
+            "y": {
+              "$ref": "#/$defs/scenePosition"
+            },
+            "width": {
+              "$ref": "#/$defs/sceneLength"
+            },
+            "height": {
+              "$ref": "#/$defs/sceneLength"
+            },
+            "rotation": {
+              "$ref": "#/$defs/rotation"
+            },
+            "kind": {
+              "const": "shape"
+            },
+            "shape": {
+              "$ref": "#/$defs/shape"
+            },
+            "fill": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/colour"
+                }
+              ]
+            },
+            "stroke": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/stroke"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "key",
+            "kind",
+            "name",
+            "visible",
+            "opacity",
+            "x",
+            "y",
+            "width",
+            "height",
+            "rotation",
+            "source",
+            "crop"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/key"
+            },
+            "name": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/text"
+                },
+                {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              ]
+            },
+            "visible": {
+              "type": "boolean"
+            },
+            "opacity": {
+              "$ref": "#/$defs/opacity"
+            },
+            "x": {
+              "$ref": "#/$defs/scenePosition"
+            },
+            "y": {
+              "$ref": "#/$defs/scenePosition"
+            },
+            "width": {
+              "$ref": "#/$defs/sceneLength"
+            },
+            "height": {
+              "$ref": "#/$defs/sceneLength"
+            },
+            "rotation": {
+              "$ref": "#/$defs/rotation"
+            },
+            "kind": {
+              "const": "image"
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "crop": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/crop"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "layerProps": {
+      "description": "Some of a layer's fields: any but its key and its kind. Beyond this schema, the reducer checks that each field is one the layer's kind has, and the layer that results.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "string",
+              "maxLength": 100
+            }
+          ]
+        },
+        "visible": {
+          "type": "boolean"
+        },
+        "opacity": {
+          "$ref": "#/$defs/opacity"
+        },
+        "x": {
+          "$ref": "#/$defs/scenePosition"
+        },
+        "y": {
+          "$ref": "#/$defs/scenePosition"
+        },
+        "width": {
+          "$ref": "#/$defs/sceneLength"
+        },
+        "height": {
+          "$ref": "#/$defs/sceneLength"
+        },
+        "rotation": {
+          "$ref": "#/$defs/rotation"
+        },
+        "text": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "string",
+              "maxLength": 1000
+            }
+          ]
+        },
+        "font": {
+          "$ref": "#/$defs/font"
+        },
+        "bold": {
+          "type": "boolean"
+        },
+        "colour": {
+          "$ref": "#/$defs/colour"
+        },
+        "align": {
+          "$ref": "#/$defs/align"
+        },
+        "shape": {
+          "$ref": "#/$defs/shape"
+        },
+        "fill": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/colour"
+            }
+          ]
+        },
+        "stroke": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/stroke"
+            }
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "crop": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/crop"
+            }
+          ]
+        }
       }
     }
   }

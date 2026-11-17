@@ -224,6 +224,168 @@ export type ImageRedaction =
   | (ImageRedactionRegion & { readonly mode: "pixelate" });
 
 /**
+ * The most Unicode code points in a text layer's text (ADR 0009).
+ *
+ * @public
+ */
+export const MAX_LAYER_TEXT_LENGTH = 1_000;
+
+/**
+ * The most Unicode code points in a layer's name.
+ *
+ * @public
+ */
+export const MAX_LAYER_NAME_LENGTH = 100;
+
+/**
+ * The widest stroke of a shape, in scene pixels.
+ *
+ * @public
+ */
+export const MAX_STROKE_WIDTH = 1_024;
+
+/**
+ * The fonts a text layer can use: the generic families, which every device
+ * has, so the SDK ships and fetches none (ADR 0009). Names are part of the
+ * document format.
+ *
+ * @public
+ */
+export const LAYER_FONTS = ["sans-serif", "serif", "monospace"] as const;
+
+/**
+ * How a text layer's lines sit in its box, by the text's own direction.
+ *
+ * @public
+ */
+export const LAYER_ALIGNMENTS = ["start", "center", "end"] as const;
+
+/**
+ * The shapes a shape layer can be.
+ *
+ * @public
+ */
+export const LAYER_SHAPES = ["rectangle", "ellipse"] as const;
+
+/**
+ * The kinds of layer. Names are part of the document format.
+ *
+ * @public
+ */
+export const LAYER_KINDS = ["text", "shape", "image"] as const;
+
+/**
+ * What every layer has (ADR 0009).
+ *
+ * @public
+ */
+export interface ImageLayerCommon {
+  /**
+   * Its identity: 1 to `MAX_KEY_LENGTH` code points, unique among the plan's
+   * layers and redactions.
+   */
+  readonly key: string;
+  /**
+   * What the layers list calls it: up to `MAX_LAYER_NAME_LENGTH` code
+   * points. Empty means the editor's own label for the kind.
+   */
+  readonly name: string;
+  /** Whether it's drawn. */
+  readonly visible: boolean;
+  /** A whole number from 0, transparent, to 100, opaque. */
+  readonly opacity: number;
+}
+
+/**
+ * Where a positioned layer is: a box in whole pixels of the scene, the
+ * base's oriented source, turned about its centre (ADR 0009). The box stays
+ * on the pixels it covers when the image is cropped or turned.
+ *
+ * @public
+ */
+export interface ImageLayerBox {
+  /** The box's left edge, before its rotation. May be negative. */
+  readonly x: number;
+  /** The box's top edge, before its rotation. May be negative. */
+  readonly y: number;
+  /** At least 1. */
+  readonly width: number;
+  /** At least 1. */
+  readonly height: number;
+  /** Tenths of a degree, clockwise about the box's centre: 0 to 3599. */
+  readonly rotation: number;
+}
+
+/**
+ * Text, drawn as large as fits inside its box, never distorted (ADR 0009).
+ * Lines break only at line feeds. Emoji are text.
+ *
+ * @public
+ */
+export interface ImageTextLayer extends ImageLayerCommon, ImageLayerBox {
+  readonly kind: "text";
+  /**
+   * Up to `MAX_LAYER_TEXT_LENGTH` code points. Control characters other
+   * than a line feed, and the bidirectional embedding, override and isolate
+   * controls, are refused.
+   */
+  readonly text: string;
+  readonly font: (typeof LAYER_FONTS)[number];
+  readonly bold: boolean;
+  /** The text's colour, as `#rrggbb` in lower case. */
+  readonly colour: string;
+  readonly align: (typeof LAYER_ALIGNMENTS)[number];
+}
+
+/**
+ * A rectangle or an ellipse that fills its box, with a fill, a stroke drawn
+ * inside the box, or both (ADR 0009).
+ *
+ * @public
+ */
+export interface ImageShapeLayer extends ImageLayerCommon, ImageLayerBox {
+  readonly kind: "shape";
+  readonly shape: (typeof LAYER_SHAPES)[number];
+  /** The fill, as `#rrggbb` in lower case, or `null` for none. */
+  readonly fill: string | null;
+  /** The stroke, or `null` for none. A shape has a fill or a stroke. */
+  readonly stroke: {
+    readonly colour: string;
+    /** In whole scene pixels, from 1 to `MAX_STROKE_WIDTH`. */
+    readonly width: number;
+  } | null;
+}
+
+/**
+ * Another image, drawn to fill its box (ADR 0009).
+ *
+ * @public
+ */
+export interface ImageImageLayer extends ImageLayerCommon, ImageLayerBox {
+  readonly kind: "image";
+  /** The id of a registered source. */
+  readonly source: string;
+  /** The part of that source to draw, in its own pixels, or `null` for all of it. */
+  readonly crop: ImageCrop | null;
+}
+
+/**
+ * A layer over the base: text, a shape or another image (ADR 0009). Layers
+ * are drawn bottom to top, in the plan's order, and redactions over all of
+ * them.
+ *
+ * @public
+ */
+export type ImageLayer = ImageTextLayer | ImageShapeLayer | ImageImageLayer;
+
+/**
+ * A layer's kind.
+ *
+ * @public
+ */
+export type ImageLayerKind = ImageLayer["kind"];
+
+/**
  * The session's document: a description of the edits over an immutable
  * source, rendered to pixels only for display and export (ADR 0003, ADR
  * 0009).
@@ -232,11 +394,8 @@ export type ImageRedaction =
  */
 export interface ImagePlan {
   readonly base: ImageBase;
-  /**
-   * The layers over the base, bottom to top, placed in the scene (ADR 0009).
-   * Always empty for now: the layer kinds arrive with the layer model.
-   */
-  readonly layers: readonly [];
+  /** The layers over the base, bottom to top, placed in the scene (ADR 0009). */
+  readonly layers: readonly ImageLayer[];
   /** The redactions, applied over every layer (ADR 0010). */
   readonly redactions: readonly ImageRedaction[];
   /** The animation (ADR 0011). Always `null` until format version 4. */

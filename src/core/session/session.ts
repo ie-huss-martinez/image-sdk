@@ -207,6 +207,15 @@ export function commandsBetween(from: ImagePlan, to: ImagePlan): ImageCommand[] 
       commands.push({ type: "image.setMetadata", field, value: to.metadata[field] });
     }
   }
+  if (!same(from.layers, to.layers)) {
+    // The whole list is replaced: one step, whatever changed in it.
+    if (from.layers.length > 0) {
+      commands.push({ type: "image.removeLayers", keys: from.layers.map((layer) => layer.key) });
+    }
+    if (to.layers.length > 0) {
+      commands.push({ type: "image.insertLayers", at: 0, layers: to.layers });
+    }
+  }
   if (!same(from.redactions, to.redactions)) {
     // The whole list is replaced: one step, whatever changed in it.
     if (from.redactions.length > 0) {
@@ -439,10 +448,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       // A plan from before format version 2 has no lists: it's read with
       // `readImagePlanDocument`, which migrates it, not applied as it is.
       const shaped =
-        Array.isArray(next.redactions) &&
-        Array.isArray(next.layers) &&
-        next.layers.length === 0 &&
-        next.animation === null;
+        Array.isArray(next.redactions) && Array.isArray(next.layers) && next.animation === null;
       if (plan === null || !shaped || next.base.source !== plan.base.source) {
         const failure = new ImageError(
           "INVALID_COMMAND",

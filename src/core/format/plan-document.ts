@@ -1,4 +1,5 @@
 import { ImageError } from "../errors/image-error.js";
+import type { ImageLayer } from "../model/plan.js";
 import {
   type ImageBase,
   type ImageDevelop,
@@ -20,6 +21,7 @@ import {
   isRecord,
   onlyFields,
 } from "../operations/commands.js";
+import { checkLayer } from "../operations/layers.js";
 import { checkRedaction } from "../operations/redactions.js";
 
 /**
@@ -91,7 +93,10 @@ export interface ImagePlanDocument extends ImagePlan {
  *   for commands, `crop-outside-source`, `invalid-orientation`,
  *   `invalid-output`, `metadata-too-long`, `unknown-adjustment`,
  *   `invalid-level`, `unknown-preset`, `invalid-strength`, `invalid-key`,
- *   `unknown-redaction-mode`, `invalid-region` and `invalid-colour`.
+ *   `unknown-redaction-mode`, `invalid-region`, `invalid-colour`,
+ *   `unknown-layer-kind`, `invalid-box`, `invalid-opacity`, `invalid-text`,
+ *   `text-too-long`, `empty-shape` and `too-many-layers`. `unknown-source`
+ *   and `crop-outside-source` apply to an image layer too.
  *
  * @public
  */
@@ -112,7 +117,14 @@ export type ImageDocumentRejection =
   | "invalid-key"
   | "unknown-redaction-mode"
   | "invalid-region"
-  | "invalid-colour";
+  | "invalid-colour"
+  | "unknown-layer-kind"
+  | "invalid-box"
+  | "invalid-opacity"
+  | "invalid-text"
+  | "text-too-long"
+  | "empty-shape"
+  | "too-many-layers";
 
 /** Version 1's fields: the plan before layers, redactions and animation. */
 const V1_FIELDS = ["format", "version", "sources", "base", "output", "metadata"];
@@ -215,18 +227,38 @@ function migrateFromV1(value: RawDocument): RawDocument {
   return { ...value, version: 2, layers: [], redactions: [], animation: null };
 }
 
+function readLayers(
+  value: unknown,
+  sources: Record<string, ImagePlanDocumentSource>,
+): ImageLayer[] {
+  if (!Array.isArray(value)) malformed("layers is a list");
+  if (value.length > MAX_PLAN_ITEMS) malformed(`a document holds at most ${MAX_PLAN_ITEMS} layers`);
+  // An image layer's source is one the document lists, as the base's is.
+  const sourceSize = (id: string) => (Object.hasOwn(sources, id) ? sources[id] : undefined);
+  return value.map((layer) => checkLayer(layer, sourceSize));
+}
+
 function readRedactions(value: unknown): ImageRedaction[] {
   if (!Array.isArray(value)) malformed("redactions is a list");
   if (value.length > MAX_PLAN_ITEMS) {
     malformed(`a document holds at most ${MAX_PLAN_ITEMS} redactions`);
   }
-  const redactions = value.map(checkRedaction);
+  return value.map(checkRedaction);
+}
+
+/** What depends on both lists: no key twice, and no more items than the format holds. */
+function checkItems(layers: readonly ImageLayer[], redactions: readonly ImageRedaction[]): void {
   const keys = new Set<string>();
-  for (const { key } of redactions) {
+  for (const { key } of [...layers, ...redactions]) {
     if (keys.has(key)) invalid("duplicate-key", `two items have the key "${key}"`);
     keys.add(key);
   }
-  return redactions;
+  if (keys.size > MAX_PLAN_ITEMS) {
+    invalid(
+      "too-many-layers",
+      `a document holds at most ${MAX_PLAN_ITEMS} layers and redactions together`,
+    );
+  }
 }
 
 function read(value: unknown): {
@@ -253,14 +285,16 @@ function read(value: unknown): {
   required(document, DOCUMENT_FIELDS, "a document");
   const { layers, redactions, animation } = document;
   const sources = readSources(document.sources);
-  // The layer kinds and the animation arrive with their models (ADR 0009).
-  if (!Array.isArray(layers) || layers.length > 0) malformed("layers is an empty list");
+  // The animation arrives with its model, in a later version (ADR 0009).
   if (animation !== null) malformed("animation is null");
+  const readLayerList = readLayers(layers, sources);
+  const readRedactionList = readRedactions(redactions);
+  checkItems(readLayerList, readRedactionList);
   return {
     plan: {
       base: readBase(document.base, sources),
-      layers: [],
-      redactions: readRedactions(redactions),
+      layers: readLayerList,
+      redactions: readRedactionList,
       animation: null,
       output: checkOutput(document.output),
       metadata: checkMetadata(document.metadata),
@@ -272,8 +306,8 @@ function read(value: unknown): {
 /**
  * Reads a plan document, such as one parsed from JSON, checking it as
  * {@link ImagePlanDocument}'s schema does and more: the base's source must
- * be one the document lists, its crop must fit inside it, and no two items
- * share a key. Unknown fields are refused, never dropped.
+ * be one the document lists, as must an image layer's, their crops must fit
+ * inside them, and no two items share a key. Unknown fields are refused, never dropped.
  *
  * A document of an earlier version is migrated, so every version stays
  * readable: version 1 reads as a plan with no layers or redactions.
@@ -335,7 +369,7 @@ export function toImagePlanDocument(
       develop: { ...base.develop },
       filter: base.filter === null ? null : { ...base.filter },
     },
-    layers: [],
+    layers: plan.layers.map((layer) => structuredClone(layer)),
     redactions: plan.redactions.map((redaction) => ({ ...redaction })),
     animation: null,
     output: { ...output },

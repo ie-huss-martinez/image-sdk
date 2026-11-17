@@ -7,7 +7,7 @@ import {
 import { Ajv2020 } from "ajv/dist/2020.js";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { type ImagePlan, toImagePlanDocument } from "../../src/index.js";
+import { createPlan, type ImagePlan, toImagePlanDocument } from "../../src/index.js";
 import { commandOn, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
 import { commandCases, geometryCases, planCases } from "./generate.js";
 import { applyToDocument, geometry, readAndWrite } from "./run.js";
@@ -58,7 +58,12 @@ const validForItsVersion = (document: unknown) =>
     : planValid(document);
 
 /** The commands that only undo others: the reducer applies them, the format leaves them out. */
-const INVERSE_ONLY = new Set(["image.restoreRedactions", "image.setRedactionOrder"]);
+const INVERSE_ONLY = new Set([
+  "image.restoreLayers",
+  "image.setLayerOrder",
+  "image.restoreRedactions",
+  "image.setRedactionOrder",
+]);
 
 /**
  * Refusals the schemas express themselves. The others, a crop outside its
@@ -83,6 +88,11 @@ const STRUCTURAL = new Set([
   "unknown-redaction-mode",
   "invalid-region",
   "invalid-colour",
+  "unknown-layer-kind",
+  "invalid-box",
+  "invalid-opacity",
+  "invalid-text",
+  "text-too-long",
 ]);
 
 const refusal = ({ expected }: ConformanceCase) =>
@@ -145,6 +155,66 @@ describe("the format schemas agree with the readers", () => {
     );
   });
 
+  it("agree on which characters text can hold", () => {
+    // The reducer's check and the schema's pattern are written apart: they
+    // must refuse the same characters, at every boundary of every range.
+    const text = ajv.compile({
+      $ref: `${FORMATS}/hm-image-plan/v2.schema.json#/$defs/text`,
+    });
+    const layer = (value: string) => ({
+      key: "t",
+      kind: "text",
+      name: "",
+      visible: true,
+      opacity: 100,
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+      rotation: 0,
+      text: value,
+      font: "serif",
+      bold: false,
+      colour: "#000000",
+      align: "start",
+    });
+    const accepted = (value: string) => {
+      try {
+        applyToDocument({
+          plan: toImagePlanDocument(createPlan("s"), sources),
+          command: { type: "image.insertLayers", at: 0, layers: [layer(value)] },
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    // Every code point near a refused range, and a sample of the rest.
+    const near = [
+      0x00, 0x09, 0x0a, 0x0b, 0x1f, 0x20, 0x7e, 0x7f, 0x80, 0x2029, 0x202a, 0x202e, 0x202f, 0x2065,
+      0x2066, 0x2069, 0x206a,
+    ];
+    for (let code = 0; code <= 0x2100; code += 1) {
+      const value = String.fromCodePoint(code);
+      expect(accepted(value), `U+${code.toString(16)}`).toBe(text(value));
+    }
+    fc.assert(
+      fc.property(
+        fc.array(fc.oneof(fc.constantFrom(...near), fc.integer({ min: 0, max: 0x10ffff })), {
+          maxLength: 6,
+        }),
+        (codes) => {
+          // Lone surrogates aren't code points a JSON document carries.
+          const value = String.fromCodePoint(
+            ...codes.filter((code) => code < 0xd800 || code > 0xdfff),
+          );
+          expect(accepted(value)).toBe(text(value));
+        },
+      ),
+      { numRuns: 1_000 },
+    );
+  });
+
   it("never let the reader accept a document the schema refuses", () => {
     const document = planArb.map((state) => toImagePlanDocument(state, sources));
     const nested = document.chain((value) =>
@@ -166,8 +236,19 @@ describe("the format schemas agree with the readers", () => {
             })),
           ),
     );
+    // One layer with a field replaced or added, where the document has any.
+    const layered = document.chain((value) =>
+      value.layers.length === 0
+        ? fc.constant(value as unknown)
+        : fc.nat(value.layers.length - 1).chain((index) =>
+            mutated(fc.constant(value.layers[index] as object)).map((changed) => ({
+              ...value,
+              layers: value.layers.map((item, at) => (at === index ? changed : item)),
+            })),
+          ),
+    );
     fc.assert(
-      fc.property(fc.oneof(mutated(document), nested, redacted), (value) => {
+      fc.property(fc.oneof(mutated(document), nested, redacted, layered), (value) => {
         let accepted = true;
         try {
           readAndWrite(value);

@@ -31,7 +31,7 @@ const asJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 /**
  * A plan with every part set: a crop, a turn and a flip, develop, a filter,
- * two redactions, a size and a title.
+ * a layer of each kind, two redactions, a size and a title.
  */
 const EDITED: ImagePlan = {
   base: {
@@ -41,7 +41,54 @@ const EDITED: ImagePlan = {
     develop: { ...NEUTRAL_DEVELOP, exposure: 20, contrast: -15 },
     filter: { preset: "sepia", strength: 60 },
   },
-  layers: [],
+  layers: [
+    {
+      key: "caption",
+      kind: "text",
+      name: "",
+      visible: true,
+      opacity: 100,
+      x: 2,
+      y: 20,
+      width: 30,
+      height: 8,
+      rotation: 0,
+      text: "Harbour\nat dusk 📷",
+      font: "sans-serif",
+      bold: true,
+      colour: "#ffffff",
+      align: "center",
+    },
+    {
+      key: "ring",
+      kind: "shape",
+      name: "Ring",
+      visible: true,
+      opacity: 60,
+      x: -5,
+      y: 3,
+      width: 20,
+      height: 20,
+      rotation: 450,
+      shape: "ellipse",
+      fill: null,
+      stroke: { colour: "#ff0000", width: 2 },
+    },
+    {
+      key: "inset",
+      kind: "image",
+      name: "",
+      visible: false,
+      opacity: 100,
+      x: 25,
+      y: 0,
+      width: 12,
+      height: 9,
+      rotation: 3599,
+      source: "t",
+      crop: { x: 100, y: 100, width: 1_200, height: 900 },
+    },
+  ],
   redactions: [
     { key: "face", mode: "solid", x: 4, y: 5, width: 12, height: 8, colour: "#000000" },
     { key: "plate", mode: "pixelate", x: -3, y: 20, width: 30, height: 15 },
@@ -72,6 +119,12 @@ const PROTOTYPE_NAMED = JSON.parse(
       toString: { width: 30, height: 24 },
     },
     base: { ...BASE.base, source: "PROTO", crop: null },
+    // The image layer's source is one of them too, with a crop of its whole size.
+    layers: BASE.layers.map((layer) =>
+      layer.kind === "image"
+        ? { ...layer, source: "constructor", crop: { x: 0, y: 0, width: 20, height: 16 } }
+        : layer,
+    ),
   }).replaceAll('"PROTO"', '"__proto__"'),
 ) as typeof BASE;
 
@@ -146,6 +199,53 @@ export function commandCases(): ConformanceFile {
   });
   // `__proto__` as an own key of a command's values, as JSON.parse makes it.
   const protoValues = JSON.parse('{"__proto__": 10}') as unknown;
+  const layerCommon = (key: string) => ({
+    key,
+    name: "",
+    visible: true,
+    opacity: 100,
+    x: 1,
+    y: 2,
+    width: 10,
+    height: 5,
+    rotation: 0,
+  });
+  const textLayer = (key: string, changes: Record<string, unknown> = {}) => ({
+    ...layerCommon(key),
+    kind: "text",
+    text: "Hello",
+    font: "serif",
+    bold: false,
+    colour: "#102030",
+    align: "start",
+    ...changes,
+  });
+  const shapeLayer = (key: string, changes: Record<string, unknown> = {}) => ({
+    ...layerCommon(key),
+    kind: "shape",
+    shape: "rectangle",
+    fill: "#102030",
+    stroke: null,
+    ...changes,
+  });
+  const imageLayer = (key: string, changes: Record<string, unknown> = {}) => ({
+    ...layerCommon(key),
+    kind: "image",
+    source: "s",
+    crop: null,
+    ...changes,
+  });
+  const insertLayers = (at: unknown, ...layers: unknown[]) => ({
+    type: "image.insertLayers",
+    at,
+    layers,
+  });
+  const removeLayers = (...keys: unknown[]) => ({ type: "image.removeLayers", keys });
+  const moveLayers = (to: unknown, ...keys: unknown[]) => ({ type: "image.moveLayers", keys, to });
+  const updateLayers = (...updates: [unknown, unknown][]) => ({
+    type: "image.updateLayers",
+    updates: updates.map(([key, props]) => ({ key, props })),
+  });
   const solid = (key: string, changes: Record<string, unknown> = {}) => ({
     key,
     mode: "solid",
@@ -179,6 +279,7 @@ export function commandCases(): ConformanceFile {
   // A plan with as many redactions as the format holds.
   const full = {
     ...BASE,
+    layers: [],
     redactions: Array.from({ length: 1_024 }, (_, index) => pixelate(`r${index}`)),
   };
 
@@ -204,6 +305,276 @@ export function commandCases(): ConformanceFile {
       "refuses a crop past the size of the source keyed __proto__",
       onNamed(crop(0, 0, 11, 8)),
       refused("crop-outside-source"),
+    ],
+    ["inserts a text layer over the others", on(insertLayers(3, textLayer("t"))), applied],
+    ["inserts a shape under every layer", on(insertLayers(0, shapeLayer("s"))), applied],
+    [
+      "inserts an image layer of another source, cropped",
+      on(
+        insertLayers(
+          1,
+          imageLayer("i", { source: "t", crop: { x: 0, y: 0, width: 4_000, height: 3_000 } }),
+        ),
+      ),
+      applied,
+    ],
+    [
+      "inserts layers keyed __proto__, constructor and toString",
+      on(
+        insertLayers(0, textLayer("__proto__"), shapeLayer("constructor"), imageLayer("toString")),
+      ),
+      applied,
+    ],
+    [
+      "inserts text of 1,000 code points outside the BMP, which are 2,000 UTF-16 units",
+      on(insertLayers(0, textLayer("t", { text: "𝄞".repeat(1_000) }))),
+      applied,
+    ],
+    [
+      "inserts text with line feeds, right-to-left letters and a zero-width joiner, which are text",
+      on(insertLayers(0, textLayer("t", { text: "שלום\nعالم\n👩\u200D💻" }))),
+      applied,
+    ],
+    [
+      "inserts a layer at the box's limits, turned by 359.9 degrees",
+      on(
+        insertLayers(
+          0,
+          shapeLayer("s", { x: -65_536, y: 65_536, width: 65_536, height: 1, rotation: 3_599 }),
+        ),
+      ),
+      applied,
+    ],
+    ["removes a layer", on(removeLayers("ring")), applied],
+    ["removes every layer", on(removeLayers("inset", "caption", "ring")), applied],
+    ["moves the top layer to the bottom", on(moveLayers(0, "inset")), applied],
+    ["moves two layers up, which keep their order", on(moveLayers(1, "ring", "caption")), applied],
+    [
+      "moves a layer's box and turns it",
+      on(updateLayers(["ring", { x: 10, y: -4, rotation: 900 }])),
+      applied,
+    ],
+    [
+      "hides a layer and fades another, at once",
+      on(updateLayers(["caption", { visible: false }], ["ring", { opacity: 0 }])),
+      applied,
+    ],
+    [
+      "changes a text layer's text and colour",
+      on(updateLayers(["caption", { text: "", colour: "#000000" }])),
+      applied,
+    ],
+    [
+      "gives a shape a fill and removes its stroke",
+      on(updateLayers(["ring", { fill: "#00ff00", stroke: null }])),
+      applied,
+    ],
+    ["removes an image layer's crop", on(updateLayers(["inset", { crop: null }])), applied],
+    [
+      "names a layer with 100 code points",
+      on(updateLayers(["ring", { name: "𝄞".repeat(100) }])),
+      applied,
+    ],
+    ["updates nothing of a layer with empty props", on(updateLayers(["caption", {}])), applied],
+    [
+      "refuses a layer whose key a redaction has",
+      on(insertLayers(0, textLayer("face"))),
+      refused("duplicate-key"),
+    ],
+    [
+      "refuses a redaction whose key a layer has",
+      on(insert(0, solid("caption"))),
+      refused("duplicate-key"),
+    ],
+    [
+      "refuses a layer of an unknown kind",
+      on(insertLayers(0, { ...shapeLayer("s"), kind: "sticker" })),
+      refused("unknown-layer-kind"),
+    ],
+    [
+      "refuses a layer index past the end",
+      on(insertLayers(4, textLayer("t"))),
+      refused("invalid-index"),
+    ],
+    [
+      "refuses text of 1,001 code points",
+      on(insertLayers(0, textLayer("t", { text: "𝄞".repeat(1_001) }))),
+      refused("text-too-long"),
+    ],
+    [
+      "refuses a name of 101 code points",
+      on(insertLayers(0, textLayer("t", { name: "x".repeat(101) }))),
+      refused("text-too-long"),
+    ],
+    [
+      "refuses text with a tab",
+      on(insertLayers(0, textLayer("t", { text: "a\tb" }))),
+      refused("invalid-text"),
+    ],
+    [
+      "refuses text with a carriage return",
+      on(insertLayers(0, textLayer("t", { text: "a\r\nb" }))),
+      refused("invalid-text"),
+    ],
+    [
+      "refuses text with a NUL",
+      on(insertLayers(0, textLayer("t", { text: "a\u0000b" }))),
+      refused("invalid-text"),
+    ],
+    [
+      "refuses text with a right-to-left override, which shows it in another order",
+      on(insertLayers(0, textLayer("t", { text: "invoice\u202Efdp.exe" }))),
+      refused("invalid-text"),
+    ],
+    [
+      "refuses text with a directional isolate",
+      on(insertLayers(0, textLayer("t", { text: "a\u2066b\u2069" }))),
+      refused("invalid-text"),
+    ],
+    [
+      "refuses a name with a right-to-left override",
+      on(insertLayers(0, textLayer("t", { name: "\u202Eeman" }))),
+      refused("invalid-text"),
+    ],
+    [
+      "refuses an opacity over 100",
+      on(insertLayers(0, textLayer("t", { opacity: 101 }))),
+      refused("invalid-opacity"),
+    ],
+    [
+      "refuses a fractional opacity",
+      on(insertLayers(0, textLayer("t", { opacity: 50.5 }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a box of no width",
+      on(insertLayers(0, textLayer("t", { width: 0 }))),
+      refused("invalid-box"),
+    ],
+    [
+      "refuses a rotation of 3600",
+      on(insertLayers(0, textLayer("t", { rotation: 3_600 }))),
+      refused("invalid-box"),
+    ],
+    [
+      "refuses a box further than 65,536 pixels from the origin",
+      on(insertLayers(0, textLayer("t", { y: -65_537 }))),
+      refused("invalid-box"),
+    ],
+    [
+      "refuses a layer with a fractional box",
+      on(insertLayers(0, textLayer("t", { x: 0.5 }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses an unknown font",
+      on(insertLayers(0, textLayer("t", { font: "Comic Sans MS" }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a text colour with an alpha",
+      on(insertLayers(0, textLayer("t", { colour: "#ffffff80" }))),
+      refused("invalid-colour"),
+    ],
+    [
+      "refuses a shape with neither a fill nor a stroke",
+      on(insertLayers(0, shapeLayer("s", { fill: null, stroke: null }))),
+      refused("empty-shape"),
+    ],
+    [
+      "refuses a stroke of no width",
+      on(insertLayers(0, shapeLayer("s", { stroke: { colour: "#000000", width: 0 } }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses an image layer whose source the document doesn't list",
+      on(insertLayers(0, imageLayer("i", { source: "u" }))),
+      refused("unknown-source"),
+    ],
+    [
+      "refuses an image layer whose source only Object.prototype has",
+      on(insertLayers(0, imageLayer("i", { source: "toString" }))),
+      refused("unknown-source"),
+    ],
+    [
+      "refuses an image layer's crop past its own source, though it fits the base's",
+      on(
+        insertLayers(
+          0,
+          imageLayer("i", { source: "s", crop: { x: 0, y: 0, width: 41, height: 30 } }),
+        ),
+      ),
+      refused("crop-outside-source"),
+    ],
+    [
+      "refuses a text layer with a shape's field",
+      on(insertLayers(0, { ...textLayer("t"), fill: "#000000" })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a layer without a name",
+      on(insertLayers(0, { ...textLayer("t"), name: undefined })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses to remove a layer the plan doesn't have",
+      on(removeLayers("face")),
+      refused("unknown-layer"),
+    ],
+    [
+      "refuses to move a layer past the end of the rest",
+      on(moveLayers(3, "ring")),
+      refused("invalid-index"),
+    ],
+    [
+      "refuses to update a layer the plan doesn't have",
+      on(updateLayers(["plate", { opacity: 1 }])),
+      refused("unknown-layer"),
+    ],
+    [
+      "refuses to set a shape's field on a text layer",
+      on(updateLayers(["caption", { fill: "#000000" }])),
+      refused("wrong-kind"),
+    ],
+    [
+      "refuses to set text on an image layer",
+      on(updateLayers(["inset", { text: "hello" }])),
+      refused("wrong-kind"),
+    ],
+    [
+      "refuses to change a layer's kind",
+      on(updateLayers(["caption", { kind: "shape" }])),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses to change a layer's key",
+      on(updateLayers(["caption", { key: "title" }])),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses an update that leaves a shape with nothing to draw",
+      on(updateLayers(["ring", { stroke: null }])),
+      refused("empty-shape"),
+    ],
+    [
+      "refuses an update to a source the document doesn't list",
+      on(updateLayers(["inset", { source: "u" }])),
+      refused("unknown-source"),
+    ],
+    [
+      "refuses an update whose crop doesn't fit the layer's new source",
+      on(updateLayers(["inset", { source: "s" }])),
+      refused("crop-outside-source"),
+    ],
+    [
+      "refuses an update with a right-to-left override in its text",
+      on(updateLayers(["caption", { text: "\u202E" }])),
+      refused("invalid-text"),
+    ],
+    [
+      "refuses one layer more than the format holds, counted with the redactions",
+      { plan: full, command: insertLayers(0, textLayer("one-more")) },
+      refused("too-many-layers"),
     ],
     ["inserts a solid redaction between two", on(insert(1, solid("new"))), applied],
     ["inserts two redactions at the end", on(insert(2, solid("a"), pixelate("b"))), applied],
@@ -582,10 +953,67 @@ export function planCases(): ConformanceFile {
       document({ redactions: [{ ...BASE.redactions[1], key: "" }] }),
       invalidDocument("invalid-key"),
     ],
+    ["reads a plan with no layers", document({ layers: [] }), applied],
     [
-      "refuses a layer, which arrives in a later version",
+      "refuses a layer and a redaction with one key",
+      document({ redactions: [{ ...BASE.redactions[0], key: "ring" }] }),
+      invalidDocument("duplicate-key"),
+    ],
+    [
+      "refuses a layer of an unknown kind",
+      document({ layers: [{ ...BASE.layers[1], kind: "sticker" }] }),
+      invalidDocument("unknown-layer-kind"),
+    ],
+    [
+      "refuses a layer without every field of its kind",
       document({ layers: [{ key: "t", kind: "text" }] }),
       invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses an image layer whose source the document doesn't list",
+      document({ layers: [{ ...BASE.layers[2], source: "u" }] }),
+      invalidDocument("unknown-source"),
+    ],
+    [
+      "refuses an image layer's crop outside its own source",
+      document({ layers: [{ ...BASE.layers[2], crop: { x: 3_999, y: 0, width: 2, height: 1 } }] }),
+      invalidDocument("crop-outside-source"),
+    ],
+    [
+      "refuses text with a right-to-left override",
+      document({ layers: [{ ...BASE.layers[0], text: "\u202Etxet" }] }),
+      invalidDocument("invalid-text"),
+    ],
+    [
+      "refuses text of 1,001 code points",
+      document({ layers: [{ ...BASE.layers[0], text: "𝄞".repeat(1_001) }] }),
+      invalidDocument("text-too-long"),
+    ],
+    [
+      "refuses a shape with neither a fill nor a stroke",
+      document({ layers: [{ ...BASE.layers[1], stroke: null }] }),
+      invalidDocument("empty-shape"),
+    ],
+    [
+      "refuses an opacity over 100",
+      document({ layers: [{ ...BASE.layers[1], opacity: 150 }] }),
+      invalidDocument("invalid-opacity"),
+    ],
+    [
+      "refuses a box turned by 3600",
+      document({ layers: [{ ...BASE.layers[1], rotation: 3_600 }] }),
+      invalidDocument("invalid-box"),
+    ],
+    [
+      "refuses layers and redactions that are more than 1,024 together",
+      document({
+        layers: BASE.layers,
+        redactions: Array.from({ length: 1_022 }, (_, index) => ({
+          ...BASE.redactions[1],
+          key: `r${index}`,
+        })),
+      }),
+      invalidDocument("too-many-layers"),
     ],
     [
       "refuses an animation, which arrives in a later version",

@@ -3,8 +3,12 @@ import {
   createPlan,
   DEVELOP_ADJUSTMENTS,
   FILTER_PRESETS,
+  type ImageLayer,
   type ImagePlan,
   type ImageRedaction,
+  LAYER_ALIGNMENTS,
+  LAYER_FONTS,
+  LAYER_SHAPES,
 } from "../../src/core/model/plan.js";
 import { createImageReducer, type ImageCommand } from "../../src/core/operations/commands.js";
 
@@ -126,25 +130,138 @@ const propsFor = (item: ImageRedaction) => {
   return fc.oneof(sameMode, withMode);
 };
 
+const box = {
+  x: position,
+  y: position,
+  width: length,
+  height: length,
+  rotation: fc.integer({ min: 0, max: 3_599 }),
+};
+const common = (itemKey: string) => ({
+  key: fc.constant(itemKey),
+  name: fc.constantFrom("", "Caption", "Logo 2", "שכבה", "📷"),
+  visible: fc.boolean(),
+  opacity: fc.integer({ min: 0, max: 100 }),
+  ...box,
+});
+// Text with line feeds, emoji and right-to-left letters, and no control it can't hold.
+const layerText = fc
+  .array(fc.constantFrom("a", "Z", " ", "\n", "é", "📷", "ש", "中"), { maxLength: 12 })
+  .map((parts) => parts.join(""));
+const stroke = fc.record({ colour, width: fc.integer({ min: 1, max: 40 }) });
+/** A fill, a stroke or both: a shape has at least one. */
+const paint = fc.oneof(
+  fc.record({ fill: colour, stroke: fc.constant(null) }),
+  fc.record({ fill: fc.constant(null), stroke }),
+  fc.record({ fill: colour, stroke }),
+);
+
+const textOwn = {
+  text: layerText,
+  font: fc.constantFrom(...LAYER_FONTS),
+  bold: fc.boolean(),
+  colour,
+  align: fc.constantFrom(...LAYER_ALIGNMENTS),
+};
+const imageOwn = { source: fc.constant("s"), crop };
+
+/** A layer with the given key: text, a shape, or an image of source `s`. */
+const layerWith = (itemKey: string): fc.Arbitrary<ImageLayer> =>
+  fc.oneof(
+    fc.record({ ...common(itemKey), kind: fc.constant("text" as const), ...textOwn }),
+    fc
+      .tuple(
+        fc.record({
+          ...common(itemKey),
+          kind: fc.constant("shape" as const),
+          shape: fc.constantFrom(...LAYER_SHAPES),
+        }),
+        paint,
+      )
+      .map(([layer, painted]) => ({ ...layer, ...painted })),
+    fc.record({ ...common(itemKey), kind: fc.constant("image" as const), ...imageOwn }),
+  );
+
+/** Some fields that apply to a layer: of every layer, of its box, or of its own kind. */
+const layerPropsFor = (item: ImageLayer): fc.Arbitrary<Record<string, unknown>> => {
+  const shared = fc.record(
+    {
+      name: fc.constantFrom("", "Caption", "שכבה"),
+      visible: fc.boolean(),
+      opacity: fc.integer({ min: 0, max: 100 }),
+      ...box,
+    },
+    { requiredKeys: [] },
+  );
+  const own: fc.Arbitrary<Record<string, unknown>> =
+    item.kind === "text"
+      ? fc.record(textOwn, { requiredKeys: [] })
+      : item.kind === "image"
+        ? fc.record(imageOwn, { requiredKeys: [] })
+        : fc.oneof(
+            paint,
+            fc.record({ shape: fc.constantFrom(...LAYER_SHAPES) }, { requiredKeys: [] }),
+          );
+  return fc.tuple(shared, own).map(([a, b]) => ({ ...a, ...b }));
+};
+
 /** Some of the keys, at least one, in any order. */
 const someOf = (keys: readonly string[]) => fc.shuffledSubarray([...keys], { minLength: 1 });
 
 /** Any valid command for this plan, including those on its redactions. */
 export function commandOn(state: ImagePlan): fc.Arbitrary<ImageCommand> {
   const keys = state.redactions.map((redaction) => redaction.key);
-  const insert = fc
-    .uniqueArray(
-      key.filter((value) => !keys.includes(value)),
-      { minLength: 1, maxLength: 3 },
-    )
-    .chain((fresh) =>
+  const layerKeys = state.layers.map((layer) => layer.key);
+  // A new item's key is free in the whole plan, not only in its own list.
+  const taken = [...keys, ...layerKeys];
+  const fresh = fc.uniqueArray(
+    key.filter((value) => !taken.includes(value)),
+    { minLength: 1, maxLength: 3 },
+  );
+  const onLayers: fc.Arbitrary<ImageCommand>[] = [
+    fresh.chain((names) =>
       fc.record({
-        type: fc.constant("image.insertRedactions" as const),
-        at: fc.nat(keys.length),
-        redactions: fc.tuple(...fresh.map(redactionWith)),
+        type: fc.constant("image.insertLayers" as const),
+        at: fc.nat(layerKeys.length),
+        layers: fc.tuple(...names.map(layerWith)),
       }),
+    ),
+  ];
+  if (layerKeys.length > 0) {
+    onLayers.push(
+      someOf(layerKeys).map((chosen) => ({ type: "image.removeLayers" as const, keys: chosen })),
+      someOf(layerKeys).chain((chosen) =>
+        fc.record({
+          type: fc.constant("image.moveLayers" as const),
+          keys: fc.constant(chosen),
+          to: fc.nat(layerKeys.length - chosen.length),
+        }),
+      ),
+      someOf(layerKeys).chain((chosen) =>
+        fc.record({
+          type: fc.constant("image.updateLayers" as const),
+          updates: fc.tuple(
+            ...chosen.map((itemKey) =>
+              fc.record({
+                key: fc.constant(itemKey),
+                props: layerPropsFor(
+                  state.layers.find((layer) => layer.key === itemKey) as ImageLayer,
+                ),
+              }),
+            ),
+          ),
+        }),
+      ),
     );
-  if (keys.length === 0) return fc.oneof(command, insert);
+  }
+  const insert = fresh.chain((names) =>
+    fc.record({
+      type: fc.constant("image.insertRedactions" as const),
+      at: fc.nat(keys.length),
+      redactions: fc.tuple(...names.map(redactionWith)),
+    }),
+  );
+  if (keys.length === 0) return fc.oneof(command, insert, ...onLayers);
   const remove = someOf(keys).map((chosen) => ({
     type: "image.removeRedactions" as const,
     keys: chosen,
@@ -171,7 +288,7 @@ export function commandOn(state: ImagePlan): fc.Arbitrary<ImageCommand> {
       ),
     }),
   );
-  return fc.oneof(command, insert, remove, move, update);
+  return fc.oneof(command, insert, remove, move, update, ...onLayers);
 }
 
 /** A plan and a sequence of commands, each valid on the plan the one before it gives. */
