@@ -4,6 +4,7 @@
 - **Date:** 2026-11-17
 - **Partially supersedes:** [ADR 0003](0003-layer-plan-document-model.md): its layer geometry (layers in canvas pixels), its list of layer kinds, its layer commands and `canvas`. The rest of ADR 0003 stands
 - **Amended:** 2026-11-17: a font family and `bold` are requests the device answers, as measured, under "Text is drawn by the device's fonts"
+- **Amended:** 2026-11-17, by [ADR 0014](0014-drawing-strokes-and-arrows.md): a stroke holds `runs` of points, so that a long stroke stays one stroke
 
 ## Context
 
@@ -65,7 +66,7 @@ Positioned kinds (`text`, `shape`, `image`) have a **box**: `x`, `y`, `width` an
   - **Control characters other than a line feed are refused,** as `invalid-text`.
 - **`shape`:** `shape`, `rectangle` or `ellipse`; `fill`, a colour or none; and `stroke`, a colour and a width in whole pixels, or none. At least one of `fill` and `stroke` is set. The stroke is drawn inside the box, so the box is the shape's bounds.
 - **`image`:** a registered `source` and its own `crop` in that source's pixels, drawn to fill the box. An animated source shows its first frame.
-- **`drawing`** (0.5.0): `x` and `y`, its origin in the scene, and `strokes`. Each stroke has a `colour`, a `width` and `points`, a flat list `[x0, y0, x1, y1, …]` of whole pixels from the origin. One drawing holds many strokes, so a scribble is one row in the layers list and one layer against `maxLayers`. Moving a drawing changes its origin, never its points. A highlighter is a wide stroke in a drawing with a lower `opacity`: the layer is composited as a group, so overlapping strokes don't darken each other.
+- **`drawing`** (0.5.0): `x` and `y`, its origin in the scene, and `strokes`. Each stroke has a `colour`, a `width` and `runs`, each a flat list `[x0, y0, x1, y1, …]` of whole pixels from the origin; a stroke has more than one run only when it's long ([ADR 0014](0014-drawing-strokes-and-arrows.md)). One drawing holds many strokes, so a scribble is one row in the layers list and one layer against `maxLayers`. Moving a drawing changes its origin, never its points. A highlighter is a wide stroke in a drawing with a lower `opacity`: the layer is composited as a group, so overlapping strokes don't darken each other.
 - **`arrow`** (0.5.0): `from` and `to`, each a point in whole scene pixels, a `colour` and a `width`. The head's size follows the width. It's its own layer because each arrow is an object people select and re-aim.
 
 **Colours** are `#rrggbb` in lower case. Transparency is the layer's `opacity`.
@@ -108,7 +109,7 @@ Layers, redactions and, later, frames are each a list of keyed items, and one re
 - **Each widening is a new version, never an addition to the last one.** Readers are strict. A 0.4 reader given a document with a drawing must refuse it as `UNSUPPORTED_FORMAT` with `unknown-format-version`, which a host can show as "update the application". If version 2 had grown a new kind instead, that reader would refuse the same document as `INVALID_DOCUMENT`, which a host shows as a damaged file. Filter presets are different: a preset is a value in a field, and they're only ever added ([ADR 0006](0006-develop-and-filters.md)).
 - **`hm-image-command` takes the same version numbers.** Version 1's commands are valid in every later version, unchanged.
 - **Each version has a pure migration from the one before:** version 1 to 2 adds `layers: []`, `redactions: []` and `animation: null`; 2 to 3 changes only the version; 3 to 4 also gives each source its `frames`, 1. A reader accepts every version up to its own, migrates step by step, and writes its own. Every earlier version stays readable.
-- **Strict, as version 1 is:** every object sets `additionalProperties: false`; kinds are told apart by `kind`; lists carry `maxItems` and text `maxLength`, in code points. A schema's ceilings are fixed: 1,024 layers and redactions together, and 2,000 points in a stroke. The file policy's limits apply below them.
+- **Strict, as version 1 is:** every object sets `additionalProperties: false`; kinds are told apart by `kind`; lists carry `maxItems` and text `maxLength`, in code points. A schema's ceilings are fixed: 1,024 layers and redactions together, and 2,000 points in a stroke's run, with 64 runs in a stroke. The file policy's limits apply below them.
 - **Keys are data.** Layers are a list, so a key is a string in a field, never a property name. The vectors use `__proto__`, `constructor` and `toString` as keys and as source ids. A key repeated anywhere in a document is `duplicate-key`.
 - **Beyond the schema,** a reader checks what depends on the whole document: an image layer's source is one the document lists, and its crop fits that source.
 - **Vectors** cover each command with its inverse's round trip, each rejection, each migration, text at its limits with characters outside the Basic Multilingual Plane, and the scene geometry: a box's corners through every crop, rotation and flip, and stroke simplification.
