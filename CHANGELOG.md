@@ -1,5 +1,182 @@
 # @hussmartinez/image-sdk
 
+## 0.4.0
+
+### Minor Changes
+
+- [#72](https://github.com/ie-huss-martinez/image-sdk/pull/72) [`3b155e4`](https://github.com/ie-huss-martinez/image-sdk/commit/3b155e48a51eeaa84f9ecc4550ffde78fc61ddd8) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add `session.insertImage(file)`: open a second image and add it to the document as an image layer, as one undoable step ([ADR 0003](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0003-layer-plan-document-model.md), [ADR 0004](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0004-image-limits.md)).
+  
+  - **Checked like any file:** probed from its headers and held to the file policy before it's decoded, in the worker.
+  - **Placed for you, or by you:** by default the image is centred on what's shown, at its own size or half the composition's, whichever is smaller, over every layer, and set against the plan's rotation and flips, so it's seen as the file is, not turned or mirrored. `place` returns your own commands instead.
+  - **Held only while it's needed:** the session keeps the source while the plan, an undo or redo step, or an export in progress refers to it, and releases it then. Opening another file releases them all.
+  - **Limits:** `maxFiles` counts every source the session holds, and `maxSessionSize` their decoded bytes. When an image doesn't fit, the session drops the oldest undo steps that alone keep another image; if that can't free enough, nothing is dropped and it fails with `SESSION_TOO_LARGE`.
+  - **The snapshot** gains `sources`, every source held; `inserting`; and `historyTrimmed`, true once undo steps were dropped to make room.
+  - **Events:** `onEvent` gets `{ type: "insert" }`, with no file name, size or source id, like the others.
+  
+  `ImageSessionSnapshot` has three new required fields, and `ImageSessionEvent["type"]` a new value: code that builds a snapshot by hand, such as a test double, or switches over every event type, needs them.
+  
+  A plan with an image layer still can't be previewed or exported until the renderer draws layers.
+
+- [#73](https://github.com/ie-huss-martinez/image-sdk/pull/73) [`e8fef44`](https://github.com/ie-huss-martinez/image-sdk/commit/e8fef444f7d4f64ad53f9c4cd22b0ef887807637) Thanks [@hussmartinez](https://github.com/hussmartinez)! - **Breaking:** the editor's text moves out of the server-safe entry. `imageMessages`, from `@hussmartinez/image-sdk`, now holds only what the headless entry produces: sdk-core's messages, and the text of every error code and limit warning. The editor's own text, and ui's, are in `imageEditorMessages`, from `@hussmartinez/image-sdk/react` and `@hussmartinez/image-sdk/element` ([ADR 0012](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0012-interface-text-outside-the-server-safe-entry.md)).
+  
+  The headless entry is about 1.9 kB smaller (20.09 kB to 18.16 kB brotli), and servers that import it no longer carry text they never show. No key or text changes, and the `messages` props and the element's `messages` property work as before.
+  
+  ### Migrating
+  
+  Most hosts change nothing: `<ImageEditor messages={{ "tools.crop": "Trim" }} />` works as it did.
+  
+  If you type your overrides, or build your own `Messages` for the editor's components:
+  
+  ```ts
+  // Before
+  import { type ImageMessageCatalogue, imageMessages } from "@hussmartinez/image-sdk";
+  const overrides: MessageOverrides<ImageMessageCatalogue> = { "tools.crop": "Trim" };
+  const messages = createMessages(imageMessages, { overrides });
+  
+  // After
+  import {
+    type ImageEditorMessageCatalogue,
+    imageEditorMessages,
+  } from "@hussmartinez/image-sdk/react";
+  const overrides: MessageOverrides<ImageEditorMessageCatalogue> = { "tools.crop": "Trim" };
+  const messages = createMessages(imageEditorMessages, { overrides });
+  ```
+  
+  Headless code that shows errors keeps `imageMessages`: `createMessages(imageMessages).error(error)` still has every code's text.
+
+- [#78](https://github.com/ie-huss-martinez/image-sdk/pull/78) [`dd51552`](https://github.com/ie-huss-martinez/image-sdk/commit/dd51552de0352ae6f06ed9ff26e6b6f8147086c2) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Layers can be mirrored, and a layer added to a mirrored image reads as it should ([ADR 0009](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0009-scene-space-layers-and-plan-versions.md)).
+  
+  - **`flipX` on a layer's box.** Every text, shape and image layer has `flipX`, a boolean: whether it's mirrored left to right about its box's own vertical axis, before the box is turned. It's required, in the plan, in `image.insertLayers` and in a plan document of format version 2; `image.updateLayers` sets it. A mirror top to bottom is `flipX` with a half turn (`rotation: 1800`).
+  - **New layers read correctly.** The tools that add text, shapes and images set a new layer against the image's flips as well as its rotation, so text added to a mirrored image isn't backwards. Flipping the image afterwards still mirrors its layers with it.
+  - **`session.insertImage` does the same by default:** without `place`, the image is placed neither turned nor mirrored in the output, whatever the plan's orientation.
+  - **"Mirror" in the layers panel** flips the selected layer about its own box.
+  - **`layerToScene`** applies the mirror, so `layerToOutput`, `sceneToLayerSource`, the renderer and the editor's frames follow. Exports stay redacted under a mirrored image layer.
+  
+  If you build layers yourself, add `flipX: false` to each.
+
+- [#71](https://github.com/ie-huss-martinez/image-sdk/pull/71) [`774279c`](https://github.com/ie-huss-martinez/image-sdk/commit/774279cb7cf2054f30c34cb1c8313a3d76d3f2d8) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add layers to the plan: text, shapes and images over the base ([ADR 0009](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0009-scene-space-layers-and-plan-versions.md)). This is the model and its commands; drawing them and the editor's tools follow.
+  
+  - **`plan.layers`** is a list of `ImageLayer`s, drawn bottom to top: `ImageTextLayer`, `ImageShapeLayer` and `ImageImageLayer`. Each has a key, a name, `visible`, an `opacity` from 0 to 100, and a box in whole pixels of the base's oriented source, turned about its centre in tenths of a degree, with `flipX` to mirror it. Like redactions, layers stay on the pixels they cover when the image is cropped or turned.
+  - **Text** is drawn as large as fits in its box, in one of three generic fonts, and can't hold control characters other than a line feed, or the bidirectional override and isolate controls, which can make text read differently from what's stored.
+  - **Commands:** `image.insertLayers`, `image.removeLayers`, `image.moveLayers` and `image.updateLayers`, each undone exactly. `image.updateLayers` sets any field of a layer's kind except its key and kind, for several layers at once. New `INVALID_COMMAND` reasons, such as `wrong-kind` and `invalid-text`, are listed in `ImageCommandRejection`.
+  - **Keys and limits are shared with redactions:** a key is unique across both lists, and `maxLayers` counts both.
+  - **Format version 2** now holds layers. `formats/hm-image-plan/v2.schema.json` and `formats/hm-image-command/v2.schema.json` describe them, and `readImagePlanDocument` checks that an image layer's source is one the document lists.
+  
+  `ImagePlan["layers"]` changes type, from an always-empty list to `readonly ImageLayer[]`. Code that only reads plans from `createPlan` or the session needs no change.
+  
+  Until the renderer draws layers, exporting or previewing a plan with any fails with `UNSUPPORTED_PLAN`, as for any part a renderer can't draw. An image layer's source must be one the session holds; today that's the open image, and opening further images for layers comes with the image tool.
+
+- [#77](https://github.com/ie-huss-martinez/image-sdk/pull/77) [`f26d606`](https://github.com/ie-huss-martinez/image-sdk/commit/f26d60609eac4a7e09be1fe6e21468e273cf07b5) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add the tools that add text, shapes and images to an image, and the fields that edit them ([ADR 0013](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0013-layers-in-the-editor.md)).
+  
+  - **Four tools,** in the default toolbar before Layers: `image.add-text` (shortcut `T`), `image.add-rectangle`, `image.add-ellipse` and `image.add-image`. Each adds a layer in the middle of the image as it's shown, the right way round whatever the image's rotation and flips, as one undo step, and shows the layers with it selected.
+  - **Text** starts empty, with focus in its field. It's drawn as it's typed, and the typing is one undo step when it pauses. Its panel sets the font (sans, serif or mono, drawn by the device's fonts), alignment, bold and colour. Pasted text is taken as the plan takes it: line breaks become line feeds, and what text can't hold is dropped.
+  - **Shapes** start as a red outline. Their panel turns the fill and the outline on and off and sets their colours and the outline's width; a shape always keeps one of the two.
+  - **Images** are chosen in the tool's own file picker and stay on the device. `insertImage(file)` is new on `ImageEditorHandle` and on `<hm-image-editor>`, for a file the host has.
+  - **Colours** are any `#rrggbb`, typed or picked from six swatches.
+  - **What can't be added,** such as a file that isn't an image or a layer over `maxLayers`, is said on the stage, and nothing changes.
+  
+  **API changes**
+  
+  - `ImageEditorHandle` and the element gain `insertImage(file)`.
+  - `ImageEditorState` gains `error`, and `focus` on `layers`.
+  - `ImageToolContext` gains `chooseLayerImage`. If you build your own tool context for `ImageToolbar`, add it: a function that asks for an image and passes it to `session.insertImage`.
+  - If you pass your own `toolbar` groups, add the four tool ids to show them.
+  
+  This release needs `@hussmartinez/ui` 0.9.0 or later, for its colour field and multi-line text field.
+
+- [#75](https://github.com/ie-huss-martinez/image-sdk/pull/75) [`d5268b3`](https://github.com/ie-huss-martinez/image-sdk/commit/d5268b3cbb8464546e74437e9edcce6b93a0d128) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add the Layers tool to the editor: a list of the plan's layers and a frame on the image for each ([ADR 0013](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0013-layers-in-the-editor.md)).
+  
+  - **The tool.** `image.layers`, in the default toolbar after Redact, with the `L` shortcut. Like the editor's other single-key shortcuts, it works only while focus is inside the editor, and never in a field.
+  - **In the panel.** The layers, the top one first: each has a button that selects it and one that shows or hides it. Under the list, buttons move the selected layer up and down the stack, duplicate it and delete it, and fields set its name, position, size, turn and opacity.
+  - **On the stage.** Each layer has a frame, turned as the layer is. A press selects the top layer under the pointer, a drag moves it, and the selected frame's handles resize it. A hidden layer's frame shows while it's selected.
+  - **Keys.** On a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it, `Delete` or `Backspace` removes it, and `Escape` closes the layers: the crop frame's keys. In the list, `Alt` (`Option` on macOS) with the Up or Down arrow moves the focused layer up or down the stack, and `Delete` or `Backspace` removes it.
+  - **Each gesture is one undo step,** and the preview shows the layer where it's being moved.
+  - **Building blocks and API:** `ImageLayersPanel`; and `layers` on `ImageEditorState`, with `"layers"` as a value of its `tool`.
+  
+  This release doesn't add layers from the editor yet: the text, shape and image tools come next. A layer comes from a plan, from `image.insertLayers`, or from `session.insertImage(file)`.
+  
+  If you pass your own `toolbar` groups, add `"image.layers"` to show the tool. If you render the building blocks yourself, render `ImageLayersPanel` with the others: `ImageStage` shows the frames whenever the tool is active.
+
+- [#62](https://github.com/ie-huss-martinez/image-sdk/pull/62) [`076426d`](https://github.com/ie-huss-martinez/image-sdk/commit/076426d31bba7be1263b0deaa8bd0bdf90067f99) Thanks [@hussmartinez](https://github.com/hussmartinez)! - **Breaking:** `ImagePlan` gains three required fields, `layers`, `redactions` and `animation`, and the plan's portable format is now `hm-image-plan` version 2.
+  
+  This is the model for redaction and layers, which arrive in the next changes ([ADR 0009](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0009-scene-space-layers-and-plan-versions.md), [ADR 0010](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0010-redaction.md)).
+  
+  - **Redactions in the plan.** `plan.redactions` is a list of `ImageRedaction`s: rectangles in whole pixels of the base's oriented source, `solid` with a colour or `pixelate`. They're placed in the scene, so they stay on the pixels they cover when the image is cropped or turned.
+  - **Commands.** `image.insertRedactions`, `image.removeRedactions`, `image.moveRedactions` and `image.updateRedactions`, each undone exactly. New `INVALID_COMMAND` reasons, such as `duplicate-key` and `invalid-region`, are listed in `ImageCommandRejection`.
+  - **`layers` and `animation`** are in the plan now, always `[]` and `null`, so later releases change what they hold, not the plan's shape.
+  - **`maxLayers`** now applies: a step that adds redactions past it fails with `TOO_MANY_LAYERS`.
+  - **`checkPlanSupport` and `UNSUPPORTED_PLAN`.** A renderer or processor refuses a plan with a part it can't draw, instead of drawing the image without it. Custom `ImageRenderer`s and `ImageProcessor`s should call `checkPlanSupport(plan, [...])` with the parts they draw.
+  - **Format version 2.** `readImagePlanDocument` reads versions 1 and 2, and `toImagePlanDocument` writes version 2. The schemas are `formats/hm-image-plan/v2.schema.json` and `formats/hm-image-command/v2.schema.json`; version 1's stay in the package.
+  
+  ### Migrating
+  
+  - **Plans from `createPlan` and from the session** already have the new fields. Nothing changes.
+  - **Stored plan documents** (`hm-image-plan` version 1): read them with `readImagePlanDocument`, which migrates them. No stored document needs rewriting.
+  - **Plans you build or store as plain `ImagePlan` objects,** such as a controlled editor's `plan`: add `layers: []`, `redactions: []` and `animation: null`. `session.applyPlan`, and so `<ImageEditor plan>`, refuses a plan without them with `INVALID_COMMAND`, so an old plan is never mistaken for one with no redactions.
+  - **Exhaustive `switch`es over `ImageCommand["type"]`** need the six new command types.
+
+- [#69](https://github.com/ie-huss-martinez/image-sdk/pull/69) [`e51f74b`](https://github.com/ie-huss-martinez/image-sdk/commit/e51f74bb7f388d9a3c029eb0fb15cb3dc240d8ae) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add the Redact tool to the editor ([ADR 0010](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0010-redaction.md)).
+  
+  - **The tool.** `image.redact`, in the default toolbar after Crop, with the `R` shortcut. Like the editor's other single-key shortcuts, it works only while focus is inside the editor, and never in a field.
+  - **On the stage.** Each redacted area is a frame over the image. Drag across the image to draw one. On a focused frame, the arrow keys move it by a pixel, `Shift` with an arrow resizes it, `Delete` or `Backspace` removes it, and `Escape` ends redacting: the crop frame's keys.
+  - **In the panel.** A solid colour (black or white) or pixelation, with a warning that pixelation may not hide text; "Add area", which needs no dragging; number fields for the selected area's position and size; and a list of every area, each with a button to remove it.
+  - **Each gesture is one undo step,** and the preview shows the area redacted while it's being drawn or moved.
+  - **The export summary** says how many areas are redacted, and warns when any is pixelated.
+  - **Building blocks and API:** `ImageRedactPanel`; `createImageKey`, for the keys new redactions need; `sceneRectToComposition`, `compositionRectToScene` and `fitRedactionRegion`, the geometry that places an area's frame; and `redact` on `ImageEditorState`, with `"redact"` as a value of its `tool`.
+  
+  The editor offers black and white. The plan holds any `#rrggbb` colour, so a host that builds its own commands isn't limited to those.
+  
+  If you pass your own `toolbar` groups, add `"image.redact"` to show the tool. If you render the building blocks yourself, render `ImageRedactPanel` with the others: `ImageStage` shows the frames whenever the tool is active.
+  
+  This release needs `@hussmartinez/ui` 0.8.0 or later, for the tool's icon.
+
+- [#74](https://github.com/ie-huss-martinez/image-sdk/pull/74) [`5692971`](https://github.com/ie-huss-martinez/image-sdk/commit/5692971c4bf2b6d4594ee3a9eac281207cd58b0f) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Layers are now drawn: the preview shows text, shape and image layers, and exports contain them ([ADR 0009](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0009-scene-space-layers-and-plan-versions.md)).
+  
+  - **The preview is the export.** Both are drawn by the same code from the same layout, so a preview at the export's size matches it pixel for pixel.
+  - **Text** is laid out once and scaled to the largest size that fits its box, breaking lines only at line feeds, aligned by the text's own direction: `start` is the right edge for Hebrew or Arabic text.
+  - **Fonts are the device's.** `sans-serif`, `serif` and `monospace` are drawn by whatever the browser resolves them to, and `bold` by the browser's bold for that family. The SDK ships and fetches no font, so the same plan can look different on another device: two families may be the same font there, and `bold` may be a real bold face, a synthesised one, or no different from regular.
+  - **Shapes** are rectangles and ellipses that fill their box, with the stroke inside it.
+  - **Image layers** draw a crop of another source, scaled and turned.
+  - **Opacity fades a layer as one:** a shape's stroke doesn't show through its fill.
+  - **Layers are never developed:** adjustments and filters change the photo, not what's drawn over it.
+  - **Redactions cover layers too.** An image layer's pixels under a redaction are replaced before the layer is scaled, as the base's are, so an export doesn't depend on them; text and shapes over a redaction are covered exactly.
+  - **New geometry,** for hosts and other renderers: `layerToOutput`, `layerToScene`, `sceneToOutput`, `sceneToLayerSource`, `fitTextLines`, `isRightToLeft`, `applyMatrix`, `invertMatrix` and the `ImageMatrix` type.
+  
+  A layer with an opacity under 100 costs one more canvas the size of the output while it's drawn, and an image layer under a redaction one the size of its source, each checked against the file policy first.
+  
+  A plan that names an image layer's source the engine doesn't hold fails with a `TypeError`, as one that names an unknown base does. Custom `ImageRenderer`s and `ImageProcessor`s that don't draw layers keep refusing such plans through `checkPlanSupport`.
+
+- [#66](https://github.com/ie-huss-martinez/image-sdk/pull/66) [`670bf9f`](https://github.com/ie-huss-martinez/image-sdk/commit/670bf9f1d7d002351de321d0a48d69bf7d6571f3) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Redactions are now rendered: the preview shows them, and exports don't contain what they cover ([ADR 0010](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0010-redaction.md)).
+  
+  - **A solid redaction destroys its pixels.** An export's bytes don't depend on them: two images that differ only inside the region export to identical files, in PNG, JPEG and WebP, at any output size, crop and orientation. The covered pixels are replaced before the image is scaled, so nothing of them is left along the region's edge, and the region is then filled on whole output pixels, rounded outward.
+  - **A pixelated redaction keeps only block averages.** Its blocks are the larger of 8 pixels and a twelfth of the region's longer side, so a strip over a line of text is one row of blocks. Pixelation obscures; for text and numbers, use solid.
+  - **Redactions follow the image.** They're placed on the source's pixels, so they stay on what they cover through every crop, turn and flip.
+  - **Nothing is drawn without them.** If the renderer can't make the copy it draws from, the preview keeps its last frame and an export fails, with the error's own code.
+  - **Only exports are redacted.** The plan describes the redaction, and the source the session holds is unchanged; `engine.thumbnail` returns it as it is.
+  - **New geometry,** for hosts and other renderers that place or draw redactions: `redactionRectInOutput`, `redactionBlocksInOutput`, `redactionBlocksInScene`, `redactionBlockSize` and the `ImageRect` type.
+  
+  A redaction costs memory while it exists: one more canvas the size of the image. It's checked against `maxImagePixels` and `maxImageDimension` before it's allocated.
+  
+  Custom `ImageRenderer`s and `ImageProcessor`s that don't draw redactions keep refusing such plans through `checkPlanSupport`. To draw them, follow ADR 0010's two passes, and pass `"redactions"` to `checkPlanSupport`.
+
+### Patch Changes
+
+- [#68](https://github.com/ie-huss-martinez/image-sdk/pull/68) [`8a5c4c8`](https://github.com/ie-huss-martinez/image-sdk/commit/8a5c4c8009301ab2c89f5624b6907701e3259746) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Fix the crop frame's resize keys taking the browser's Back and Forward. The frame resized with `Alt` and the arrow keys, and `Alt` with Left or Right goes back or forward a page in Chrome and Firefox on Windows and Linux, so resizing a crop could leave the page and lose the edit.
+  
+  **The keys have changed:**
+  
+  | Key, on the crop frame | Before | Now |
+  |---|---|---|
+  | Arrows | Move by 1 pixel | Move by 1 pixel |
+  | `Shift` with an arrow | Move by 10 pixels | **Resize by 1 pixel** |
+  | `Alt` with an arrow | Resize by 1 pixel | Nothing: left to the browser |
+  
+  There's no 10-pixel step now: hold an arrow, or type a value in the crop panel's fields. The frame's description, which screen readers read, names the new keys. If your own documentation lists the crop keys, update it.
+
+- [#65](https://github.com/ie-huss-martinez/image-sdk/pull/65) [`4b19eba`](https://github.com/ie-huss-martinez/image-sdk/commit/4b19eba149ed911c7bad9ce19a62d22cbd98fe73) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Fix the empty editor ignoring the mouse: a click on "Choose an image" did nothing, and a file dropped on the empty stage wasn't opened. The stage's canvas frame covered the drop zone, so only the keyboard and the toolbar's "Open image" worked. The Cancel button shown while an image opens was covered the same way, and now takes clicks too.
+  
+  Nothing changes in how the editor looks. If you worked around this with your own `z-index` or `pointer-events` on `.hm-image-stage-frame` or `.hm-image-stage-drop`, you can remove it.
+
 ## 0.3.0
 
 ### Minor Changes
