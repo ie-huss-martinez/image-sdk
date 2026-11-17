@@ -3,7 +3,7 @@
 # e2e/fixtures/, with real encoders in a pinned Debian image. They're solid
 # colours made here, never photos (CONTRIBUTING.md). The files that need
 # assembling, such as JPEGs with secondary images and the GIF whose frame
-# overflows its screen, are built from these by e2e/fixtures.ts at test time.
+# is larger than its screen, are built from these by e2e/fixtures.ts at test time.
 #
 # The committed files are the source of truth: regenerating them gives
 # equivalent images, not necessarily identical bytes.

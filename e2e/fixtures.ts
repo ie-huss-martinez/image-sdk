@@ -122,13 +122,29 @@ export function jpegUltraHdr(): Uint8Array {
 }
 
 /**
- * A GIF whose only frame, 96 × 64, overflows its 48 × 32 logical screen,
- * which the SDK's probe refuses (ADR 0001): the matrix records what each
- * browser does with it.
+ * A GIF whose only frame, 96 × 64 at the screen's corner, is larger than
+ * its 48 × 32 logical screen. The SDK's probe and decoder take the frame as
+ * the image (docs/adr/0011): the matrix holds that every browser does.
  */
 export function gifFrameOutsideScreen(): Uint8Array {
   const bytes = fixture("large.gif").slice();
   bytes.set([...be16(48).reverse(), ...be16(32).reverse()], 6);
+  return bytes;
+}
+
+/**
+ * A GIF whose only frame, 96 × 64, starts 8 pixels in from the left of its
+ * 96 × 64 logical screen, so it runs past the right edge. The SDK's probe
+ * refuses it (docs/adr/0011): the matrix records that the browsers don't
+ * agree on the image's size.
+ */
+export function gifFramePastScreenEdge(): Uint8Array {
+  const bytes = fixture("large.gif").slice();
+  // The image descriptor follows the header, a table of two colours and a
+  // graphic control extension; its left position is the two bytes after 0x2c.
+  const descriptor = 13 + 6 + 8;
+  if (bytes[descriptor] !== 0x2c) throw new Error("large.gif isn't laid out as expected");
+  bytes.set(be16(8).reverse(), descriptor + 1);
   return bytes;
 }
 

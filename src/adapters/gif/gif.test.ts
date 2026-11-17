@@ -128,6 +128,57 @@ describe("the GIF frame table (docs/adr/0011)", () => {
     expect(disposals).toEqual([0, 1, 2, 3, 3, 0, 0, 0]);
   });
 
+  it("takes a first frame at the screen's corner that covers it as the screen, as browsers do", async () => {
+    const pixels = (width: number, height: number) =>
+      Array.from({ length: width * height }, (_, i) => i % 4);
+    const first = (width: number, height: number, x = 0, y = 0) =>
+      writeGif({ ...TWO_BY_TWO, frames: [{ x, y, width, height, pixels: pixels(width, height) }] });
+    // Larger both ways, and larger one way while as large the other.
+    for (const [width, height] of [
+      [5, 4],
+      [5, 2],
+      [2, 4],
+    ] as const) {
+      const bytes = first(width, height);
+      const file = readGifFrames(bytes);
+      expect([file.width, file.height]).toEqual([width, height]);
+      const probed = await probeGif(createWindowReader(new Blob([bytes.slice()])));
+      expect(probed).toMatchObject({
+        stored: { width, height },
+        frames: 1,
+        decodedPixelBound: width * height,
+      });
+      // The frame alone, every pixel of it.
+      expect(screens(bytes)[0]).toHaveLength(width * height);
+      expect(screens(bytes)[0]?.every((pixel) => pixel[3] === 255)).toBe(true);
+    }
+    // Wider but not as tall, or away from the corner: browsers don't agree on the size.
+    for (const bytes of [first(5, 1), first(1, 5), first(5, 4, 1, 0), first(2, 2, 0, 1)]) {
+      expect(refusal(() => readGifFrames(bytes)).problem).toBe(
+        "a frame doesn't fit inside the logical screen",
+      );
+      await expect(probeGif(createWindowReader(new Blob([bytes.slice()])))).rejects.toMatchObject({
+        code: "INVALID_IMAGE",
+      });
+    }
+    // Only the first frame is the screen: a later one that's larger ends the file.
+    const later = writeGif({
+      ...TWO_BY_TWO,
+      frames: [{ pixels: [0, 1, 2, 3] }, { width: 5, height: 4, pixels: pixels(5, 4) }],
+    });
+    expect(readGifFrames(later)).toMatchObject({ width: 2, height: 2, frames: { length: 1 } });
+    // And later frames are held to the screen the first one made.
+    const grown = writeGif({
+      ...TWO_BY_TWO,
+      frames: [
+        { width: 5, height: 4, pixels: pixels(5, 4) },
+        { x: 3, y: 2, width: 2, height: 2, pixels: [0, 1, 2, 3] },
+      ],
+    });
+    expect(readGifFrames(grown)).toMatchObject({ width: 5, height: 4, frames: { length: 2 } });
+    expect((await probeGif(createWindowReader(new Blob([grown.slice()])))).frames).toBe(2);
+  });
+
   it("tells an absent loop count from an infinite and a finite one", () => {
     const loopOf = (extra: Partial<GifFixture>) =>
       readGifFrames(writeGif({ ...TWO_BY_TWO, ...extra })).loop;

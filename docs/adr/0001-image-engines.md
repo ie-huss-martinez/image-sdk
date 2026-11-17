@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-12
 - **Partially superseded by:** [0010](0010-redaction.md), for the blurred redaction, which is deferred
-- **Amended by:** [0011](0011-gif-and-animation.md): every GIF is decoded by the SDK's own decoder, and opens as an animation from 0.6.0
+- **Amended by:** [0011](0011-gif-and-animation.md): every GIF is decoded by the SDK's own decoder, and opens as an animation from 0.6.0; a GIF's frames end where the file stops being one, and a first frame that covers the screen is the image
 
 ## Context
 
@@ -29,7 +29,7 @@ The first releases bundle **no third-party runtime code**, except the small GIF 
   | PNG and APNG | `IHDR`, which must be the first chunk | `acTL`, cross-checked against every `fcTL`, each of which must fit inside `IHDR` |
   | JPEG | the `SOFn` segment that the scan follows, found by walking every segment | one |
   | WebP | `VP8 `, `VP8L` or the `VP8X` canvas | every `ANMF` frame, each of which must fit inside the `VP8X` canvas |
-  | GIF | the logical screen descriptor | every image descriptor, each of which must fit inside the logical screen |
+  | GIF | the logical screen descriptor, or the first frame when it's at the screen's corner and covers it ([ADR 0011](0011-gif-and-animation.md)) | every image descriptor, each of which must fit inside that screen |
   | AVIF and HEIF | the primary item's `ispe` in the `meta` box, through `iprp`/`ipma`, cropped by its `clap` clean aperture, which encoders add when they pad to whole coding blocks, and turned by `irot` and `imir` as [ADR 0005](0005-colour-orientation-and-metadata.md) reads them; the decoded bound is the sum over every item decoded with it (see below) | one; image sequences are refused |
   | BMP | `BITMAPINFOHEADER` or later | one |
 

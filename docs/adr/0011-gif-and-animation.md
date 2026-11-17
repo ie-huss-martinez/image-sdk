@@ -39,12 +39,13 @@ Many GIFs in use are malformed, and browsers show them. A decoder that refused e
 - **A colour that isn't there isn't drawn.** A pixel that names a colour past the end of its table is left as it was, like a transparent one, and a frame with no table at all, neither its own nor the file's, draws nothing. Browsers open these, and each draws something else: black in Chromium, another colour of the table in Firefox, nothing in WebKit. Drawing nothing invents no colour.
 - **The reserved disposal methods are read as browsers' decoders read them:** 4 as 3, and 5 to 7 as "keep". Every browser opens a file that has them.
 - **A code size of 1 is read,** as files with two colours have it, though the format says 2 to 8. Chromium reads it the same way; Firefox refuses such a file, and WebKit shows it empty.
-- **Still refused:** a first frame outside the logical screen, where the browsers that open the file don't agree on the image's size; a screen with no pixels, which every browser refuses; and a first frame with a code size of 0 or above 8, which would name colours past 255.
+- **A first frame at the screen's corner that covers it is the screen.** When the first frame is at 0, 0 and at least as wide and as tall as the logical screen, the image is that frame alone, at the frame's size, and later frames are held to it. Every browser shows exactly that. The probe reports the frame's size, so the limits are checked against what's decoded.
+- **Still refused:** any other first frame outside the logical screen, where browsers don't agree on the image's size (wider than the screen but not as tall, or away from its corner: Chromium makes one size of it, Firefox and WebKit another); a screen with no pixels, which every browser refuses; and a first frame with a code size of 0 or above 8, which would name colours past 255.
 - **Bytes after the trailer** were always ignored.
 
 What this costs is that a truncated animation opens shorter than it was made, without a word. Whether and how the editor says that a file's frames ended before its trailer is for the animation work in 0.6.0.
 
-These rules are held by tests in the three engines: each defect opens as exactly the sound file's first frame, and a corpus of 80 files from other decoders' test suites (`test/fixtures/gif-corpus`), of which 70 open as the frame the browser draws and 10 are refused, each for a reason the test names.
+These rules are held by tests in the three engines: each defect opens as exactly the sound file's first frame, and a corpus of 80 files from other decoders' test suites (`test/fixtures/gif-corpus`), of which 71 open as the frame the browser draws and 9 are refused, each for a reason the test names.
 
 ### What the worker holds
 
@@ -139,7 +140,7 @@ The decoder joins the render worker, within the 28 kB [ADR 0009](0009-scene-spac
 
 ### What this changes in earlier records
 
-- **[ADR 0001](0001-image-engines.md):** a GIF is no longer decoded by `createImageBitmap`, even a still one, and from 0.6.0 it opens as an animation. Animated PNG and WebP still open as stills.
+- **[ADR 0001](0001-image-engines.md):** a GIF is no longer decoded by `createImageBitmap`, even a still one, and from 0.6.0 it opens as an animation. Animated PNG and WebP still open as stills. Its probe no longer needs every block up to a trailer, and takes a first frame that covers the screen as the image's size: ADR 0001 refused that file because the browser's decode would have been larger than the bound, and now the bound is the frame's and the decoder is ours.
 - **[ADR 0002](0002-workers-and-assets.md):** its test that no message between the page and the render worker carries a pixel buffer gains one exception beside an export's `Blob`: a GIF export's frames, transferred through the page one at a time and never read there.
 - **[ADR 0004](0004-image-limits.md):** `maxAnimationPixels` joins the limits, and an animated source counts against `maxSessionSize` as what the worker holds.
 
