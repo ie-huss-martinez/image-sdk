@@ -1,5 +1,11 @@
 import type { ShortcutRegistry, ToolRegistry } from "@hussmartinez/sdk-core";
-import { IconButton, type IconComponent, Toolbar, ToolbarGroup } from "@hussmartinez/ui/react";
+import {
+  IconButton,
+  type IconComponent,
+  Toolbar,
+  ToolbarGroup,
+  Tooltip,
+} from "@hussmartinez/ui/react";
 import type { ReactNode } from "react";
 import type { ImageTool, ImageToolContext } from "../../features/tool-types.js";
 import { useImageDocument, useImageEditorState, useImageMessages } from "../hooks.js";
@@ -47,17 +53,30 @@ export function ImageToolbar(props: ImageToolbarProps): ReactNode {
             .map((tool) => {
               const Icon = icons[tool.icon];
               const keys = shortcuts?.ariaKeyShortcuts(tool.id);
-              return (
+              const disabled = !(tool.isEnabled?.(state) ?? true);
+              // A tool that says why it can't run stays in the keyboard's
+              // order, described by the reason, in a tooltip sighted users
+              // get too. The others are plainly disabled.
+              const reason = disabled ? tool.unavailable?.(state) : undefined;
+              const button = (
                 <IconButton
                   key={tool.id}
                   data-tool={tool.id}
                   label={t(tool.label)}
                   icon={Icon ? <Icon /> : null}
-                  disabled={!(tool.isEnabled?.(state) ?? true)}
+                  disabled={disabled}
+                  {...(reason ? { focusableWhenDisabled: true } : {})}
                   {...(tool.isActive ? { pressed: tool.isActive(state) } : {})}
                   {...(keys ? { "aria-keyshortcuts": keys } : {})}
                   onClick={() => void tool.run(context)}
                 />
+              );
+              return reason ? (
+                <Tooltip key={tool.id} content={t(reason)}>
+                  {button}
+                </Tooltip>
+              ) : (
+                button
               );
             })}
         </ToolbarGroup>

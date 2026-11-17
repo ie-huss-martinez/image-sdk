@@ -265,6 +265,7 @@ export const imageEditorMessages: {
     readonly "filters.strength": "Strength";
     readonly "toolbar.groups.export": "Export";
     readonly "tools.export": "Export";
+    readonly "tools.exportWhileCropping": "Apply or cancel the crop before exporting.";
     readonly "export.title": "Export image";
     readonly "export.description": "The file is made on this device, and nothing is uploaded.";
     readonly "export.format": "Format";

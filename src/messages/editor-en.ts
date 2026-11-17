@@ -224,6 +224,7 @@ export const imageEditorText = /* @__PURE__ */ defineMessages({
   "filters.strength": "Strength",
   "toolbar.groups.export": "Export",
   "tools.export": "Export",
+  "tools.exportWhileCropping": "Apply or cancel the crop before exporting.",
   "export.title": "Export image",
   "export.description": "The file is made on this device, and nothing is uploaded.",
   "export.format": "Format",

@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-13
 - **Amended:** 2026-11-15: `features` and `theme` on `<ImageEditor>` are defined, under "The React API"; and `renderer` is dropped from its props, since the engine already decides where pixels come from and a renderer attaches to the one canvas the stage creates. A factory can be added later without breaking anything
+- **Amended:** 2026-11-17: Export works while Redact or Layers is open and ends the tool; while a crop is unapplied it waits and says why. See "Export while a tool is open"
 - **Amended:** 2026-11-17: the crop frame resizes with `Shift` and the arrows, not `Alt`, which is the browser's Back and Forward with Left and Right; and there's no 10-pixel step. See "Checked against browser and system defaults"
 
 ## Context
@@ -120,6 +121,16 @@ Focus always lands somewhere meaningful, and never on `<body>`:
 - **After "Reset all",** on the panel's first slider.
 - **Dialogs** are `ui`'s native `<dialog>` with `showModal()`, which returns focus to the opener on close.
 - **Announcements** go through `ui`'s Announcer, politely: open done or failed, crop applied, undo and redo, and export done.
+
+### Export while a tool is open
+
+Export was off whenever a tool had the stage, with no reason given: someone who added text and went straight to Export found it greyed out, and had to find the panel's Done first.
+
+- **While redacting or arranging layers, Export works, and ends the tool.** Nothing in those tools is unconfirmed: every edit is already a step, except a gesture still running, such as text being typed or an area moved with the keys. That gesture becomes its step as the tool's panel and frames close, before the dialog reads the plan. So what's exported is what's on the stage.
+- **While a crop is unapplied, Export waits, and says why.** A crop isn't an edit until it's applied ("The crop tool"). Exporting would have to choose between applying a crop the user hasn't confirmed and dropping one they've set up, and either is a surprise in a file that can't be taken back.
+- **A button that waits with a reason stays in the keyboard's order.** It's `aria-disabled`, not `disabled`, and described by the reason, "Apply or cancel the crop before exporting.", in `ui`'s Tooltip, which sighted users get on hover and focus too. Pressing it does nothing.
+- **How a tool says so:** `unavailable(state)` on an `ImageTool` returns a message key while the tool can't run for a reason the user can act on. The toolbar does the rest. With no image open, Export gives no reason: every tool is off, and the stage already says what to do.
+- **Buttons without a reason stay plainly disabled,** as before.
 
 ### The export dialog
 

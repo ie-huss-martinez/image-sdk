@@ -36,7 +36,15 @@ export interface ImageToolContext {
  *
  * @public
  */
-export type ImageTool = Tool<ImageToolState, ImageToolContext, undefined>;
+export type ImageTool = Tool<ImageToolState, ImageToolContext, undefined> & {
+  /**
+   * Why the tool can't run right now, as a key of the editor's messages,
+   * when there's something the user can do about it. The toolbar keeps a
+   * button with a reason in the keyboard's order and describes it with the
+   * text, so "why is this greyed out" has an answer.
+   */
+  readonly unavailable?: (state: ImageToolState) => string | undefined;
+};
 
 /** Whether a document is open. */
 export const hasDocument = ({ snapshot }: ImageToolState): boolean => snapshot.plan !== null;

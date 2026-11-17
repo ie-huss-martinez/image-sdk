@@ -109,6 +109,107 @@ describe("the export dialog (docs/adr/0007)", () => {
     expect(session().getSnapshot().canUndo).toBe(false);
   });
 
+  it("ends redacting when it's used, with a gesture still running made its step first", async () => {
+    const { session } = await opened();
+    await click(document.querySelector('[data-tool="image.redact"]') as HTMLElement);
+    await click(
+      [...document.querySelectorAll("button")].find(
+        (b) => b.textContent === "Add area",
+      ) as HTMLElement,
+    );
+    await until(() => document.querySelector(".hm-image-redact-frame") !== null, "the frame");
+    const frame = () => document.querySelector<HTMLElement>(".hm-image-redact-frame");
+    const before = session().getSnapshot().plan?.redactions[0];
+    // A key moves the area on the stage; the step waits for the keys to stop.
+    await act(async () => {
+      frame()?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }),
+      );
+    });
+    expect(session().getSnapshot().plan?.redactions[0]).toEqual(before);
+    // Export is there to use, not greyed out.
+    expect(exportButton().disabled).toBe(false);
+    expect(exportButton().getAttribute("aria-disabled")).not.toBe("true");
+    await openDialog();
+    // Redacting ended, and the move is in the plan the dialog exports.
+    expect(document.querySelector('section[aria-label="Redact"]')).toBeNull();
+    expect(frame()).toBeNull();
+    expect(session().getSnapshot().plan?.redactions[0]).toMatchObject({
+      x: (before?.x ?? 0) + 1,
+      y: before?.y,
+    });
+    expect(summary()).toContain("1 area is redacted.");
+    expect(dialog()?.contains(document.activeElement)).toBe(true);
+    // One step for the area and one for the move: nothing else was added.
+    expect(session().undo()).toBe(true);
+    expect(session().undo()).toBe(true);
+    expect(session().undo()).toBe(false);
+  });
+
+  it("ends the layers when it's used, with text still being typed in the export", async () => {
+    const { session } = await opened();
+    await click(document.querySelector('[data-tool="image.add-text"]') as HTMLElement);
+    const field = () =>
+      document.querySelector<HTMLTextAreaElement>(".hm-image-layers-text textarea");
+    await until(() => document.activeElement === field(), "focus in the text field");
+    await act(async () => {
+      const input = field() as HTMLTextAreaElement;
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(
+        input,
+        "Hi",
+      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    // Typed, and not yet a step.
+    expect(session().getSnapshot().plan?.layers[0]).toMatchObject({ text: "" });
+    await openDialog();
+    expect(document.querySelector('section[aria-label="Layers"]')).toBeNull();
+    expect(session().getSnapshot().plan?.layers[0]).toMatchObject({ kind: "text", text: "Hi" });
+    // Closing it returns to the image, with the layers closed.
+    await click(inDialog("Cancel"));
+    expect(dialog()).toBeNull();
+    expect(document.querySelector('[data-tool="image.layers"]')?.getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it("waits while a crop is unapplied, and says why, on a button the keyboard can reach", async () => {
+    const { session } = await opened();
+    await click(document.querySelector('[data-tool="image.crop"]') as HTMLElement);
+    await until(() => document.querySelector('[aria-label="Crop area"]') !== null, "cropping");
+    const button = exportButton();
+    // Disabled for assistive technology, but still focusable, so its reason can be read.
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(button.disabled).toBe(false);
+    const described = (button.getAttribute("aria-describedby") ?? "")
+      .split(" ")
+      .map((id) => document.getElementById(id)?.textContent ?? "")
+      .join(" ");
+    expect(described).toContain("Apply or cancel the crop before exporting.");
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    // Pressing it does nothing: the crop is neither applied nor lost.
+    await click(button);
+    expect(dialog()).toBeNull();
+    expect(document.querySelector('[aria-label="Crop area"]')).not.toBeNull();
+    expect(session().getSnapshot().canUndo).toBe(false);
+    // Once the crop is applied or cancelled, it's an ordinary button again.
+    await click(
+      [...document.querySelectorAll("button")].find(
+        (b) => b.textContent === "Cancel",
+      ) as HTMLElement,
+    );
+    await until(
+      () => document.querySelector('[aria-label="Crop area"]') === null,
+      "the crop to end",
+    );
+    expect(exportButton().getAttribute("aria-disabled")).not.toBe("true");
+    expect(exportButton().hasAttribute("aria-describedby")).toBe(false);
+    await openDialog();
+    expect(dialog()).not.toBeNull();
+  });
+
   it("applies the size and kept fields as one step, exports, focuses Download, and announces", async () => {
     const { session, changes, start } = await opened();
     await openDialog();

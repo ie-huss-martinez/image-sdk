@@ -474,6 +474,57 @@ test.describe("the image editor", () => {
     await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible();
   });
 
+  test("exports straight from an open tool, and says why it waits while cropping", async ({
+    page,
+  }) => {
+    await page.goto("/editor.html");
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose an image" }).click();
+    await (await chooser).setFiles({
+      name: "photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(fixture("quadrants.png")),
+    });
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
+    const exportButton = page.getByRole("button", { name: "Export", exact: true });
+    // Text, typed, then straight to Export with the keyboard: no Done first.
+    await page.getByRole("button", { name: "Rotate left" }).focus();
+    await page.keyboard.press("t");
+    await expect(page.getByRole("textbox", { name: "Text", exact: true })).toBeFocused();
+    await page.keyboard.type("Hi");
+    await expect(exportButton).toBeEnabled();
+    await exportButton.focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "Export image" });
+    await expect(dialog).toBeVisible();
+    // The layers closed, and what was typed is in the plan that's exported.
+    await expect(page.getByRole("region", { name: "Layers", exact: true })).toHaveCount(0);
+    const text = await page.evaluate(
+      () => (window.imageEditor.plan() as { layers: { text?: string }[] }).layers[0]?.text,
+    );
+    expect(text).toBe("Hi");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toHaveCount(0);
+    // Cropping: Export waits, reachable with the keyboard, and described.
+    await page.getByRole("button", { name: "Crop", exact: true }).click();
+    await expect(page.getByRole("group", { name: "Crop area" })).toBeFocused();
+    await expect(exportButton).toHaveAttribute("aria-disabled", "true");
+    await expect(exportButton).toHaveAccessibleDescription(
+      "Apply or cancel the crop before exporting.",
+    );
+    await exportButton.focus();
+    await expect(exportButton).toBeFocused();
+    // A pointer resting on it shows the reason, too.
+    await exportButton.hover();
+    await expect(page.getByText("Apply or cancel the crop before exporting.")).toBeVisible();
+    await noViolations(page);
+    await page.keyboard.press("Enter");
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Crop area" })).toBeVisible();
+  });
+
   test("crops by dragging a handle with a real mouse", async ({ page }) => {
     await page.goto("/editor.html");
     await page.evaluate(
