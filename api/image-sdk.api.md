@@ -397,7 +397,7 @@ export const imageMessages: {
     readonly "tools.flip-vertical": "Flip vertically";
     readonly "toolbar.groups.crop": "Crop";
     readonly "crop.frame": "Crop area";
-    readonly "crop.frameDescription": "{width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Alt, they resize it; Enter applies and Escape cancels.";
+    readonly "crop.frameDescription": "{width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Shift, they resize it; Enter applies and Escape cancels.";
     readonly "crop.size": "{width, number} × {height, number}, from {x, number}, {y, number}";
     readonly "crop.panel": "Crop";
     readonly "crop.x": "Left";

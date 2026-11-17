@@ -108,7 +108,7 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
   "toolbar.groups.crop": "Crop",
   "crop.frame": "Crop area",
   "crop.frameDescription":
-    "{width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Alt, they resize it; Enter applies and Escape cancels.",
+    "{width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Shift, they resize it; Enter applies and Escape cancels.",
   "crop.size": "{width, number} × {height, number}, from {x, number}, {y, number}",
   "crop.panel": "Crop",
   "crop.x": "Left",

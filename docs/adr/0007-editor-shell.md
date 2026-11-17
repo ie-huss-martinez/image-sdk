@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-13
 - **Amended:** 2026-11-15: `features` and `theme` on `<ImageEditor>` are defined, under "The React API"; and `renderer` is dropped from its props, since the engine already decides where pixels come from and a renderer attaches to the one canvas the stage creates. A factory can be added later without breaking anything
+- **Amended:** 2026-11-17: the crop frame resizes with `Shift` and the arrows, not `Alt`, which is the browser's Back and Forward with Left and Right; and there's no 10-pixel step. See "Checked against browser and system defaults"
 
 ## Context
 
@@ -58,7 +59,32 @@ A slider drag, a held arrow key on a slider, or a crop-frame drag changes the im
 The crop frame is DOM over the canvas, positioned from the same geometry the renderer uses ([ADR 0002](0002-workers-and-assets.md), [ADR 0003](0003-layer-plan-document-model.md)), so nothing interactive depends on the worker.
 
 - **It's one focusable `role="group"`,** named "Crop area", whose description is its size in source pixels, announced when it changes: "1200 × 800, from 100, 40". One tab stop: the frame, not each handle.
-- **Keys,** while the frame has focus, act as seen on screen, whatever the plan's rotation and flips: arrows move it by 1 pixel of the source, and by 10 with `Shift`; `Alt` with Left or Right moves its right edge, and with Up or Down its bottom edge, resizing. `Enter` applies the crop and returns focus to where it was; `Escape` cancels. A whole crop, from `C` to `Enter`, is one gesture: the stage shows the whole image with the frame over it, and only `Enter`, or the panel's Apply, executes one `image.setCrop`.
+- **Keys,** while the frame has focus, act as seen on screen, whatever the plan's rotation and flips:
+
+  | Key | Does |
+  |---|---|
+  | Arrows | Move the frame by 1 pixel of the source |
+  | `Shift` with an arrow | Resize it by 1 pixel: Left and Right move its right edge, Up and Down its bottom edge |
+  | `Enter` | Apply the crop, and return focus to where it was |
+  | `Escape` | Cancel a drag in progress; otherwise cancel the crop |
+
+  A whole crop, from `C` to `Enter`, is one gesture: the stage shows the whole image with the frame over it, and only `Enter`, or the panel's Apply, executes one `image.setCrop`.
+- **Checked against browser and system defaults.** The frame's first keys resized with `Alt` and moved by 10 pixels with `Shift`. `Alt` with Left and Right is Back and Forward in Chrome and Firefox on Windows and Linux, so a resize could leave the page and lose the edit. Preventing the key's default stops that in most cases, but not reliably across engines and assistive technology. pdf-sdk's [ADR 0008](https://github.com/ie-huss-martinez/pdf-sdk/blob/main/docs/adr/0008-page-organisation-in-the-editor.md) checked each modifier against Chrome's, Firefox's and Safari's shortcuts and those of Windows, macOS and GNOME, and its table decides this one:
+
+  | Combination | Taken by, in that table | Here |
+  |---|---|---|
+  | `Alt` with Left or Right | Back and Forward in Chrome and Firefox on Windows and Linux | Not used |
+  | `⌘` with Left or Right | Back and Forward in Firefox on macOS | Not used |
+  | `Control` with Up or Down, on macOS | Mission Control and App Exposé | Not used |
+  | `Alt` and `Shift` with arrows | Moving tiles in Windows; `Alt` and `Shift` alone switches the keyboard layout | Not used |
+  | `Control` and `Alt` with arrows | Workspace switching on some Linux desktops; screen rotation with some Windows graphics drivers | Not used |
+  | `Shift` with arrows | Nothing in that table. In a page, it extends a text selection, which the focused frame prevents | **Used, to resize** |
+  | Arrows | Scrolling the page, which the focused frame prevents | **Used, to move** |
+
+  - **No modifier is left for a larger step,** so there isn't one: holding an arrow repeats, and the panel's number fields take an exact value and have their own large step.
+  - **The frame takes only the arrows alone and with `Shift`.** With `Alt`, `Control` or `Meta` it does nothing and prevents nothing, so the browser and the system keep their keys ([sdk-core ADR 0030](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0030-tools-and-keyboard-shortcuts.md): `preventDefault` only for an event it handles).
+  - **Other frames over the stage use the same keys,** so the editor has one set to learn.
+  - **Tests:** a browser test presses each key in all three engines, on a page that can scroll and has a history entry, and checks that nothing scrolls or navigates; a component test checks that the modified arrows aren't prevented and move nothing.
 - **Handles** for the eight edges and corners are drag targets of at least 24 px, 44 px on touch, and `aria-hidden`: the keys and the panel's fields are their alternative ([WCAG 2.5.7](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html)).
 - **The Crop panel** has `ui` NumberFields for x, y, width and height in source pixels, and aspect presets as a SegmentedControl: free, original, 1:1, 4:3, 3:2, 16:9, and their portrait forms. A preset fits the largest crop of that ratio, centred in the current one.
 - **Crops are in whole pixels of the oriented source** ([ADR 0003](0003-layer-plan-document-model.md)). The frame snaps to them while dragging, so what's shown is what's applied.
