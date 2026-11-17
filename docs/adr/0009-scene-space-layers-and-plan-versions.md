@@ -14,7 +14,7 @@ Releases up to 0.3.0 edit one image: the plan has a `base`, an `output` and `met
 
 The plan and its commands have a portable format, `hm-image-plan` and `hm-image-command` version 1 ([the format record](../formats/hm-image-plan.md)), with strict schemas and readers. Every release here changes what a plan can hold, so each needs a rule for versions.
 
-Two records follow this one: ADR 0010 decides how a redaction is rendered and proved, and ADR 0011 decides GIF decoding, animation and GIF export. This record decides the model they share.
+Two records follow this one: [ADR 0010](0010-redaction.md) decides how a redaction is rendered and proved, and ADR 0011 decides GIF decoding, animation and GIF export. This record decides the model they share.
 
 ## Decision
 
@@ -41,7 +41,7 @@ interface ImagePlan {
 ```
 
 - **Rendering order:** the base, developed and filtered as [ADR 0006](0006-develop-and-filters.md) says; then the layers, bottom to top; then the redactions; then the output scale. Layers are never developed.
-- **Redactions aren't layers.** They're their own list, applied after every layer, with no opacity, visibility, rotation or order that matters. ADR 0010 gives the reasons and the proof.
+- **Redactions aren't layers.** They're their own list, applied after every layer, with no opacity, visibility, rotation or order that matters. [ADR 0010](0010-redaction.md) gives the reasons and the proof.
 - **A renderer never skips what it can't draw.** A plan with a layer kind, a redaction mode or an animation the renderer or processor doesn't know fails with an error. Nothing is drawn or exported without it. `sdk-core` already refuses a self-hosted worker from another package version ([ADR 0038](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0038-self-hosted-assets-and-worker-version.md)); this covers custom engines and processors too.
 
 ### Layers
@@ -91,7 +91,7 @@ Layers, redactions and, later, frames are each a list of keyed items, and one re
 - **`image.updateLayers` replaces ADR 0003's `image.transformLayers` and `image.setLayerProps`.** Moving, resizing and restyling several selected layers is one command, so one undo step. `props` may hold any field of the layer's kind except `key` and `kind`.
 - **`image.addStrokePoints` is dropped.** A stroke in progress is a transient plan ([ADR 0007](0007-editor-shell.md)), and one `image.addStrokes` commits it when the pointer lifts.
 - **`image.restoreLayers` and `image.setLayerOrder` are inverses only.** They aren't in the portable command format, like every inverse (sdk-core ADR 0045, section 1).
-- **Redactions have the same four commands,** `image.insertRedactions`, `image.removeRedactions`, `image.moveRedactions` and `image.updateRedactions` (ADR 0010).
+- **Redactions have the same four commands,** `image.insertRedactions`, `image.removeRedactions`, `image.moveRedactions` and `image.updateRedactions` ([ADR 0010](0010-redaction.md)).
 - **Every inverse is exact.** A property test applies any valid command to any valid plan, then its inverse, and requires the original plan back, field for field. The vectors carry the same round trip.
 - **Rejections** keep their form: `INVALID_COMMAND` with a `details.reason`. The new reasons are `unknown-layer`, `duplicate-key`, `invalid-index`, `wrong-kind`, `invalid-box`, `invalid-opacity`, `invalid-colour`, `invalid-text`, `text-too-long`, `empty-shape` and, as today, `unknown-source` and `crop-outside-source` for an image layer. The format record lists them all.
 - **Selection is view state.** Which layers are selected lives in the editor's state, outside the plan and the history, as ADR 0003 says.
@@ -144,7 +144,7 @@ A plan can come from a file or a host, so its text is untrusted. Text and names 
 
 ### Size budgets
 
-Each pull request sets its budget from the measured size, as [ADR 0006](0006-develop-and-filters.md) did for develop. The model, reducers, readers and migrations are expected to take the server-safe core from 14 kB to about 22 kB, and the layer renderer the worker from 17 kB to about 28 kB with ADR 0010's and ADR 0011's parts. The React entry stays within its 40 kB: tools that most sessions never open load in their own chunks.
+Each pull request sets its budget from the measured size, as [ADR 0006](0006-develop-and-filters.md) did for develop. The model, reducers, readers and migrations are expected to take the server-safe core from 14 kB to about 22 kB, and the layer renderer the worker from 17 kB to about 28 kB with [ADR 0010](0010-redaction.md)'s and ADR 0011's parts. The React entry stays within its 40 kB: tools that most sessions never open load in their own chunks.
 
 ## Alternatives considered
 

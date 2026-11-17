@@ -17,3 +17,4 @@ Use [`template.md`](template.md) for new records. Name files `NNNN-short-title.m
 | [0007](0007-editor-shell.md) | The editor shell: layout, the stage, gestures, shortcuts and focus | Accepted |
 | [0008](0008-terminal-engine-invalidation.md) | Fail closed after a render worker loses its resources | Accepted |
 | [0009](0009-scene-space-layers-and-plan-versions.md) | Scene space, layers and marks, and the plan's format versions | Accepted |
+| [0010](0010-redaction.md) | Redaction destroys pixels, and a test proves it | Accepted |
