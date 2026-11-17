@@ -12,7 +12,7 @@ import {
   type ImageSessionEvent,
 } from "../core/session/session.js";
 import { createEditorStore } from "../features/editor-state.js";
-import { createOpener, ImageContext } from "./context.js";
+import { createInserter, createOpener, ImageContext } from "./context.js";
 import { EngineBoundary } from "./EngineBoundary.js";
 import { type ImageEditorMessageCatalogue, imageEditorMessages } from "./editor-messages.js";
 import { createViewStore } from "./view-store.js";
@@ -111,6 +111,7 @@ export function ImageProvider(
   const [view] = useState(createViewStore);
   const [editor] = useState(createEditorStore);
   const [opener] = useState(() => createOpener(owned.session));
+  const [inserter] = useState(() => createInserter(owned.session, editor));
 
   useEffect(() => {
     // React's development mode unmounts and mounts again at once, so the
@@ -130,8 +131,16 @@ export function ImageProvider(
     [locale, overrides],
   );
   const value = useMemo(
-    () => ({ session: owned.session, engine: owned.engine, messages, view, editor, opener }),
-    [owned, messages, view, editor, opener],
+    () => ({
+      session: owned.session,
+      engine: owned.engine,
+      messages,
+      view,
+      editor,
+      opener,
+      inserter,
+    }),
+    [owned, messages, view, editor, opener, inserter],
   );
   // The same object gives ui's components their text, so a host's
   // `messages` reach the drop zone and dialogs too (sdk-core ADR 0046).

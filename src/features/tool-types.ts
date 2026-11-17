@@ -27,6 +27,8 @@ export interface ImageToolContext {
   readonly editor: Store<ImageEditorState>;
   /** Asks the user for an image, as the open tool does. */
   readonly chooseFile: () => void;
+  /** Asks the user for an image to add as a layer (docs/adr/0013). */
+  readonly chooseLayerImage: () => void;
 }
 
 /**

@@ -4,7 +4,8 @@ import { hasDocument, type ImageTool } from "../tool-types.js";
 /**
  * Shows and hides the layers (docs/adr/0013): while it's on, the inspector
  * lists them, and the stage shows each as a frame that selects, moves and
- * resizes it. It starts with the top layer selected, when there is one.
+ * resizes it. It starts with the top layer selected, when there is one, and
+ * asks the panel to take focus there.
  */
 export const layersTool: ImageTool = /* @__PURE__ */ defineTool({
   id: "image.layers",
@@ -25,7 +26,7 @@ export const layersTool: ImageTool = /* @__PURE__ */ defineTool({
             crop: null,
             redact: null,
             preview: null,
-            layers: { selected: top },
+            layers: { selected: top, focus: "list" },
           },
     );
   },

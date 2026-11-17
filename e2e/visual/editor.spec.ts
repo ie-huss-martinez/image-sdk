@@ -16,6 +16,8 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `redact` | A solid redaction selected, with its frame and handles, and the redact panel |
  * | `redact-pixelate` | Two redactions, the second pixelated and selected, with the warning that pixelation may not hide text |
  * | `layers` | Two shape layers, the top one turned and selected, with its frame and handles, and the layers panel |
+ * | `layers-text` | A text layer just added and typed into, selected, with its text, font, alignment and colour fields |
+ * | `layers-shape` | An ellipse just added, with a fill turned on beside its outline, and a shape's fields |
  * | `filters` | The Filters panel, with Sepia chosen |
  * | `export-summary` | The export dialog's choices and its summary of the metadata it removes |
  * | `export-done` | The export dialog's result, with Download focused |
@@ -132,6 +134,29 @@ const EDITOR: Readonly<Record<string, State>> = {
     // The top layer is selected; its frame takes focus, turned as it is.
     await page.getByRole("group", { name: "Layer 1 of 2: Badge" }).focus();
     await expect(page.getByRole("button", { name: "Badge", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  },
+  "layers-text": async (page) => {
+    await opened(page);
+    await page.getByRole("button", { name: "Add text" }).click();
+    const text = page.getByRole("textbox", { name: "Text", exact: true });
+    await expect(text).toBeFocused();
+    await page.keyboard.type("Hello");
+    await page.getByRole("radio", { name: "White" }).click();
+    await expect(page.getByRole("button", { name: "Hello", exact: true })).toBeVisible();
+  },
+  "layers-shape": async (page) => {
+    await opened(page);
+    await page.getByRole("button", { name: "Add an ellipse" }).click();
+    await page.getByRole("button", { name: "Fill", exact: true }).click();
+    await page
+      .getByRole("group", { name: "Fill colour swatches" })
+      .or(page.getByRole("radiogroup", { name: "Fill colour swatches" }))
+      .getByRole("radio", { name: "Yellow" })
+      .click();
+    await expect(page.getByRole("button", { name: "Fill", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

@@ -19,6 +19,7 @@ import {
   useImageMessages,
   useImageSession,
 } from "../hooks.js";
+import { ShapeLayerFields, TextLayerFields } from "./LayerFields.js";
 import { fitLayerName, layerLabel, useLayerActions } from "./use-layers.js";
 
 /**
@@ -86,12 +87,13 @@ function NameField(props: {
  * @public
  */
 export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
-  const [state] = useImageEditorState();
+  const [state, editor] = useImageEditorState();
   const { plan } = useImageDocument();
   const messages = useImageMessages();
   const actions = useLayerActions();
   const session = useImageSession();
   const list = useRef<HTMLUListElement>(null);
+  const panel = useRef<HTMLElement>(null);
   /** What the session refused, such as a copy over the limit, until the next action. */
   const [problem, setProblem] = useState<unknown>(null);
   /** The row's button that takes focus back once the list has rendered: moving a row can drop it. */
@@ -112,6 +114,25 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
       )
       ?.focus();
   });
+
+  // A focus the tool asked for, once: the selected layer in the list when
+  // the layers start, or the text field of a text layer just added.
+  const focus = state.tool === "layers" ? state.layers?.focus : undefined;
+  useEffect(() => {
+    if (!focus) return;
+    panel.current
+      ?.querySelector<HTMLElement>(
+        focus === "text"
+          ? ".hm-image-layers-text textarea"
+          : '.hm-image-layers-list [aria-pressed="true"], .hm-image-layers-list button',
+      )
+      ?.focus();
+    editor.set((current) =>
+      current.layers?.focus
+        ? { ...current, layers: { selected: current.layers.selected } }
+        : current,
+    );
+  }, [focus, editor]);
 
   if (state.tool !== "layers" || !state.layers || !plan) return null;
   // The stage may show a gesture's plan; the panel lists what's committed.
@@ -195,6 +216,7 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
 
   return (
     <section
+      ref={panel}
       className={["hm-image-layers-panel", props.className].filter(Boolean).join(" ")}
       aria-label={messages.t("layers.panel")}
     >
@@ -310,6 +332,24 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
             }}
           />
         </Field>
+      </div>
+      {/*
+        A text layer's fields and a shape's share one place, sized for the
+        taller, so selecting another kind of layer never moves the stage.
+        The ones that don't apply are hidden, from sight, focus and
+        assistive technology alike. An image layer has none of its own.
+      */}
+      <div className="hm-image-layer-kinds">
+        <TextLayerFields
+          layer={selected?.kind === "text" ? selected : null}
+          actions={actions}
+          run={run}
+        />
+        <ShapeLayerFields
+          layer={selected?.kind === "shape" ? selected : null}
+          actions={actions}
+          run={run}
+        />
       </div>
       <div className="hm-image-layers-actions">
         <Button variant="primary" className="hm-image-layers-done" onClick={() => actions.done()}>

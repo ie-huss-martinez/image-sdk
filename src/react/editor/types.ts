@@ -91,6 +91,12 @@ export interface ImageEditorHandle {
   readonly session: ImageSession;
   /** Opens an image, replacing the current one once it has opened. */
   open(file: Blob): Promise<void>;
+  /**
+   * Adds an image as a layer in the middle of the image as it's shown, as
+   * one undoable step, and shows the layers with it selected. A file that
+   * can't be added is reported on the stage, as a failed open is.
+   */
+  insertImage(file: Blob): Promise<void>;
   /** Applies commands as one undoable step. */
   execute(commands: ImageCommand | readonly ImageCommand[]): void;
   /** Renders and encodes the image as it is now. */

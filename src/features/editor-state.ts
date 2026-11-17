@@ -1,4 +1,5 @@
 import { createStore, type Store } from "@hussmartinez/sdk-core";
+import type { ImageError } from "../core/errors/image-error.js";
 import type { ImageAspect } from "../core/model/crop.js";
 import type { ImageCrop, ImagePlan, ImageRedactionMode } from "../core/model/plan.js";
 
@@ -29,7 +30,22 @@ export interface ImageEditorState {
    * (docs/adr/0013). Selection is view state, outside the plan and its
    * history.
    */
-  readonly layers: { readonly selected: string | null } | null;
+  readonly layers: {
+    readonly selected: string | null;
+    /**
+     * Where the panel moves focus, once, before it clears this: to the
+     * selected layer in the `list`, when the layers tool starts; or to the
+     * `text` field of a text layer just added. Unset, focus stays where it
+     * is, as when a shape or an image is added.
+     */
+    readonly focus?: "list" | "text";
+  } | null;
+  /**
+   * What an editor's own action failed with, such as adding a layer over
+   * the limit or an image that can't be read. The stage shows its text
+   * until the next such action succeeds, or another image opens.
+   */
+  readonly error: ImageError | null;
   /**
    * A gesture's plan while it runs: the session's plan with the gesture's
    * change, which isn't an edit until the gesture ends.
@@ -44,6 +60,7 @@ export const IDLE: ImageEditorState = Object.freeze({
   crop: null,
   redact: null,
   layers: null,
+  error: null,
   preview: null,
   dialog: null,
 });

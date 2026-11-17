@@ -38,7 +38,7 @@ export function Editor({ file }: { file: File }) {
 | Host-owned processing | `engine`, `processor`, `session`; a supplied session must use the supplied engine |
 | Host callbacks | `onEvent` receives anonymous usage events; `onExport(blob, details)` receives the exported file instead of the dialog offering a download |
 
-The ref provides `session`, `open(blob)`, `execute(commandOrCommands)`, `export(format)`, `undo()` and `redo()`. For example, `await ref.current.export({ type: "jpeg", quality: 0.9 })` returns `{ blob, width, height, removed, kept }`; the host handles the returned file. The ref's export bypasses the dialog and its metadata summary, so show that summary in your own download flow.
+The ref provides `session`, `open(blob)`, `insertImage(blob)`, `execute(commandOrCommands)`, `export(format)`, `undo()` and `redo()`. For example, `await ref.current.export({ type: "jpeg", quality: 0.9 })` returns `{ blob, width, height, removed, kept }`; the host handles the returned file. The ref's export bypasses the dialog and its metadata summary, so show that summary in your own download flow.
 
 For a custom layout, `ImageEditorProvider` supplies `ImageStage`, `ImageToolbar`, `ImageCropPanel`, `ImageAdjustPanel`, `ImageFilterPanel`, `ImageInfoPanel` and `ImageExportDialog`. Hooks include `useImageSession`, `useImageDocument`, `useImageView`, `useImageEditorState` and `useImageMessages`. The complete public signatures are in the [React API report](api/image-sdk-react.api.md).
 
@@ -58,7 +58,7 @@ defineImageEditorElement();
 <hm-image-editor theme="dark" locale="en"></hm-image-editor>
 ```
 
-Set the element's height in host CSS. It renders into the light DOM and uses React internally. Its attributes are `theme`, `locale` and `tools` (space-separated IDs). Its properties are `file` (`Blob`), `plan`, `filePolicy`, `assetsUrl`, `messages`, `engine` and `processor`, as well as the attribute-backed properties. Set processing configuration before connecting the element. Setting `file` opens an image; the methods `open`, `execute`, `export`, `undo` and `redo` match the React handle.
+Set the element's height in host CSS. It renders into the light DOM and uses React internally. Its attributes are `theme`, `locale` and `tools` (space-separated IDs). Its properties are `file` (`Blob`), `plan`, `filePolicy`, `assetsUrl`, `messages`, `engine` and `processor`, as well as the attribute-backed properties. Set processing configuration before connecting the element. Setting `file` opens an image; the methods `open`, `insertImage`, `execute`, `export`, `undo` and `redo` match the React handle.
 
 Listen for `hm-image-editor-change` (plan), `hm-image-editor-event` (anonymous usage event), `hm-image-editor-error` (`{ code, details }`) and `hm-image-editor-export` (format, dimensions, size and metadata summary). Event payloads are in `event.detail`. The export event carries a report; call the element's `export(format)` method to obtain a file. See the [element API report](api/image-sdk-element.api.md).
 
@@ -123,13 +123,18 @@ A redaction costs memory while it exists: one more canvas the size of the image,
 
 ## Layers
 
-The editor's Layers tool lists a plan's text, shape and image layers and lets people arrange them ([ADR 0013](docs/adr/0013-layers-in-the-editor.md)). Press `L` or the toolbar's Layers button.
+The editor adds text, rectangles, ellipses and other images over an image as layers, and its Layers tool lists them and lets people arrange them ([ADR 0013](docs/adr/0013-layers-in-the-editor.md)).
 
-- **In the panel:** the layers, the top one first, each with a button that selects it and one that shows or hides it; buttons that move the selected layer up and down, duplicate it and delete it; and fields for its name, position, size, turn and opacity.
+- **Adding:** the toolbar's "Add text" (or `T`), "Add a rectangle", "Add an ellipse" and "Add an image". Each puts a layer in the middle of the image, the right way up, and selects it. Text starts empty with focus in its field; an image is chosen in a file picker and never leaves the device. From a host, `insertImage(file)` on the editor's handle or on `<hm-image-editor>` adds one.
+- **Arranging:** press `L` or the toolbar's Layers button.
+
+- **In the panel:** the layers, the top one first, each with a button that selects it and one that shows or hides it; buttons that move the selected layer up and down, duplicate it and delete it; fields for its name, position, size, turn and opacity; and its own fields: a text layer's text, font, alignment, weight and colour, or a shape's fill and outline.
 - **On the image:** each layer has a frame. Press one to select the top layer under the pointer, drag it to move the layer, and drag a handle of the selected one to resize it.
 - **With the keyboard:** on a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it and `Delete` removes it. In the list, `Alt` (`Option` on macOS) with the Up or Down arrow moves the focused layer up or down the stack, and `Delete` removes it.
 
-The tools that add text, shapes and images come in a later release. Until then a layer comes from a plan, or from a command: `image.insertLayers`, or `session.insertImage(file)` for an image.
+Text is drawn with the device's own fonts, in one of three generic families, so the same plan can look different on another device; the preview and the export of one session always agree ([ADR 0009](docs/adr/0009-scene-space-layers-and-plan-versions.md)). On a mirrored image a new layer is mirrored with it.
+
+Headless, a layer is a command: `image.insertLayers`, or `session.insertImage(file)` for an image.
 
 ## Formats and browsers
 

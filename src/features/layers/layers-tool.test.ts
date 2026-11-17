@@ -28,13 +28,17 @@ describe("the layers tool (ADR 0013)", () => {
       redact: { selected: null, mode: "solid", colour: "#000000" },
     });
     void layersTool.run(context(editor, ["under", "over"]));
-    expect(editor.getSnapshot()).toEqual({ ...IDLE, tool: "layers", layers: { selected: "over" } });
+    expect(editor.getSnapshot()).toEqual({
+      ...IDLE,
+      tool: "layers",
+      layers: { selected: "over", focus: "list" },
+    });
   });
 
   it("starts with nothing selected when there are no layers", () => {
     const editor = createStore<ImageEditorState>(IDLE);
     void layersTool.run(context(editor));
-    expect(editor.getSnapshot().layers).toEqual({ selected: null });
+    expect(editor.getSnapshot().layers).toEqual({ selected: null, focus: "list" });
   });
 
   it("ends when run again, leaving no gesture's plan behind", () => {

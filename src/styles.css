@@ -413,6 +413,34 @@
     color: var(--hm-color-danger-text);
   }
 
+  /*
+   * The fields of the selected layer's kind (docs/adr/0013): a text layer's
+   * and a shape's in one cell, as tall as the taller, so the panel keeps its
+   * size whichever kind is selected.
+   */
+  .hm-image-layer-kinds {
+    display: grid;
+    align-items: start;
+  }
+
+  .hm-image-layer-kinds > * {
+    grid-area: 1 / 1;
+    min-inline-size: 0;
+  }
+
+  .hm-image-layer-kind {
+    display: grid;
+    gap: var(--hm-gap-normal);
+  }
+
+  /* Short controls that belong together, side by side, wrapping when they must. */
+  .hm-image-layer-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hm-gap-tight);
+  }
+
   /* A layer's name takes the row; its place and size sit in two columns under it. */
   .hm-image-layers-name {
     grid-column: 1 / -1;

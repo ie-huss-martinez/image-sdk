@@ -47,7 +47,7 @@ export interface ImageEditorElementProps {
  */
 export type ImageEditorElementMethods = Pick<
   ImageEditorHandle,
-  "open" | "execute" | "export" | "undo" | "redo"
+  "open" | "insertImage" | "execute" | "export" | "undo" | "redo"
 >;
 
 /**
@@ -163,6 +163,7 @@ export function mountImageEditor(
     },
     handle: {
       open: async (file) => (await ready).open(file),
+      insertImage: async (file) => (await ready).insertImage(file),
       export: async (format) => (await ready).export(format),
       execute: (commands) => {
         const editor = now();
