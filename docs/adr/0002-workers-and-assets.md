@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-12
 - **Partially superseded by:** [0008](0008-terminal-engine-invalidation.md), for automatic source/canvas recovery claims and the corresponding recovery test requirement
+- **Amended by:** [0011](0011-gif-and-animation.md): a GIF export's frames cross the page as transferred buffers, one at a time, an exception to the test that no pixel buffer does
 
 ## Context
 

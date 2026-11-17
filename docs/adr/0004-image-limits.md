@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-12
+- **Amended by:** [0011](0011-gif-and-animation.md): `maxAnimationPixels`, and what an animated source counts against `maxSessionSize`
 
 ## Context
 
