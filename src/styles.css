@@ -131,12 +131,20 @@
     border-radius: var(--hm-radius-surface);
   }
 
+  /*
+   * Every state shares the stage's one cell, and every one is positioned, so
+   * they stack in source order: the frame and its canvas first, then
+   * whatever sits over them. A positioned box paints, and takes the pointer,
+   * above one that isn't, whatever their order. So if only the frame were
+   * positioned, it would cover the drop zone's button and the Cancel button
+   * of an open in progress, and take their clicks and drops.
+   */
   .hm-image-stage > * {
+    position: relative;
     grid-area: 1 / 1;
   }
 
   .hm-image-stage-frame {
-    position: relative;
     min-block-size: 0;
   }
 
@@ -164,8 +172,6 @@
 
   /* The notices and a failure, stacked at the stage's foot, over the image. */
   .hm-image-stage-foot {
-    /* Positioned, so it paints over the canvas, which is too. */
-    position: relative;
     align-self: end;
     display: grid;
     gap: var(--hm-gap-tight);
@@ -215,7 +221,6 @@
   }
 
   .hm-image-stage-overlay {
-    position: relative;
     min-block-size: 0;
   }
 

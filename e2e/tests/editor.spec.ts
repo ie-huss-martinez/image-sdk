@@ -34,6 +34,75 @@ test.describe("the image editor", () => {
     await noViolations(page);
   });
 
+  test("opens an image with a mouse click on the drop zone's button", async ({ page }) => {
+    await page.goto("/editor.html");
+    const choose = page.getByRole("button", { name: "Choose an image" });
+    await expect(choose).toBeVisible();
+    // Where a person clicks, the button is what's there: nothing covers it.
+    const box = await choose.boundingBox();
+    if (!box) throw new Error("the button has no box");
+    const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const hit = await page.evaluate(
+      ({ x, y }) => document.elementFromPoint(x, y)?.closest("button")?.textContent,
+      centre,
+    );
+    expect(hit).toBe("Choose an image");
+    // A real click at that point, not one dispatched to the button.
+    const chooser = page.waitForEvent("filechooser");
+    await page.mouse.click(centre.x, centre.y);
+    await (await chooser).setFiles({
+      name: "photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(fixture("quadrants.png")),
+    });
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
+  });
+
+  test("opens a file dropped on the empty stage", async ({ page }) => {
+    await page.goto("/editor.html");
+    await expect(page.getByRole("button", { name: "Choose an image" })).toBeVisible();
+    const stage = page.locator(".hm-image-stage");
+    const box = await stage.boundingBox();
+    if (!box) throw new Error("the stage has no box");
+    // A browser gives a drop to the topmost element under the pointer, and
+    // it bubbles from there. So the events go to whatever is at the point,
+    // as a real drop would, not to the drop zone by name: if another
+    // element covered the zone, they'd never reach it.
+    const dropped = await page.evaluate(
+      ({ x, y, bytes }) => {
+        const target = document.elementFromPoint(x, y);
+        if (!target) return "nothing at the point";
+        const data = new DataTransfer();
+        data.items.add(new File([new Uint8Array(bytes)], "photo.png", { type: "image/png" }));
+        for (const type of ["dragenter", "dragover", "drop"]) {
+          target.dispatchEvent(
+            new DragEvent(type, {
+              bubbles: true,
+              cancelable: true,
+              composed: true,
+              clientX: x,
+              clientY: y,
+              dataTransfer: data,
+            }),
+          );
+        }
+        return "dropped";
+      },
+      {
+        // Away from the button and the text, a third of the way down.
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 3,
+        bytes: Array.from(fixture("quadrants.png")),
+      },
+    );
+    expect(dropped).toBe("dropped");
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
+  });
+
   test("opens an image with the keyboard only, and has no violations once open", async ({
     page,
   }) => {
