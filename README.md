@@ -40,6 +40,33 @@ export function Editor({ file }: { file: File }) {
 
 The ref provides `session`, `open(blob)`, `insertImage(blob)`, `execute(commandOrCommands)`, `export(format)`, `undo()` and `redo()`. For example, `await ref.current.export({ type: "jpeg", quality: 0.9 })` returns `{ blob, width, height, removed, kept }`; the host handles the returned file. The ref's export bypasses the dialog and its metadata summary, so show that summary in your own download flow.
 
+**The ref is `null` until the editor has mounted,** as every React ref is. A call written as `ref.current?.open(file)` before that does nothing and reports nothing, so the file is lost. Give the first image as `initialFile`, and call the ref's methods from an event handler or an effect, which run after the editor has mounted:
+
+```tsx
+import { ImageEditor, type ImageEditorHandle } from "@hussmartinez/image-sdk/react";
+import { useRef } from "react";
+
+export function Editor({ first }: { first: File }) {
+  const editor = useRef<ImageEditorHandle>(null);
+  return (
+    <>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          // In a handler the editor has mounted, so the ref is set.
+          if (file) void editor.current?.open(file);
+        }}
+      />
+      <ImageEditor ref={editor} initialFile={first} />
+    </>
+  );
+}
+```
+
+The custom element doesn't have this gap: its `open()`, `insertImage()` and `export()` wait for its first render, and a `file` property set before the element is defined is opened once it is.
+
 For a custom layout, `ImageEditorProvider` supplies `ImageStage`, `ImageToolbar`, `ImageCropPanel`, `ImageAdjustPanel`, `ImageFilterPanel`, `ImageInfoPanel` and `ImageExportDialog`. Hooks include `useImageSession`, `useImageDocument`, `useImageView`, `useImageEditorState` and `useImageMessages`. The complete public signatures are in the [React API report](api/image-sdk-react.api.md).
 
 ## Custom element
