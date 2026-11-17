@@ -108,6 +108,32 @@ const EDITED: ImagePlan = {
 };
 const BASE = toImagePlanDocument(EDITED, sources);
 
+/** A drawing and an arrow, which format version 3 added (docs/adr/0014). */
+const DRAWING = {
+  key: "sketch",
+  kind: "drawing",
+  name: "",
+  visible: true,
+  opacity: 80,
+  x: 10,
+  y: 5,
+  strokes: [
+    { colour: "#102030", width: 3, runs: [[0, 0, 4, 3, 9, 3]] },
+    { colour: "#ff0000", width: 6, runs: [[2, 2]] },
+  ],
+};
+const ARROW = {
+  key: "pointer",
+  kind: "arrow",
+  name: "Look",
+  visible: true,
+  opacity: 100,
+  from: { x: 30, y: 25 },
+  to: { x: 12, y: 8 },
+  colour: "#ffcc00",
+  width: 2,
+};
+
 /** The same plan as version 1 had it: before redactions, so without them. */
 const { layers: _layers, redactions: _redactions, animation: _animation, ...V1_FIELDS } = BASE;
 const V1 = { ...V1_FIELDS, version: 1 };
@@ -189,6 +215,46 @@ const mutatedCommandOn = (state: ImagePlan) =>
 /** `hm-image-commands`: a user-level command applied to a plan document. */
 export function commandCases(): ConformanceFile {
   const on = (cmd: unknown) => ({ plan: BASE, command: cmd });
+  // The plan with a drawing and an arrow over its other layers (docs/adr/0014).
+  const pen = (runs: unknown, changes: Record<string, unknown> = {}) => ({
+    colour: "#102030",
+    width: 3,
+    runs,
+    ...changes,
+  });
+  const sketch = {
+    key: "sketch",
+    kind: "drawing",
+    name: "",
+    visible: true,
+    opacity: 80,
+    x: 10,
+    y: 5,
+    strokes: [pen([[0, 0, 4, 3, 9, 3]]), pen([[2, 2]], { colour: "#ff0000", width: 6 })],
+  };
+  const pointer = {
+    key: "pointer",
+    kind: "arrow",
+    name: "Look",
+    visible: true,
+    opacity: 100,
+    from: { x: 30, y: 25 },
+    to: { x: 12, y: 8 },
+    colour: "#ffcc00",
+    width: 2,
+  };
+  const DRAWN = { ...BASE, layers: [...BASE.layers, sketch, pointer] };
+  const onDrawn = (cmd: unknown) => ({ plan: DRAWN, command: cmd });
+  const addStrokes = (key: unknown, ...strokes: unknown[]) => ({
+    type: "image.addStrokes",
+    key,
+    strokes,
+  });
+  const removeStrokes = (key: unknown, ...indexes: unknown[]) => ({
+    type: "image.removeStrokes",
+    key,
+    indexes,
+  });
   const onNamed = (cmd: unknown) => ({ plan: PROTOTYPE_NAMED, command: cmd });
   const crop = (x: number, y: number, width: number, height: number) => ({
     type: "image.setCrop",
@@ -861,6 +927,225 @@ export function commandCases(): ConformanceFile {
       on(filter({ preset: "mono", strength: 50, grain: 1 })),
       refused("malformed-command"),
     ],
+    // Drawings, strokes and arrows (format version 3, docs/adr/0014).
+    ["inserts a drawing and an arrow", on(insertLayers(3, sketch, pointer)), applied],
+    [
+      "adds a stroke of one run to a drawing",
+      onDrawn(addStrokes("sketch", pen([[1, 1, 5, 5]]))),
+      applied,
+    ],
+    [
+      "adds a stroke of three runs, and a dot, at once",
+      onDrawn(
+        addStrokes(
+          "sketch",
+          pen([
+            [0, 0, 3, 0],
+            [3, 0, 3, 4],
+            [3, 4, -2, 4],
+          ]),
+          pen([[7, 7]]),
+        ),
+      ),
+      applied,
+    ],
+    [
+      "adds a stroke whose runs don't join: the format doesn't require it",
+      onDrawn(
+        addStrokes(
+          "sketch",
+          pen([
+            [0, 0, 1, 1],
+            [8, 8, 9, 9],
+          ]),
+        ),
+      ),
+      applied,
+    ],
+    [
+      "adds a stroke of 64 runs",
+      onDrawn(addStrokes("sketch", pen(Array.from({ length: 64 }, (_, i) => [i, 0, i, 1])))),
+      applied,
+    ],
+    [
+      "adds a run of 2,000 points",
+      onDrawn(
+        addStrokes(
+          "sketch",
+          pen([Array.from({ length: 2_000 }, (_, i) => [i % 50, i % 7]).flat()]),
+        ),
+      ),
+      applied,
+    ],
+    ["removes one of a drawing's strokes", onDrawn(removeStrokes("sketch", 0)), applied],
+    ["removes a drawing's last stroke of two", onDrawn(removeStrokes("sketch", 1)), applied],
+    ["moves a drawing by its origin", onDrawn(updateLayers(["sketch", { x: -3, y: 40 }])), applied],
+    [
+      "re-aims an arrow, and changes its colour and width",
+      onDrawn(
+        updateLayers([
+          "pointer",
+          { to: { x: 2, y: 2 }, from: { x: 30, y: 20 }, colour: "#00ff00", width: 5 },
+        ]),
+      ),
+      applied,
+    ],
+    [
+      "hides a drawing and names an arrow",
+      onDrawn(updateLayers(["sketch", { visible: false }], ["pointer", { name: "This one" }])),
+      applied,
+    ],
+    ["removes a drawing and an arrow", onDrawn(removeLayers("sketch", "pointer")), applied],
+    ["moves a drawing under every layer", onDrawn(moveLayers(0, "sketch")), applied],
+    [
+      "accepts a drawing at one end of the scene with a point at the other",
+      on(
+        insertLayers(0, {
+          ...sketch,
+          x: -65_536,
+          y: 65_536,
+          strokes: [pen([[0, 0, 131_072, -131_072]])],
+        }),
+      ),
+      applied,
+    ],
+    [
+      "refuses a drawing with no strokes",
+      on(insertLayers(0, { ...sketch, strokes: [] })),
+      refused("empty-drawing"),
+    ],
+    [
+      "refuses to remove every stroke of a drawing",
+      onDrawn(removeStrokes("sketch", 0, 1)),
+      refused("empty-drawing"),
+    ],
+    [
+      "refuses an arrow from a point to itself",
+      on(insertLayers(0, { ...pointer, to: pointer.from })),
+      refused("empty-arrow"),
+    ],
+    [
+      "refuses to re-aim an arrow at its own tail",
+      onDrawn(updateLayers(["pointer", { to: { x: 30, y: 25 } }])),
+      refused("empty-arrow"),
+    ],
+    [
+      "refuses a run with an odd number of coordinates",
+      onDrawn(addStrokes("sketch", pen([[0, 0, 4]]))),
+      refused("invalid-points"),
+    ],
+    [
+      "refuses a point outside the scene, from the drawing's origin",
+      onDrawn(addStrokes("sketch", pen([[0, 0, 65_527, 0]]))),
+      refused("invalid-points"),
+    ],
+    [
+      "refuses to move a drawing so that a point leaves the scene",
+      onDrawn(updateLayers(["sketch", { x: 65_530 }])),
+      refused("invalid-points"),
+    ],
+    [
+      "refuses strokes for a layer that isn't a drawing",
+      onDrawn(addStrokes("ring", pen([[0, 0]]))),
+      refused("wrong-kind"),
+    ],
+    [
+      "refuses to remove strokes from an arrow",
+      onDrawn(removeStrokes("pointer", 0)),
+      refused("wrong-kind"),
+    ],
+    [
+      "refuses strokes for a layer the plan doesn't have",
+      onDrawn(addStrokes("nobody", pen([[0, 0]]))),
+      refused("unknown-layer"),
+    ],
+    [
+      "refuses a stroke index the drawing doesn't have",
+      onDrawn(removeStrokes("sketch", 2)),
+      refused("invalid-index"),
+    ],
+    [
+      "refuses a stroke index listed twice",
+      onDrawn(removeStrokes("sketch", 0, 0)),
+      refused("invalid-index"),
+    ],
+    [
+      "refuses a box's field on a drawing",
+      onDrawn(updateLayers(["sketch", { width: 20 }])),
+      refused("wrong-kind"),
+    ],
+    [
+      "refuses a drawing's field on an arrow",
+      onDrawn(updateLayers(["pointer", { x: 3 }])),
+      refused("wrong-kind"),
+    ],
+    [
+      "refuses to set a drawing's strokes with an update",
+      onDrawn(updateLayers(["sketch", { strokes: [pen([[0, 0]])] }])),
+      refused("malformed-command"),
+    ],
+    ["refuses no strokes", onDrawn(addStrokes("sketch")), refused("malformed-command")],
+    ["refuses no indexes", onDrawn(removeStrokes("sketch")), refused("malformed-command")],
+    [
+      "refuses a negative stroke index",
+      onDrawn(removeStrokes("sketch", -1)),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a stroke with no runs",
+      onDrawn(addStrokes("sketch", pen([]))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses an empty run",
+      onDrawn(addStrokes("sketch", pen([[]]))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a stroke of 65 runs",
+      onDrawn(addStrokes("sketch", pen(Array.from({ length: 65 }, () => [0, 0])))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a run of 2,001 points",
+      onDrawn(addStrokes("sketch", pen([Array.from({ length: 4_002 }, (_, i) => i % 9)]))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a fractional coordinate",
+      onDrawn(addStrokes("sketch", pen([[0, 0.5]]))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a stroke 1,025 pixels wide",
+      onDrawn(addStrokes("sketch", pen([[0, 0]], { width: 1_025 }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a stroke without a colour",
+      onDrawn(addStrokes("sketch", { width: 2, runs: [[0, 0]] })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a stroke's colour that isn't #rrggbb",
+      onDrawn(addStrokes("sketch", pen([[0, 0]], { colour: "red" }))),
+      refused("invalid-colour"),
+    ],
+    [
+      "refuses an arrow whose tip is outside the scene",
+      on(insertLayers(0, { ...pointer, to: { x: 65_537, y: 0 } })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses an arrow with a box",
+      on(insertLayers(0, { ...pointer, rotation: 0 })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a drawing with a rotation",
+      on(insertLayers(0, { ...sketch, rotation: 0 })),
+      refused("malformed-command"),
+    ],
   ];
 
   // A balanced sample: commands that apply, and a few of each refusal, so
@@ -934,6 +1219,62 @@ export function planCases(): ConformanceFile {
       invalidDocument("malformed-document"),
     ],
     ["reads a plan with no redactions", document({ redactions: [] }), applied],
+    ["reads version 2 as it is: only the version changes", document({ version: 2 }), applied],
+    [
+      "reads a drawing and an arrow",
+      document({ layers: [...BASE.layers, DRAWING, ARROW] }),
+      applied,
+    ],
+    [
+      "refuses a drawing in a version 2 document, which has none",
+      document({ version: 2, layers: [DRAWING] }),
+      invalidDocument("unknown-layer-kind"),
+    ],
+    [
+      "refuses an arrow in a version 2 document, which has none",
+      document({ version: 2, layers: [ARROW] }),
+      invalidDocument("unknown-layer-kind"),
+    ],
+    [
+      "refuses a drawing with no strokes",
+      document({ layers: [{ ...DRAWING, strokes: [] }] }),
+      invalidDocument("empty-drawing"),
+    ],
+    [
+      "refuses an arrow whose ends are one point",
+      document({ layers: [{ ...ARROW, to: ARROW.from }] }),
+      invalidDocument("empty-arrow"),
+    ],
+    [
+      "refuses a run with an odd number of coordinates",
+      document({
+        layers: [{ ...DRAWING, strokes: [{ colour: "#000000", width: 1, runs: [[1, 2, 3]] }] }],
+      }),
+      invalidDocument("invalid-points"),
+    ],
+    [
+      "refuses a point outside the scene, from its drawing's origin",
+      document({
+        layers: [
+          {
+            ...DRAWING,
+            x: 65_000,
+            strokes: [{ colour: "#000000", width: 1, runs: [[0, 0, 600, 0]] }],
+          },
+        ],
+      }),
+      invalidDocument("invalid-points"),
+    ],
+    [
+      "refuses a stroke with no runs",
+      document({ layers: [{ ...DRAWING, strokes: [{ colour: "#000000", width: 1, runs: [] }] }] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a drawing with a box",
+      document({ layers: [{ ...DRAWING, width: 4, height: 4 }] }),
+      invalidDocument("malformed-document"),
+    ],
     [
       "reads redactions keyed __proto__, constructor and toString",
       document({
@@ -1107,7 +1448,7 @@ export function planCases(): ConformanceFile {
     ],
     [
       "refuses a later version",
-      document({ version: 3 }),
+      document({ version: 4 }),
       refused("unknown-format-version", "UNSUPPORTED_FORMAT"),
     ],
     ["refuses a list", [BASE], invalidDocument("malformed-document")],
@@ -1244,6 +1585,9 @@ export function geometryCases(): ConformanceFile {
   const mirrored = { rotate: 270, flipX: true, flipY: false };
   const crop = { x: 40, y: 30, width: 200, height: 100 };
   const op = (operation: string, args: Record<string, unknown>) => ({ operation, ...args });
+  // Every point a turn, so none can go: what's kept is what the input is cut into.
+  const zigzag = (count: number) =>
+    Array.from({ length: count }, (_, i) => [i * 4, i % 2 === 0 ? 0 : 40]).flat();
   const handWritten: [string, unknown][] = [
     [
       "swaps an EXIF-6 image's width and height",
@@ -1704,6 +2048,100 @@ export function geometryCases(): ConformanceFile {
       "keeps a rectangle within 65,536 pixels of the origin",
       op("fitRedactionRegion", { region: { x: -70000, y: 70000, width: 200000, height: 10 } }),
     ],
+    // Strokes and arrows (docs/adr/0014).
+    [
+      "simplifies a run of collinear points to its ends",
+      op("simplifyStroke", { points: [0, 0, 1, 1, 2, 2, 5, 5, 9, 9], tolerance: 0 }),
+    ],
+    [
+      "drops repeated points",
+      op("simplifyStroke", { points: [0, 0, 0, 0, 5, 0, 5, 0, 5, 5], tolerance: 0 }),
+    ],
+    ["makes a single point a dot", op("simplifyStroke", { points: [7, -2], tolerance: 3 })],
+    ["makes two equal points one", op("simplifyStroke", { points: [3, 4, 3, 4], tolerance: 1 })],
+    [
+      "drops a point within the tolerance of the segment",
+      op("simplifyStroke", { points: [0, 0, 10, 2, 20, 0], tolerance: 2 }),
+    ],
+    [
+      "keeps a point farther than the tolerance",
+      op("simplifyStroke", { points: [0, 0, 10, 3, 20, 0], tolerance: 2 }),
+    ],
+    [
+      "keeps the turn of a stroke that doubles back: distance is to the segment",
+      op("simplifyStroke", { points: [0, 0, 30, 0, 10, 0], tolerance: 5 }),
+    ],
+    [
+      "keeps a closed loop's corners, measured from the point both ends are",
+      op("simplifyStroke", { points: [0, 0, 8, 0, 8, 8, 0, 8, 0, 0], tolerance: 3 }),
+    ],
+    [
+      "takes the first of two points equally far, which leaves the second within the tolerance",
+      op("simplifyStroke", { points: [0, 0, 4, 3, 6, 3, 10, 0], tolerance: 2 }),
+    ],
+    [
+      "keeps a point one pixel off a segment across the whole scene, with no tolerance",
+      op("simplifyStroke", {
+        points: [-65_536, -65_536, 0, 1, 65_536, 65_536],
+        tolerance: 0,
+      }),
+    ],
+    [
+      "drops that point with a tolerance of one pixel",
+      op("simplifyStroke", {
+        points: [-65_536, -65_536, 0, 1, 65_536, 65_536],
+        tolerance: 1,
+      }),
+    ],
+    ["keeps 2,000 turns as one run", op("simplifyStroke", { points: zigzag(2_000), tolerance: 1 })],
+    [
+      "cuts 2,001 samples into two runs that share a point",
+      op("simplifyStroke", { points: zigzag(2_001), tolerance: 1 }),
+    ],
+    [
+      "cuts 4,500 samples into three runs",
+      op("simplifyStroke", { points: zigzag(4_500), tolerance: 1 }),
+    ],
+    [
+      "outlines an arrow along x: a head four widths long and across",
+      op("arrowOutline", { from: { x: 0, y: 0 }, to: { x: 100, y: 0 }, width: 4 }),
+    ],
+    [
+      "outlines an arrow down the image",
+      op("arrowOutline", { from: { x: 10, y: 10 }, to: { x: 10, y: 60 }, width: 2 }),
+    ],
+    [
+      "outlines an arrow at a diagonal",
+      op("arrowOutline", { from: { x: 0, y: 0 }, to: { x: 30, y: 40 }, width: 3 }),
+    ],
+    [
+      "outlines an arrow shorter than its head: all head",
+      op("arrowOutline", { from: { x: 0, y: 0 }, to: { x: 8, y: 0 }, width: 4 }),
+    ],
+    [
+      "outlines an arrow across the whole scene",
+      op("arrowOutline", {
+        from: { x: -65_536, y: -65_536 },
+        to: { x: 65_536, y: 65_536 },
+        width: 1_024,
+      }),
+    ],
+    [
+      "bounds a drawing by its points and its strokes' widths",
+      op("drawingBounds", { drawing: DRAWING }),
+    ],
+    [
+      "bounds a dot",
+      op("drawingBounds", {
+        drawing: { x: 0, y: 0, strokes: [{ colour: "#000000", width: 3, runs: [[0, 0]] }] },
+      }),
+    ],
+    ["bounds an arrow by its outline", op("arrowBounds", { arrow: ARROW })],
+    [
+      "counts a plan's drawing points, across runs and strokes",
+      op("drawingPoints", { layers: [DRAWING, ARROW, { ...DRAWING, key: "again" }] }),
+    ],
+    ["counts no points in a plan with no drawings", op("drawingPoints", { layers: [ARROW] })],
   ];
 
   const orientation = fc.record({
@@ -1745,7 +2183,40 @@ export function geometryCases(): ConformanceFile {
     width: fc.integer({ min: 1, max: 300 }),
     height: fc.integer({ min: 1, max: 300 }),
     rotation: fc.integer({ min: 0, max: 3_599 }),
+    flipX: fc.boolean(),
   });
+  // A stroke's samples: a walk of a few points, with repeats and straight runs among them.
+  const scenePoint = fc.record({
+    x: fc.integer({ min: -200, max: 200 }),
+    y: fc.integer({ min: -200, max: 200 }),
+  });
+  const samples = fc
+    .array(fc.tuple(fc.integer({ min: -3, max: 3 }), fc.integer({ min: -3, max: 3 })), {
+      minLength: 1,
+      maxLength: 16,
+    })
+    .map((steps) => {
+      let x = 0;
+      let y = 0;
+      return steps.flatMap(([dx, dy]) => {
+        x += dx * 3;
+        y += dy * 3;
+        return [x, y];
+      });
+    });
+  const penStroke = fc.record({
+    colour: fc.constantFrom("#000000", "#ff8800"),
+    width: fc.integer({ min: 1, max: 30 }),
+    runs: fc.array(samples, { minLength: 1, maxLength: 2 }),
+  });
+  const drawingArb = fc.record({
+    x: fc.integer({ min: -60, max: 420 }),
+    y: fc.integer({ min: -60, max: 320 }),
+    strokes: fc.array(penStroke, { minLength: 1, maxLength: 3 }),
+  });
+  const arrowArb = fc
+    .record({ from: scenePoint, to: scenePoint, width: fc.integer({ min: 1, max: 40 }) })
+    .filter(({ from, to }) => from.x !== to.x || from.y !== to.y);
   // A region near the 400 × 300 source, sometimes partly or wholly outside it.
   const region = fc.record({
     x: fc.integer({ min: -60, max: 420 }),
@@ -1822,6 +2293,19 @@ export function geometryCases(): ConformanceFile {
       text: fc
         .array(fc.constantFrom("a", "Z", "1", " ", "📷", "ש", "ع", "中", "…"), { maxLength: 5 })
         .map((parts) => parts.join("")),
+    }),
+    simplifyStroke: fc.record({ points: samples, tolerance: fc.integer({ min: 0, max: 6 }) }),
+    arrowOutline: arrowArb,
+    drawingBounds: fc.record({ drawing: drawingArb }),
+    arrowBounds: fc.record({ arrow: arrowArb }),
+    drawingPoints: fc.record({
+      layers: fc.array(
+        fc.oneof(
+          drawingArb.map((drawing) => ({ kind: "drawing", ...drawing })),
+          fc.constant({ kind: "arrow" }),
+        ),
+        { maxLength: 3 },
+      ),
     }),
     fitRedactionRegion: fc.record({
       region: fc.record({

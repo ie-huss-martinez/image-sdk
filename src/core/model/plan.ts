@@ -238,11 +238,33 @@ export const MAX_LAYER_TEXT_LENGTH = 1_000;
 export const MAX_LAYER_NAME_LENGTH = 100;
 
 /**
- * The widest stroke of a shape, in scene pixels.
+ * The widest stroke of a shape or a drawing, and the widest arrow's shaft,
+ * in scene pixels.
  *
  * @public
  */
 export const MAX_STROKE_WIDTH = 1_024;
+
+/**
+ * The most points in one run of a drawing's stroke (docs/adr/0014).
+ *
+ * @public
+ */
+export const MAX_RUN_POINTS = 2_000;
+
+/**
+ * The most runs in a stroke (docs/adr/0014).
+ *
+ * @public
+ */
+export const MAX_STROKE_RUNS = 64;
+
+/**
+ * The most strokes in a drawing (docs/adr/0014).
+ *
+ * @public
+ */
+export const MAX_DRAWING_STROKES = 1_024;
 
 /**
  * The fonts a text layer can use: the generic families, which every device
@@ -272,7 +294,7 @@ export const LAYER_SHAPES = ["rectangle", "ellipse"] as const;
  *
  * @public
  */
-export const LAYER_KINDS = ["text", "shape", "image"] as const;
+export const LAYER_KINDS = ["text", "shape", "image", "drawing", "arrow"] as const;
 
 /**
  * What every layer has (ADR 0009).
@@ -377,13 +399,85 @@ export interface ImageImageLayer extends ImageLayerCommon, ImageLayerBox {
 }
 
 /**
- * A layer over the base: text, a shape or another image (ADR 0009). Layers
- * are drawn bottom to top, in the plan's order, and redactions over all of
- * them.
+ * One stroke of a drawing: what one gesture drew, from the press to the
+ * release (docs/adr/0014). It has more than one run only when it's long.
  *
  * @public
  */
-export type ImageLayer = ImageTextLayer | ImageShapeLayer | ImageImageLayer;
+export interface ImageStroke {
+  /** `#rrggbb`. */
+  readonly colour: string;
+  /** In whole scene pixels: 1 to `MAX_STROKE_WIDTH`. */
+  readonly width: number;
+  /**
+   * 1 to `MAX_STROKE_RUNS` runs, each a polyline `[x0, y0, x1, y1, …]` of 1
+   * to `MAX_RUN_POINTS` points, in whole pixels from the drawing's origin.
+   * A run of one point is a dot.
+   */
+  readonly runs: readonly (readonly number[])[];
+}
+
+/**
+ * Freehand strokes (ADR 0009, docs/adr/0014). A drawing has an origin and
+ * no box: moving it changes its origin, never its points. Its strokes are
+ * drawn opaque and the drawing composited as one, so strokes that cross
+ * don't darken each other.
+ *
+ * @public
+ */
+export interface ImageDrawingLayer extends ImageLayerCommon {
+  readonly kind: "drawing";
+  /** Its origin, in whole scene pixels. May be negative. */
+  readonly x: number;
+  readonly y: number;
+  /** 1 to `MAX_DRAWING_STROKES` strokes, in the order they're drawn. */
+  readonly strokes: readonly ImageStroke[];
+}
+
+/**
+ * A point of the scene, in whole pixels.
+ *
+ * @public
+ */
+export interface ImageScenePoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * An arrow from one point of the scene to another (ADR 0009,
+ * docs/adr/0014). Its head's size follows its width, and its tip is exactly
+ * on `to`.
+ *
+ * @public
+ */
+export interface ImageArrowLayer extends ImageLayerCommon {
+  readonly kind: "arrow";
+  /** The tail. */
+  readonly from: ImageScenePoint;
+  /** The tip. It differs from `from`. */
+  readonly to: ImageScenePoint;
+  /** `#rrggbb`. */
+  readonly colour: string;
+  /** The shaft's width, in whole scene pixels: 1 to `MAX_STROKE_WIDTH`. */
+  readonly width: number;
+}
+
+/**
+ * A layer that has a box: text, a shape or an image.
+ *
+ * @public
+ */
+export type ImageBoxedLayer = ImageTextLayer | ImageShapeLayer | ImageImageLayer;
+
+/**
+ * A layer over the base: text, a shape, another image, a drawing or an
+ * arrow (ADR 0009). Layers are drawn bottom to top, in the plan's order, and
+ * redactions over all of them.
+ *
+ * @public
+ */
+export type ImageLayer = ImageBoxedLayer | ImageDrawingLayer | ImageArrowLayer;
 
 /**
  * A layer's kind.

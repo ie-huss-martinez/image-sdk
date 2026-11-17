@@ -20,6 +20,7 @@ import {
   useImageMessages,
   useImageSession,
 } from "../hooks.js";
+import { isBoxedLayer } from "./frame-geometry.js";
 import { ShapeLayerFields, TextLayerFields } from "./LayerFields.js";
 import { fitLayerName, layerLabel, useLayerActions } from "./use-layers.js";
 
@@ -140,6 +141,9 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
   const { layers } = plan;
   const selectedIndex = layers.findIndex((layer) => layer.key === state.layers?.selected);
   const selected = layers[selectedIndex];
+  // Its box, when it has one: a drawing and an arrow don't, and their fields
+  // for one keep their place, disabled (docs/adr/0014).
+  const boxed = selected && isBoxedLayer(selected) ? selected : undefined;
   const count = layers.length;
 
   /** Runs an action, and keeps what the session refused to say why nothing changed. */
@@ -194,14 +198,14 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
     return (
       <Field key={name} label={messages.t(`layers.${name}`)}>
         <NumberField
-          value={selected ? selected[name] : length ? 1 : 0}
+          value={boxed ? boxed[name] : length ? 1 : 0}
           min={length ? 1 : -MAX_SCENE_COORDINATE}
           max={MAX_SCENE_COORDINATE}
           step={1}
           largeStep={10}
-          disabled={!selected}
+          disabled={!boxed}
           onValueChange={(value) => {
-            if (selected) run(() => actions.set(selected.key, { [name]: Math.round(value) }));
+            if (boxed) run(() => actions.set(boxed.key, { [name]: Math.round(value) }));
           }}
         />
       </Field>
@@ -278,12 +282,10 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
           label={messages.t("layers.mirror")}
           icon={<FlipHorizontalIcon />}
           // Pressed while the layer is mirrored about its box (docs/adr/0009).
-          pressed={selected?.flipX ?? false}
-          disabled={!selected}
+          pressed={boxed?.flipX ?? false}
+          disabled={!boxed}
           focusableWhenDisabled
-          onClick={() =>
-            selected && run(() => actions.set(selected.key, { flipX: !selected.flipX }))
-          }
+          onClick={() => boxed && run(() => actions.set(boxed.key, { flipX: !boxed.flipX }))}
         />
         <IconButton
           label={messages.t("layers.duplicate")}
@@ -317,17 +319,17 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
         {(["x", "y", "width", "height"] as const).map(boxField)}
         <Field label={messages.t("layers.rotation")}>
           <NumberField
-            value={selected ? selected.rotation / 10 : 0}
+            value={boxed ? boxed.rotation / 10 : 0}
             min={0}
             max={359.9}
             step={1}
             largeStep={15}
-            disabled={!selected}
+            disabled={!boxed}
             onValueChange={(value) => {
-              if (!selected) return;
+              if (!boxed) return;
               // The plan holds tenths of a degree, from 0 to 3599.
               const rotation = ((Math.round(value * 10) % 3_600) + 3_600) % 3_600;
-              run(() => actions.set(selected.key, { rotation }));
+              run(() => actions.set(boxed.key, { rotation }));
             }}
           />
         </Field>

@@ -15,10 +15,17 @@ import {
   type ImageLimitName,
   imageLimits,
 } from "../errors/image-limits.js";
+import { drawingPoints } from "../model/drawing-geometry.js";
 import { compositionSize, outputSize } from "../model/geometry.js";
 import { createImageKey } from "../model/keys.js";
 import { fittedImageSize, newLayerBox } from "../model/layer-placement.js";
-import { createPlan, type ImageImageLayer, type ImagePlan } from "../model/plan.js";
+import {
+  createPlan,
+  type ImageImageLayer,
+  type ImageLayer,
+  type ImagePlan,
+  type ImageStroke,
+} from "../model/plan.js";
 import type {
   ImageKeepableMetadata,
   ImageMetadataPresence,
@@ -247,6 +254,39 @@ function sourcesIn(command: ImageCommand): string[] {
       );
     default:
       return [];
+  }
+}
+
+/**
+ * The most drawing points the history's steps may hold between them (ADR
+ * 0009): removing a large drawing leaves its points in the step that undoes
+ * it. Above this, the oldest steps are dropped.
+ */
+const MAX_HISTORY_POINTS = 1_000_000;
+
+/** How many points the strokes a command carries hold. */
+function pointsIn(command: ImageCommand): number {
+  const ofStrokes = (strokes: readonly ImageStroke[]) =>
+    strokes.reduce(
+      (points, stroke) => points + stroke.runs.reduce((sum, run) => sum + run.length / 2, 0),
+      0,
+    );
+  const ofLayers = (layers: readonly ImageLayer[]) =>
+    layers.reduce(
+      (points, layer) => points + (layer.kind === "drawing" ? ofStrokes(layer.strokes) : 0),
+      0,
+    );
+  switch (command.type) {
+    case "image.addStrokes":
+      return ofStrokes(command.strokes);
+    case "image.restoreStrokes":
+      return ofStrokes(command.entries.map((entry) => entry.stroke));
+    case "image.insertLayers":
+      return ofLayers(command.layers);
+    case "image.restoreLayers":
+      return ofLayers(command.entries.map((entry) => entry.layer));
+    default:
+      return 0;
   }
 }
 
@@ -515,8 +555,43 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     // lowered limit can still be edited and emptied (ADR 0004).
     const items = state.layers.length + state.redactions.length;
     if (items > from.layers.length + from.redactions.length) policy.check("maxLayers", items);
+    // The same for drawn points: only a step that adds some is checked.
+    const points = drawingPoints(state);
+    if (points > drawingPoints(from)) policy.check("maxDrawingPoints", points);
     const step: HistoryStep<ImageCommand> = { commands: [...commands], inverses: [...inverses] };
     return { state, step };
+  };
+
+  /**
+   * Says the plan is near its points limit while it is, and stops when it
+   * isn't: after every change of plan, an undo and a redo included.
+   */
+  const notePoints = () => {
+    let near = false;
+    try {
+      near = plan !== null && policy.check("maxDrawingPoints", drawingPoints(plan)) === "warning";
+    } catch {
+      // Over a lowered limit, which the plan may still be edited under: near, at least.
+      near = true;
+    }
+    const noted = warnings.includes("maxDrawingPoints");
+    if (near && !noted) warnings = [...warnings, "maxDrawingPoints"];
+    if (!near && noted) warnings = warnings.filter((name) => name !== "maxDrawingPoints");
+  };
+
+  /**
+   * Bounds what the history holds in drawn points (ADR 0009): above the
+   * ceiling, drops the oldest steps, never the newest, and the history says
+   * it was trimmed.
+   */
+  const trimPoints = () => {
+    const held = () =>
+      history.steps.reduce(
+        (points, step) =>
+          points + [...step.commands, ...step.inverses].reduce((sum, c) => sum + pointsIn(c), 0),
+        0,
+      );
+    while (history.dropOrder.length > 1 && held() > MAX_HISTORY_POINTS) history.drop(1);
   };
 
   const replay = (direction: "undo" | "redo"): boolean => {
@@ -533,6 +608,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       throw fail(reason);
     }
     error = null;
+    notePoints();
     // A step that moved from one stack to the other still refers to its sources.
     releaseUnreferenced();
     publish();
@@ -553,6 +629,8 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       const result = attempt(plan, commands);
       plan = result.state;
       history.push(result.step);
+      trimPoints();
+      notePoints();
       error = null;
       // A new step drops what could be redone, and with it what only that kept.
       releaseUnreferenced();

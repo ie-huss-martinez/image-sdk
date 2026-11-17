@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-17
+- **Amended:** 2026-11-17, as the model was built: which refusals are the schema's, `too-many-strokes`, and the exact sample count of 64 runs
 - **Amends:** [ADR 0009](0009-scene-space-layers-and-plan-versions.md), only in the form of a stroke: it holds `runs` of points, not one list of `points`
 - **Builds on:** [ADR 0009](0009-scene-space-layers-and-plan-versions.md) (the `drawing` and `arrow` kinds, their commands, format version 3 and `maxDrawingPoints`), [ADR 0007](0007-editor-shell.md) (gestures as transient plans) and [ADR 0010](0010-redaction.md) (redactions cover what's drawn)
 
@@ -58,7 +59,8 @@ A `drawing` layer and an `arrow` layer have the common fields of every layer: `k
 
 | Reason | When |
 |---|---|
-| `invalid-points` | A run with an odd number of coordinates, or a point outside the scene's coordinates. A schema can't state either |
+| `invalid-points` | A run with an odd number of coordinates, or a point outside the scene's coordinates once the drawing's origin is added. A schema can't state either. A drawing's origin or an arrow's end outside the scene is the schema's to refuse, so it's `malformed-command`, as a box's place is `invalid-box` |
+| `too-many-strokes` | `image.addStrokes` that would leave a drawing with more than 1,024 |
 | `empty-drawing` | A drawing with no strokes, or a removal that would leave none |
 | `empty-arrow` | `from` equals `to` |
 | `wrong-kind` | A stroke command on a layer that isn't a drawing, as today for another kind's field |
@@ -97,7 +99,7 @@ The details that make it exact:
 - **Cut into runs of 2,000, the worst case is one run's:** 58 to 73 ms measured for 2,000 turns, against 1 ms for a hand-like run, and a run never needs a second pass, because simplifying only removes points.
 - **A cut can't be seen.** Runs are drawn with round ends, and a drawing is composited as one group ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)), so two runs that meet at a point cover what one polyline through it covers, at any opacity.
 - **A cut can't be felt either.** The runs stay inside one stroke, so undo and "remove the last stroke" act on all that was drawn, never on its last part.
-- **64 runs is the stroke's ceiling,** fixed in the schema: 128,000 samples before simplifying, many minutes of drawing without lifting. There the draw tool ends the stroke and starts another, the one case where a gesture is two strokes. `simplifyStroke` given more than that throws a `RangeError`: it's a caller's mistake, not a file's.
+- **64 runs is the stroke's ceiling,** fixed in the schema: 127,937 samples before simplifying, since each run after the first starts on the last point of the one before. That's many minutes of drawing without lifting. There the draw tool ends the stroke and starts another, the one case where a gesture is two strokes. `simplifyStroke` given more than that throws a `RangeError`: it's a caller's mistake, not a file's.
 
 **The tolerance is the tool's choice, not the format's.** The draw tool passes one screen pixel in scene pixels, rounded, and at least 1: a detail smaller than a screen pixel wasn't drawn on purpose. The vectors use several tolerances.
 

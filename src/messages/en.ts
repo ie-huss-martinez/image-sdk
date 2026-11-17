@@ -53,6 +53,8 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
     other:
       "An image can have up to {maximum, number} layers. Merge or delete layers, and try again.",
   }),
+  "errors.TOO_MANY_POINTS":
+    "This image's drawings would have {actual, number} points, which is over the limit of {maximum, number}. Remove some strokes, and try again.",
   "warnings.maxImagePixels": "This image is large, and may be slow to edit on some devices.",
   "warnings.maxImageDimension": "This image is very wide or tall, and may be slow to edit.",
   "warnings.maxFrames": /* @__PURE__ */ plural("actual", {
@@ -65,6 +67,8 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
     one: "This image has {actual} layer.",
     other: "This image has {actual, number} layers, and may be slow to edit and export.",
   }),
+  "warnings.maxDrawingPoints":
+    "This image has a lot of drawing, and may be slow to edit and export.",
 }) satisfies Record<`errors.${ImageErrorCode}`, MessageValue> &
   Record<`warnings.${ImageLimitName}`, MessageValue>;
 

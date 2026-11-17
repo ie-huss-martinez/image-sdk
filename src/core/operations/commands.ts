@@ -1,6 +1,6 @@
 import type { Reducer } from "@hussmartinez/sdk-core";
 import { ImageError } from "../errors/image-error.js";
-import type { ImageLayer } from "../model/plan.js";
+import type { ImageLayer, ImageStroke } from "../model/plan.js";
 import {
   DEVELOP_ADJUSTMENTS,
   FILTER_PRESETS,
@@ -44,6 +44,7 @@ import {
   patchRedaction,
   REDACTION_NAMES,
 } from "./redactions.js";
+import { addStrokes, removeStrokes, restoreStrokes } from "./strokes.js";
 
 export { checkCrop, checkCropInSource, Invalid, invalid, isRecord, onlyFields } from "./checks.js";
 
@@ -253,6 +254,44 @@ export interface SetRedactionOrderCommand {
 }
 
 /**
+ * Appends strokes to a drawing layer (ADR 0009, docs/adr/0014): one stroke
+ * for each gesture, however many runs it has.
+ *
+ * @public
+ */
+export interface AddStrokesCommand {
+  readonly type: "image.addStrokes";
+  /** The drawing's key. */
+  readonly key: string;
+  readonly strokes: readonly ImageStroke[];
+}
+
+/**
+ * Removes strokes from a drawing layer, by index. A drawing keeps at least
+ * one stroke: to remove the last, remove the layer.
+ *
+ * @public
+ */
+export interface RemoveStrokesCommand {
+  readonly type: "image.removeStrokes";
+  readonly key: string;
+  readonly indexes: readonly number[];
+}
+
+/**
+ * Puts removed strokes back, each at its index, by rising index. It's what
+ * undoes {@link RemoveStrokesCommand}: the reducer applies it, but it isn't
+ * part of the portable command format (ADR 0009).
+ *
+ * @public
+ */
+export interface RestoreStrokesCommand {
+  readonly type: "image.restoreStrokes";
+  readonly key: string;
+  readonly entries: readonly { readonly at: number; readonly stroke: ImageStroke }[];
+}
+
+/**
  * The commands that exist only to undo others. The reducer applies them, and
  * they're plain data like every command, but the `hm-image-command` format
  * doesn't include them: an inverse's shape may change between releases
@@ -261,6 +300,7 @@ export interface SetRedactionOrderCommand {
  * @public
  */
 export type ImageInverseCommand =
+  | RestoreStrokesCommand
   | RestoreLayersCommand
   | SetLayerOrderCommand
   | RestoreRedactionsCommand
@@ -283,6 +323,8 @@ export type ImageCommand =
   | RemoveLayersCommand
   | MoveLayersCommand
   | UpdateLayersCommand
+  | AddStrokesCommand
+  | RemoveStrokesCommand
   | InsertRedactionsCommand
   | RemoveRedactionsCommand
   | MoveRedactionsCommand
@@ -365,6 +407,10 @@ export type ImageCommandRejection =
   | "invalid-text"
   | "text-too-long"
   | "empty-shape"
+  | "empty-drawing"
+  | "empty-arrow"
+  | "invalid-points"
+  | "too-many-strokes"
   | "wrong-kind"
   | "unknown-redaction"
   | "unknown-redaction-mode"
@@ -501,6 +547,9 @@ const COMMAND_FIELDS: Readonly<Record<ImageCommand["type"], readonly string[]>> 
   "image.updateLayers": ["type", "updates"],
   "image.restoreLayers": ["type", "entries"],
   "image.setLayerOrder": ["type", "keys"],
+  "image.addStrokes": ["type", "key", "strokes"],
+  "image.removeStrokes": ["type", "key", "indexes"],
+  "image.restoreStrokes": ["type", "key", "entries"],
   "image.insertRedactions": ["type", "at", "redactions"],
   "image.removeRedactions": ["type", "keys"],
   "image.moveRedactions": ["type", "keys", "to"],
@@ -684,6 +733,12 @@ function apply(
         inverse: { type: "image.updateLayers", updates: previous },
       };
     }
+    case "image.addStrokes":
+      return addStrokes(plan, command.key, command.strokes);
+    case "image.removeStrokes":
+      return removeStrokes(plan, command.key, command.indexes);
+    case "image.restoreStrokes":
+      return restoreStrokes(plan, command.key, command.entries);
     case "image.insertRedactions": {
       const redactions = checkRedactions(command.redactions);
       const { list, keys } = insertItems(plan.redactions, command.at, redactions, planKeys(plan));

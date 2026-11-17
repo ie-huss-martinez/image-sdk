@@ -12,6 +12,15 @@ import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
 
 // @public
+export interface AddStrokesCommand {
+    readonly key: string;
+    // (undocumented)
+    readonly strokes: readonly ImageStroke[];
+    // (undocumented)
+    readonly type: "image.addStrokes";
+}
+
+// @public
 export function applyMatrix(matrix: ImageMatrix, point: {
     readonly x: number;
     readonly y: number;
@@ -19,6 +28,12 @@ export function applyMatrix(matrix: ImageMatrix, point: {
     readonly x: number;
     readonly y: number;
 };
+
+// @public
+export function arrowBounds(arrow: Pick<ImageArrowLayer, "from" | "to" | "width">): ImageRect;
+
+// @public
+export function arrowOutline(from: ImageScenePoint, to: ImageScenePoint, width: number): ImageScenePoint[];
 
 // @public
 export const ASPECT_PRESETS: readonly ImageAspect[];
@@ -96,6 +111,12 @@ export const DEVELOP_ADJUSTMENTS: readonly ["temperature", "tint", "exposure", "
 export function dragHandle(crop: ImageCrop, handle: CropHandle, dx: number, dy: number, source: ImageSize, ratio?: number): ImageCrop;
 
 // @public
+export function drawingBounds(drawing: Pick<ImageDrawingLayer, "x" | "y" | "strokes">): ImageRect;
+
+// @public
+export function drawingPoints(plan: Pick<ImagePlan, "layers">): number;
+
+// @public
 export const EMPTY_KEEPABLE_METADATA: ImageKeepableMetadata;
 
 // @public
@@ -132,7 +153,17 @@ export function handleInSource(handle: CropHandle, orientation: ImageOrientation
 export const IMAGE_PLAN_FORMAT = "hm-image-plan";
 
 // @public
-export const IMAGE_PLAN_VERSION = 2;
+export const IMAGE_PLAN_VERSION = 3;
+
+// @public
+export interface ImageArrowLayer extends ImageLayerCommon {
+    readonly colour: string;
+    readonly from: ImageScenePoint;
+    // (undocumented)
+    readonly kind: "arrow";
+    readonly to: ImageScenePoint;
+    readonly width: number;
+}
 
 // @public
 export type ImageAspect = "free" | "original" | readonly [number, number];
@@ -156,15 +187,18 @@ export interface ImageBase {
 }
 
 // @public
+export type ImageBoxedLayer = ImageTextLayer | ImageShapeLayer | ImageImageLayer;
+
+// @public
 export interface ImageCallOptions {
     readonly signal?: AbortSignal;
 }
 
 // @public
-export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand | InsertLayersCommand | RemoveLayersCommand | MoveLayersCommand | UpdateLayersCommand | InsertRedactionsCommand | RemoveRedactionsCommand | MoveRedactionsCommand | UpdateRedactionsCommand | ImageInverseCommand;
+export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand | InsertLayersCommand | RemoveLayersCommand | MoveLayersCommand | UpdateLayersCommand | AddStrokesCommand | RemoveStrokesCommand | InsertRedactionsCommand | RemoveRedactionsCommand | MoveRedactionsCommand | UpdateRedactionsCommand | ImageInverseCommand;
 
 // @public
-export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "invalid-key" | "duplicate-key" | "invalid-index" | "invalid-order" | "unknown-layer" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "wrong-kind" | "unknown-redaction" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unexpected-colour" | "missing-colour" | "too-many-layers";
+export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "invalid-key" | "duplicate-key" | "invalid-index" | "invalid-order" | "unknown-layer" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "empty-drawing" | "empty-arrow" | "invalid-points" | "too-many-strokes" | "wrong-kind" | "unknown-redaction" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unexpected-colour" | "missing-colour" | "too-many-layers";
 
 // @public
 export interface ImageCrop {
@@ -195,7 +229,17 @@ export interface ImageDevelop {
 }
 
 // @public
-export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "duplicate-key" | "invalid-key" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "too-many-layers";
+export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "duplicate-key" | "invalid-key" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "empty-drawing" | "empty-arrow" | "invalid-points" | "too-many-layers";
+
+// @public
+export interface ImageDrawingLayer extends ImageLayerCommon {
+    // (undocumented)
+    readonly kind: "drawing";
+    readonly strokes: readonly ImageStroke[];
+    readonly x: number;
+    // (undocumented)
+    readonly y: number;
+}
 
 // @public
 export interface ImageEngine {
@@ -217,7 +261,7 @@ export class ImageError extends SdkError<ImageErrorCode> {
 }
 
 // @public
-export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "INVALID_DOCUMENT" | "UNSUPPORTED_PLAN" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS";
+export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "INVALID_DOCUMENT" | "UNSUPPORTED_PLAN" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS" | "TOO_MANY_POINTS";
 
 // @public
 export type ImageExportFormat = {
@@ -272,7 +316,7 @@ export interface ImageImageLayer extends ImageLayerCommon, ImageLayerBox {
 }
 
 // @public
-export type ImageInverseCommand = RestoreLayersCommand | SetLayerOrderCommand | RestoreRedactionsCommand | SetRedactionOrderCommand;
+export type ImageInverseCommand = RestoreStrokesCommand | RestoreLayersCommand | SetLayerOrderCommand | RestoreRedactionsCommand | SetRedactionOrderCommand;
 
 // @public
 export interface ImageKeepableMetadata {
@@ -287,7 +331,7 @@ export interface ImageKeepableMetadata {
 }
 
 // @public
-export type ImageLayer = ImageTextLayer | ImageShapeLayer | ImageImageLayer;
+export type ImageLayer = ImageBoxedLayer | ImageDrawingLayer | ImageArrowLayer;
 
 // @public
 export interface ImageLayerBox {
@@ -349,6 +393,12 @@ export const imageLimitDefinitions: {
         readonly unit: "count";
         readonly default: 256;
     };
+    readonly maxDrawingPoints: {
+        readonly code: "TOO_MANY_POINTS";
+        readonly unit: "count";
+        readonly default: 200000;
+        readonly warning: 100000;
+    };
     readonly maxFileSize: {
         readonly code: "FILE_TOO_LARGE";
         readonly unit: "bytes";
@@ -409,6 +459,7 @@ export const imageMessages: {
         readonly one: "An image can have {maximum} layer. Merge or delete layers, and try again.";
         readonly other: "An image can have up to {maximum, number} layers. Merge or delete layers, and try again.";
     };
+    readonly "errors.TOO_MANY_POINTS": "This image's drawings would have {actual, number} points, which is over the limit of {maximum, number}. Remove some strokes, and try again.";
     readonly "warnings.maxImagePixels": "This image is large, and may be slow to edit on some devices.";
     readonly "warnings.maxImageDimension": "This image is very wide or tall, and may be slow to edit.";
     readonly "warnings.maxFrames": {
@@ -424,6 +475,7 @@ export const imageMessages: {
         readonly one: "This image has {actual} layer.";
         readonly other: "This image has {actual, number} layers, and may be slow to edit and export.";
     };
+    readonly "warnings.maxDrawingPoints": "This image has a lot of drawing, and may be slow to edit and export.";
     readonly "errors.UNKNOWN": "Something went wrong. Please try again.";
     readonly "errors.ABORTED": "The operation was cancelled.";
     readonly "errors.TIMEOUT": "The operation took too long and was stopped.";
@@ -534,7 +586,7 @@ export interface ImagePlanDocumentSource extends ImageSize {
 }
 
 // @public
-export type ImagePlanPart = "layers" | "redactions" | "animation";
+export type ImagePlanPart = "layers" | "drawings" | "redactions" | "animation";
 
 // @public
 export interface ImagePoint {
@@ -641,6 +693,14 @@ export type ImageRenderOutcome = "drawn" | "superseded";
 
 // @public
 export type ImageRotation = 0 | 90 | 180 | 270;
+
+// @public
+export interface ImageScenePoint {
+    // (undocumented)
+    readonly x: number;
+    // (undocumented)
+    readonly y: number;
+}
 
 // @public
 export interface ImageSession {
@@ -758,6 +818,13 @@ export interface ImageSourceInfo {
 }
 
 // @public
+export interface ImageStroke {
+    readonly colour: string;
+    readonly runs: readonly (readonly number[])[];
+    readonly width: number;
+}
+
+// @public
 export interface ImageTextLayer extends ImageLayerCommon, ImageLayerBox {
     // (undocumented)
     readonly align: (typeof LAYER_ALIGNMENTS)[number];
@@ -838,7 +905,7 @@ export const LAYER_ALIGNMENTS: readonly ["start", "center", "end"];
 export const LAYER_FONTS: readonly ["sans-serif", "serif", "monospace"];
 
 // @public
-export const LAYER_KINDS: readonly ["text", "shape", "image"];
+export const LAYER_KINDS: readonly ["text", "shape", "image", "drawing", "arrow"];
 
 // @public
 export const LAYER_SHAPES: readonly ["rectangle", "ellipse"];
@@ -848,6 +915,9 @@ export function layerToOutput(box: ImageLayerBox, crop: ImageCrop, orientation: 
 
 // @public
 export function layerToScene(box: ImageLayerBox): ImageMatrix;
+
+// @public
+export const MAX_DRAWING_STROKES = 1024;
 
 // @public
 export const MAX_KEY_LENGTH = 64;
@@ -868,7 +938,13 @@ export const MAX_PIXEL_RATIO = 4;
 export const MAX_PLAN_ITEMS = 1024;
 
 // @public
+export const MAX_RUN_POINTS = 2000;
+
+// @public
 export const MAX_SCENE_COORDINATE = 65536;
+
+// @public
+export const MAX_STROKE_RUNS = 64;
 
 // @public
 export const MAX_STROKE_WIDTH = 1024;
@@ -967,6 +1043,16 @@ export interface RemoveRedactionsCommand {
 }
 
 // @public
+export interface RemoveStrokesCommand {
+    // (undocumented)
+    readonly indexes: readonly number[];
+    // (undocumented)
+    readonly key: string;
+    // (undocumented)
+    readonly type: "image.removeStrokes";
+}
+
+// @public
 export interface RestoreLayersCommand {
     // (undocumented)
     readonly entries: readonly {
@@ -986,6 +1072,19 @@ export interface RestoreRedactionsCommand {
     }[];
     // (undocumented)
     readonly type: "image.restoreRedactions";
+}
+
+// @public
+export interface RestoreStrokesCommand {
+    // (undocumented)
+    readonly entries: readonly {
+        readonly at: number;
+        readonly stroke: ImageStroke;
+    }[];
+    // (undocumented)
+    readonly key: string;
+    // (undocumented)
+    readonly type: "image.restoreStrokes";
 }
 
 // @public
@@ -1062,6 +1161,9 @@ export interface SetRedactionOrderCommand {
     // (undocumented)
     readonly type: "image.setRedactionOrder";
 }
+
+// @public
+export function simplifyStroke(points: readonly number[], tolerance: number): number[][];
 
 // @public
 export function sourceToComposition(point: ImagePoint, crop: ImageCrop, orientation: ImageOrientation_2): ImagePoint;

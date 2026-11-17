@@ -4,7 +4,19 @@ import {
   invertMatrix,
   layerToScene,
 } from "../../core/model/layer-geometry.js";
-import { type ImageLayerBox, MAX_SCENE_COORDINATE } from "../../core/model/plan.js";
+import {
+  type ImageBoxedLayer,
+  type ImageLayer,
+  type ImageLayerBox,
+  MAX_SCENE_COORDINATE,
+} from "../../core/model/plan.js";
+
+/**
+ * Whether a layer has a box: text, a shape or an image. A drawing and an
+ * arrow have none (docs/adr/0014); their frames come with their tools.
+ */
+export const isBoxedLayer = (layer: ImageLayer): layer is ImageBoxedLayer =>
+  layer.kind === "text" || layer.kind === "shape" || layer.kind === "image";
 
 /** One of a box's own edges: `n` is its top before it's turned. */
 export type LayerEdge = "n" | "e" | "s" | "w";

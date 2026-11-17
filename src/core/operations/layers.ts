@@ -1,13 +1,18 @@
 import {
   type ImageLayer,
   type ImageLayerKind,
+  type ImageScenePoint,
+  type ImageStroke,
   LAYER_ALIGNMENTS,
   LAYER_FONTS,
   LAYER_KINDS,
   LAYER_SHAPES,
+  MAX_DRAWING_STROKES,
   MAX_LAYER_NAME_LENGTH,
   MAX_LAYER_TEXT_LENGTH,
+  MAX_RUN_POINTS,
   MAX_SCENE_COORDINATE,
+  MAX_STROKE_RUNS,
   MAX_STROKE_WIDTH,
 } from "../model/plan.js";
 import { type ImageSize, longerThan } from "../model/source.js";
@@ -20,13 +25,27 @@ export const LAYER_NAMES: KeyedListNames = { unknown: "unknown-layer", item: "la
 
 const COMMON = ["key", "kind", "name", "visible", "opacity"] as const;
 const BOX = ["x", "y", "width", "height", "rotation", "flipX"] as const;
-/** Each kind's own fields, after those every layer has and its box. */
+/** Each kind's fields, after those every layer has: a box and its own, or its own alone. */
 const OWN: Readonly<Record<ImageLayerKind, readonly string[]>> = {
-  text: ["text", "font", "bold", "colour", "align"],
-  shape: ["shape", "fill", "stroke"],
-  image: ["source", "crop"],
+  text: [...BOX, "text", "font", "bold", "colour", "align"],
+  shape: [...BOX, "shape", "fill", "stroke"],
+  image: [...BOX, "source", "crop"],
+  drawing: ["x", "y", "strokes"],
+  arrow: ["from", "to", "colour", "width"],
 };
-const KINDS: readonly string[] = LAYER_KINDS;
+/**
+ * The fields of a kind that `image.updateLayers` doesn't set: a drawing's
+ * strokes change only through the stroke commands, so an undo step holds
+ * the strokes it removed and no others (docs/adr/0014).
+ */
+const NOT_UPDATED: Readonly<Partial<Record<ImageLayerKind, readonly string[]>>> = {
+  drawing: ["strokes"],
+};
+/** The kinds each format version has (ADR 0009): a reader takes no later version's kind. */
+const KINDS_BY_VERSION: Readonly<Record<2 | 3, readonly string[]>> = {
+  2: ["text", "shape", "image"],
+  3: LAYER_KINDS,
+};
 /** Every field some kind has, for telling another kind's field from an unknown one. */
 const ANY_OWN = new Set(Object.values(OWN).flat());
 
@@ -64,38 +83,165 @@ function checkBoolean(value: unknown, what: string): boolean {
   return value;
 }
 
+/** A whole number of scene pixels within the scene's coordinates. */
+const isCoordinate = (value: unknown): value is number =>
+  isWhole(value, -MAX_SCENE_COORDINATE, MAX_SCENE_COORDINATE);
+
+/** A stroke's or an arrow's width. */
+function checkWidth(value: unknown, what: string): number {
+  if (!isWhole(value, 1, MAX_STROKE_WIDTH)) {
+    invalid("malformed-command", `${what}'s width is from 1 to ${MAX_STROKE_WIDTH} pixels`);
+  }
+  return value;
+}
+
+/**
+ * One stroke of a drawing at an origin: its colour, its width, and 1 to 64
+ * runs of 1 to 2,000 points, each point within the scene's coordinates once
+ * the origin is added (docs/adr/0014).
+ *
+ * @internal
+ */
+export function checkStroke(value: unknown, origin: ImageScenePoint): ImageStroke {
+  if (!isRecord<{ colour: unknown; width: unknown; runs: unknown }>(value)) {
+    invalid("malformed-command", "a stroke is an object");
+  }
+  allFields(value, ["colour", "width", "runs"], "a stroke");
+  const colour = checkColour(value.colour);
+  const width = checkWidth(value.width, "a stroke");
+  const { runs } = value;
+  if (!Array.isArray(runs) || runs.length < 1 || runs.length > MAX_STROKE_RUNS) {
+    invalid("malformed-command", `a stroke has 1 to ${MAX_STROKE_RUNS} runs`);
+  }
+  return {
+    colour,
+    width,
+    runs: runs.map((run: unknown) => {
+      if (!Array.isArray(run) || run.length < 2 || run.length > 2 * MAX_RUN_POINTS) {
+        invalid("malformed-command", `a run has 1 to ${MAX_RUN_POINTS} points`);
+      }
+      // From the origin, which may be at one end of the scene, to a point at the other.
+      const numbers = run as number[];
+      if (
+        !numbers.every((value) =>
+          isWhole(value, -2 * MAX_SCENE_COORDINATE, 2 * MAX_SCENE_COORDINATE),
+        )
+      ) {
+        invalid("malformed-command", "a run's coordinates are whole numbers of pixels");
+      }
+      // What a schema can't state: a pair for each point, and each point in the scene.
+      if (run.length % 2 !== 0) invalid("invalid-points", "a run has an x and a y for each point");
+      for (let i = 0; i < run.length; i += 2) {
+        if (
+          !isCoordinate(origin.x + (numbers[i] as number)) ||
+          !isCoordinate(origin.y + (numbers[i + 1] as number))
+        ) {
+          invalid(
+            "invalid-points",
+            `a point is within ${MAX_SCENE_COORDINATE} pixels of the scene's origin`,
+          );
+        }
+      }
+      return [...numbers];
+    }),
+  };
+}
+
+/** A list of strokes, each checked at the drawing's origin. */
+function checkStrokes(value: unknown, origin: ImageScenePoint): ImageStroke[] {
+  if (!Array.isArray(value) || value.length > MAX_DRAWING_STROKES) {
+    invalid("malformed-command", `a drawing has at most ${MAX_DRAWING_STROKES} strokes`);
+  }
+  return value.map((stroke) => checkStroke(stroke, origin));
+}
+
+/** A point of the scene. */
+function checkPoint(value: unknown, what: string): ImageScenePoint {
+  if (!isRecord<{ x: unknown; y: unknown }>(value)) {
+    invalid("malformed-command", `${what} is a point`);
+  }
+  allFields(value, ["x", "y"], what);
+  const { x, y } = value;
+  // Stated by the schema, as a box's place is.
+  if (!isCoordinate(x) || !isCoordinate(y)) {
+    invalid(
+      "malformed-command",
+      `${what} is in whole pixels, within ${MAX_SCENE_COORDINATE} of the scene's origin`,
+    );
+  }
+  return { x, y };
+}
+
 /**
  * A layer, with exactly its kind's fields. An image layer's source must be
  * registered, and its crop must fit inside it.
  *
+ * @param version - The format version whose kinds are allowed: a version 2
+ *   document has no drawing and no arrow (ADR 0009).
  * @internal
  */
 export function checkLayer(
   value: unknown,
   sourceSize: (id: string) => ImageSize | undefined,
+  version: 2 | 3 = 3,
 ): ImageLayer {
   if (!isRecord<Record<string, unknown>>(value)) {
     invalid("malformed-command", "a layer is an object");
   }
   const { kind } = value;
   if (typeof kind !== "string") invalid("malformed-command", "a layer's kind is text");
-  if (!KINDS.includes(kind)) {
-    invalid("unknown-layer-kind", `a layer's kind is one of ${LAYER_KINDS.join(", ")}`);
+  const kinds = KINDS_BY_VERSION[version];
+  if (!kinds.includes(kind)) {
+    invalid("unknown-layer-kind", `a layer's kind is one of ${kinds.join(", ")}`);
   }
   const own = OWN[kind as ImageLayerKind];
-  allFields(value, [...COMMON, ...BOX, ...own], `a ${kind} layer`);
+  allFields(value, [...COMMON, ...own], `a ${kind} layer`);
 
   const key = checkKey(value["key"]);
   const name = checkText(value["name"], MAX_LAYER_NAME_LENGTH, "a layer's name");
   const visible = checkBoolean(value["visible"], "a layer's visible");
-  const { opacity, x, y, width, height, rotation } = value;
-  if (![opacity, x, y, width, height, rotation].every(Number.isInteger)) {
-    invalid("malformed-command", "a layer's opacity and box are whole numbers");
+  const { opacity } = value;
+  if (!Number.isInteger(opacity)) {
+    invalid("malformed-command", "a layer's opacity is a whole number");
   }
   if (!isWhole(opacity, 0, 100)) invalid("invalid-opacity", "a layer's opacity is from 0 to 100");
+  const shared = { key, name, visible, opacity };
+
+  if (kind === "drawing") {
+    const { x, y } = value;
+    if (!isCoordinate(x) || !isCoordinate(y)) {
+      invalid(
+        "malformed-command",
+        `a drawing's origin is in whole pixels, within ${MAX_SCENE_COORDINATE} of the scene's origin`,
+      );
+    }
+    const strokes = checkStrokes(value["strokes"], { x, y });
+    if (strokes.length === 0) invalid("empty-drawing", "a drawing has at least one stroke");
+    return { ...shared, kind, x, y, strokes };
+  }
+  if (kind === "arrow") {
+    const from = checkPoint(value["from"], "an arrow's from");
+    const to = checkPoint(value["to"], "an arrow's to");
+    if (from.x === to.x && from.y === to.y) {
+      invalid("empty-arrow", "an arrow's ends differ");
+    }
+    return {
+      ...shared,
+      kind,
+      from,
+      to,
+      colour: checkColour(value["colour"]),
+      width: checkWidth(value["width"], "an arrow"),
+    };
+  }
+
+  const { x, y, width, height, rotation } = value;
+  if (![x, y, width, height, rotation].every(Number.isInteger)) {
+    invalid("malformed-command", "a layer's box is in whole numbers");
+  }
   if (
-    !isWhole(x, -MAX_SCENE_COORDINATE, MAX_SCENE_COORDINATE) ||
-    !isWhole(y, -MAX_SCENE_COORDINATE, MAX_SCENE_COORDINATE) ||
+    !isCoordinate(x) ||
+    !isCoordinate(y) ||
     !isWhole(width, 1, MAX_SCENE_COORDINATE) ||
     !isWhole(height, 1, MAX_SCENE_COORDINATE) ||
     !isWhole(rotation, 0, 3_599)
@@ -106,7 +252,7 @@ export function checkLayer(
     );
   }
   const flipX = checkBoolean(value["flipX"], "a layer's flipX");
-  const common = { key, name, visible, opacity, x, y, width, height, rotation, flipX };
+  const common = { ...shared, x, y, width, height, rotation, flipX };
 
   if (kind === "text") {
     return {
@@ -129,10 +275,7 @@ export function checkLayer(
         invalid("malformed-command", "a stroke is an object or null");
       }
       allFields(given, ["colour", "width"], "a stroke");
-      if (!isWhole(given.width, 1, MAX_STROKE_WIDTH)) {
-        invalid("malformed-command", `a stroke's width is from 1 to ${MAX_STROKE_WIDTH} pixels`);
-      }
-      stroke = { colour: checkColour(given.colour), width: given.width };
+      stroke = { colour: checkColour(given.colour), width: checkWidth(given.width, "a stroke") };
     }
     if (fill === null && stroke === null) {
       invalid("empty-shape", "a shape has a fill or a stroke");
@@ -165,11 +308,17 @@ export function patchLayer(
   if (!isRecord<Record<string, unknown>>(props)) {
     invalid("malformed-command", "an update's props are an object");
   }
-  const allowed = new Set<string>([...COMMON.slice(2), ...BOX, ...OWN[item.kind]]);
+  const notUpdated = NOT_UPDATED[item.kind] ?? [];
+  const allowed = new Set<string>(
+    [...COMMON.slice(2), ...OWN[item.kind]].filter((name) => !notUpdated.includes(name)),
+  );
   const before = item as unknown as Readonly<Record<string, unknown>>;
   const merged: Record<string, unknown> = { ...item };
   const previous: Record<string, unknown> = {};
   for (const name of Object.keys(props)) {
+    if (notUpdated.includes(name)) {
+      invalid("malformed-command", `a ${item.kind} layer's "${name}" isn't set by an update`);
+    }
     if (!allowed.has(name)) {
       // Another kind's field is a mistake about the layer; anything else,
       // including its key and kind, isn't a field an update has.

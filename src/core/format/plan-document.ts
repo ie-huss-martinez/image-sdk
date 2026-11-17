@@ -37,7 +37,7 @@ export const IMAGE_PLAN_FORMAT = "hm-image-plan";
  *
  * @public
  */
-export const IMAGE_PLAN_VERSION = 2;
+export const IMAGE_PLAN_VERSION = 3;
 
 /**
  * A content-addressed reference to binary data, such as a source's file
@@ -66,8 +66,8 @@ export interface ImagePlanDocumentSource extends ImageSize {
 }
 
 /**
- * The plan as portable JSON: `hm-image-plan` version 2, which
- * `formats/hm-image-plan/v2.schema.json` describes
+ * The plan as portable JSON: `hm-image-plan` version 3, which
+ * `formats/hm-image-plan/v3.schema.json` describes
  * (docs/formats/hm-image-plan.md). Positions are whole pixels of the
  * oriented source, and the base names its source by an id the document
  * lists.
@@ -95,8 +95,11 @@ export interface ImagePlanDocument extends ImagePlan {
  *   `invalid-level`, `unknown-preset`, `invalid-strength`, `invalid-key`,
  *   `unknown-redaction-mode`, `invalid-region`, `invalid-colour`,
  *   `unknown-layer-kind`, `invalid-box`, `invalid-opacity`, `invalid-text`,
- *   `text-too-long`, `empty-shape` and `too-many-layers`. `unknown-source`
- *   and `crop-outside-source` apply to an image layer too.
+ *   `text-too-long`, `empty-shape`, `empty-drawing`, `empty-arrow`,
+ *   `invalid-points` and `too-many-layers`. `unknown-source` and
+ *   `crop-outside-source` apply to an image layer too. A drawing or an
+ *   arrow in a document of version 2, which has neither, is
+ *   `unknown-layer-kind`.
  *
  * @public
  */
@@ -124,6 +127,9 @@ export type ImageDocumentRejection =
   | "invalid-text"
   | "text-too-long"
   | "empty-shape"
+  | "empty-drawing"
+  | "empty-arrow"
+  | "invalid-points"
   | "too-many-layers";
 
 /** Version 1's fields: the plan before layers, redactions and animation. */
@@ -230,12 +236,14 @@ function migrateFromV1(value: RawDocument): RawDocument {
 function readLayers(
   value: unknown,
   sources: Record<string, ImagePlanDocumentSource>,
+  version: 2 | 3,
 ): ImageLayer[] {
   if (!Array.isArray(value)) malformed("layers is a list");
   if (value.length > MAX_PLAN_ITEMS) malformed(`a document holds at most ${MAX_PLAN_ITEMS} layers`);
   // An image layer's source is one the document lists, as the base's is.
   const sourceSize = (id: string) => (Object.hasOwn(sources, id) ? sources[id] : undefined);
-  return value.map((layer) => checkLayer(layer, sourceSize));
+  // A document has its own version's kinds: a drawing in version 2 is refused, not read.
+  return value.map((layer) => checkLayer(layer, sourceSize, version));
 }
 
 function readRedactions(value: unknown): ImageRedaction[] {
@@ -280,14 +288,18 @@ function read(value: unknown): {
       { details: { format: IMAGE_PLAN_FORMAT, reason: "unknown-format-version" } },
     );
   }
-  if (version !== 1 && version !== IMAGE_PLAN_VERSION) malformed("version is 1 or 2");
+  if (version !== 1 && version !== 2 && version !== IMAGE_PLAN_VERSION) {
+    malformed("version is 1, 2 or 3");
+  }
+  // Version 2 as version 3 changes only the version (ADR 0009): it's read
+  // with version 2's layer kinds, so it can't hold a later version's.
   const document = version === 1 ? migrateFromV1(value) : value;
   required(document, DOCUMENT_FIELDS, "a document");
   const { layers, redactions, animation } = document;
   const sources = readSources(document.sources);
   // The animation arrives with its model, in a later version (ADR 0009).
   if (animation !== null) malformed("animation is null");
-  const readLayerList = readLayers(layers, sources);
+  const readLayerList = readLayers(layers, sources, version === IMAGE_PLAN_VERSION ? 3 : 2);
   const readRedactionList = readRedactions(redactions);
   checkItems(readLayerList, readRedactionList);
   return {
@@ -310,7 +322,8 @@ function read(value: unknown): {
  * inside them, and no two items share a key. Unknown fields are refused, never dropped.
  *
  * A document of an earlier version is migrated, so every version stays
- * readable: version 1 reads as a plan with no layers or redactions.
+ * readable: version 1 reads as a plan with no layers or redactions, and
+ * version 2 as it is, with the kinds of layer it had.
  *
  * @param value - The parsed JSON.
  * @returns The plan, and its sources by id.

@@ -32,6 +32,8 @@ import { isSdkError, type SdkCoreErrorCode, SdkError } from "@hussmartinez/sdk-c
  * - `SESSION_TOO_LARGE`: the decoded images the session holds exceed the
  *   `maxSessionSize` limit.
  * - `TOO_MANY_LAYERS`: the layer plan exceeds the `maxLayers` limit.
+ * - `TOO_MANY_POINTS`: the plan's drawings hold more points than the
+ *   `maxDrawingPoints` limit.
  *
  * Limit codes carry `details` with the `limit`, its `maximum`, the `actual`
  * value and the `unit`. Other codes' `details` name the format involved,
@@ -51,7 +53,8 @@ export type ImageErrorCode =
   | "IMAGE_DIMENSION_TOO_LARGE"
   | "TOO_MANY_FRAMES"
   | "SESSION_TOO_LARGE"
-  | "TOO_MANY_LAYERS";
+  | "TOO_MANY_LAYERS"
+  | "TOO_MANY_POINTS";
 
 /**
  * The error `@hussmartinez/image-sdk` throws and rejects with, with a stable

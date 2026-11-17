@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
-import type { ImageLayer, ImagePlan } from "../../core/model/plan.js";
+import type { ImageBoxedLayer, ImagePlan } from "../../core/model/plan.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle, ImageEditorProps } from "../editor/types.js";
 import { KEYBOARD_COMMIT_DELAY } from "../gesture.js";
@@ -20,7 +20,7 @@ async function photo(): Promise<Blob> {
 
 const common = { name: "", visible: true, opacity: 100, rotation: 0, flipX: false };
 /** Three layers, bottom to top: a rectangle, two lines of text, and a named ellipse. */
-const LAYERS: readonly ImageLayer[] = [
+const LAYERS: readonly ImageBoxedLayer[] = [
   {
     ...common,
     key: "under",
@@ -87,7 +87,7 @@ async function until(condition: () => boolean, what: string, timeout = 5_000) {
 }
 
 async function opened(
-  layers: readonly ImageLayer[] = LAYERS,
+  layers: readonly ImageBoxedLayer[] = LAYERS,
   extra: Partial<ImageEditorProps> = {},
 ) {
   const handle = createRef<ImageEditorHandle>();
@@ -114,7 +114,9 @@ async function opened(
   }
   const plan = () => session().getSnapshot().plan as ImagePlan;
   const keys = () => plan().layers.map((layer) => layer.key);
-  const layer = (key: string) => plan().layers.find((item) => item.key === key);
+  // Every layer these tests add has a box.
+  const layer = (key: string) =>
+    plan().layers.find((item) => item.key === key) as ImageBoxedLayer | undefined;
   return { handle, session, plan, keys, layer };
 }
 
@@ -231,7 +233,7 @@ async function layering() {
 }
 
 /** Where a point of the scene is on screen, from an upright layer's frame. */
-function screenOf(layer: ImageLayer | undefined) {
+function screenOf(layer: ImageBoxedLayer | undefined) {
   const box = layer ? frame(layer.key)?.getBoundingClientRect() : undefined;
   if (!layer || !box) throw new Error("no frame");
   const scale = box.width / layer.width;
@@ -547,6 +549,76 @@ describe("the layers (docs/adr/0013)", () => {
     expect(layer("under")?.flipX).toBe(false);
   });
 
+  it("lists a drawing and an arrow, which have no box and no frame yet, and arranges them from the list", async () => {
+    const { session, keys, plan } = await opened();
+    const shared = { name: "", visible: true, opacity: 100 };
+    await act(async () =>
+      session().execute({
+        type: "image.insertLayers",
+        at: 3,
+        layers: [
+          {
+            ...shared,
+            key: "sketch",
+            kind: "drawing",
+            x: 5,
+            y: 5,
+            strokes: [{ colour: "#000000", width: 2, runs: [[0, 0, 10, 6]] }],
+          },
+          {
+            ...shared,
+            key: "pointer",
+            kind: "arrow",
+            from: { x: 40, y: 30 },
+            to: { x: 20, y: 10 },
+            colour: "#ff0000",
+            width: 2,
+          },
+        ],
+      }),
+    );
+    await layering();
+    // By their kinds, the top one first and selected.
+    expect(names()).toEqual(["Arrow", "Drawing", "Badge", "Hello", "Rectangle"]);
+    expect(select("pointer")?.getAttribute("aria-pressed")).toBe("true");
+    // Only the layers with a box have frames: three.
+    expect(frames().map((item) => item.dataset["hmLayer"])).toEqual(["under", "middle", "over"]);
+    // A box's fields and Mirror keep their place, disabled; the name and opacity apply.
+    const inputs = fields();
+    expect(inputs.map((input) => input.disabled)).toEqual([
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(named("Mirror")?.getAttribute("aria-disabled")).toBe("true");
+    // It's hidden, moved down, copied and deleted like any layer.
+    await click(visibility("pointer"));
+    expect(plan().layers.at(-1)).toMatchObject({ key: "pointer", visible: false });
+    await click(named("Move down"));
+    expect(keys()).toEqual(["under", "middle", "over", "pointer", "sketch"]);
+    await click(named("Duplicate"));
+    const copy = keys()[4] as string;
+    expect(plan().layers[4]).toMatchObject({
+      kind: "arrow",
+      from: { x: 48, y: 38 },
+      to: { x: 28, y: 18 },
+    });
+    expect(select(copy)?.getAttribute("aria-pressed")).toBe("true");
+    await click(select("sketch"));
+    await click(named("Duplicate"));
+    expect(
+      plan().layers.find((item) => item.key !== "sketch" && item.kind === "drawing"),
+    ).toMatchObject({ x: 13, y: 13, strokes: [{ runs: [[0, 0, 10, 6]] }] });
+    await act(async () => select("sketch")?.focus());
+    expect(await key(select("sketch"), { key: "Delete" })).toBe(true);
+    expect(keys()).not.toContain("sketch");
+    expect(document.querySelector(".hm-image-layers-problem")).toBeNull();
+  });
+
   it("says why when the session refuses a copy, and changes nothing", async () => {
     const { keys } = await opened(LAYERS, { filePolicy: { maxLayers: 3 } });
     await layering();
@@ -634,8 +706,7 @@ describe("the layers (docs/adr/0013)", () => {
       await session().insertImage(await photo());
     });
     const [image] = plan().layers;
-    expect(image?.kind).toBe("image");
-    if (!image) throw new Error("no image layer");
+    if (image?.kind !== "image") throw new Error("no image layer");
     await layering();
     await act(async () => frame(image.key)?.focus());
     // A gesture's transient plan resolves the layer's source, as the session does.

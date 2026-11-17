@@ -613,6 +613,48 @@ describe("shape and image layers (docs/adr/0009)", () => {
     expect([half.at(70, 60), half.at(130, 60)]).toEqual([RED, GREEN]);
   });
 
+  it("refuses a plan with a drawing or an arrow, which it doesn't draw yet, in the export and the preview", async () => {
+    const { engine, processor } = await opened();
+    const renderer = createImageRenderer(engine);
+    renderers.push(renderer);
+    await renderer.attach(document.createElement("canvas"));
+    const shared = { name: "", visible: true, opacity: 100 };
+    const drawing: ImageLayer = {
+      ...shared,
+      key: "d",
+      kind: "drawing",
+      x: 10,
+      y: 10,
+      strokes: [{ colour: "#000000", width: 3, runs: [[0, 0, 40, 20]] }],
+    };
+    const arrow: ImageLayer = {
+      ...shared,
+      key: "a",
+      kind: "arrow",
+      from: { x: 10, y: 10 },
+      to: { x: 80, y: 40 },
+      colour: "#ff0000",
+      width: 4,
+    };
+    // Hidden ones too: nothing is drawn or exported without a part of its plan (ADR 0009).
+    for (const layer of [drawing, arrow, { ...drawing, visible: false }]) {
+      const plan = withLayers([shape(), layer]);
+      const refusals: unknown[] = [];
+      await processor.export({ plan, format: { type: "png" } }).catch((e) => refusals.push(e));
+      await renderer.render(plan, fittedView(WIDTH, HEIGHT)).catch((e) => refusals.push(e));
+      expect(refusals, layer.kind).toHaveLength(2);
+      for (const refusal of refusals) {
+        expect(isImageError(refusal, "UNSUPPORTED_PLAN"), layer.kind).toBe(true);
+        expect((refusal as { details?: unknown }).details).toMatchObject({ reason: "drawings" });
+      }
+    }
+    // The same plan without it is drawn.
+    const drawn = await decoded(
+      await processor.export({ plan: withLayers([shape()]), format: { type: "png" } }),
+    );
+    expect(inkBox(drawn)?.count ?? 0).toBeGreaterThan(100);
+  });
+
   it("fails on an image layer whose source isn't registered, with nothing exported", async () => {
     const { processor } = await opened();
     const layer: ImageImageLayer = {

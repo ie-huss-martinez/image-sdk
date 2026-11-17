@@ -8,13 +8,14 @@ import {
 } from "react";
 import { compositionSize, cropRect } from "../../core/model/geometry.js";
 import { invertMatrix, layerToOutput, sceneToOutput } from "../../core/model/layer-geometry.js";
-import type { ImageLayer, ImageLayerBox, ImagePlan } from "../../core/model/plan.js";
+import type { ImageBoxedLayer, ImageLayerBox, ImagePlan } from "../../core/model/plan.js";
 import type { ImageSize } from "../../core/model/source.js";
 import { type ImageView, placement } from "../../core/ports/image-renderer.js";
 import { useImageEditorState, useImageMessages } from "../hooks.js";
 import {
   boxOf,
   handleCursor,
+  isBoxedLayer,
   LAYER_HANDLES,
   type LayerHandle,
   moveLayerBox,
@@ -109,7 +110,8 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
   };
 
   const onFramePointerDown =
-    (layer: ImageLayer, handle: LayerHandle | "move") => (event: PointerEvent<HTMLElement>) => {
+    (layer: ImageBoxedLayer, handle: LayerHandle | "move") =>
+    (event: PointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
@@ -153,7 +155,7 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
   };
   const pointer = { onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
 
-  const onKeyDown = (layer: ImageLayer) => (event: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = (layer: ImageBoxedLayer) => (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -202,7 +204,11 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
   };
 
   const count = plan.layers.length;
-  const shown = plan.layers.filter((layer) => layer.visible || layer.key === selected);
+  // The layers that have a box. A drawing and an arrow have none, and no
+  // frame yet: they're selected, hidden, reordered and deleted from the list.
+  const shown = plan.layers
+    .filter(isBoxedLayer)
+    .filter((layer) => layer.visible || layer.key === selected);
   // One tab stop: the selected frame, or the top one when none is.
   const tabStop = shown.some((layer) => layer.key === selected) ? selected : shown.at(-1)?.key;
   return (

@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-command/v3.schema.json",
+  "title": "hm-image-command, version 3",
+  "description": "One user-level edit to an hm-image-plan (docs/formats/hm-image-plan.md, sdk-core ADR 0045). Version 2's commands are unchanged; this version adds the stroke commands, and drawings and arrows among the layers a command may carry. Beyond this schema, the reducer checks a crop against the plan's source, keys and indexes against the plan's lists, and each layer, stroke and redaction that results.",
+  "oneOf": [
+    {
+      "description": "Sets the crop, or removes it with null.",
+      "type": "object",
+      "required": ["type", "crop"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setCrop"
+        },
+        "crop": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/crop"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "description": "Sets the rotation and flips.",
+      "type": "object",
+      "required": ["type", "orientation"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setOrientation"
+        },
+        "orientation": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/orientation"
+        }
+      }
+    },
+    {
+      "description": "Sets the export's size.",
+      "type": "object",
+      "required": ["type", "output"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setOutput"
+        },
+        "output": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/output"
+        }
+      }
+    },
+    {
+      "description": "Sets one kept metadata field.",
+      "type": "object",
+      "required": ["type", "field", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setMetadata"
+        },
+        "field": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/metadataField"
+        },
+        "value": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/metadataValue"
+        }
+      }
+    },
+    {
+      "description": "Sets some develop adjustments.",
+      "type": "object",
+      "required": ["type", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setDevelop"
+        },
+        "values": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/developValues"
+        }
+      }
+    },
+    {
+      "description": "Sets the filter, or removes it with null.",
+      "type": "object",
+      "required": ["type", "filter"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.setFilter"
+        },
+        "filter": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/filter"
+        }
+      }
+    },
+    {
+      "description": "Inserts layers at an index: 0 is under every layer.",
+      "type": "object",
+      "required": ["type", "at", "layers"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.insertLayers"
+        },
+        "at": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/layer"
+          }
+        }
+      }
+    },
+    {
+      "description": "Removes layers, by key.",
+      "type": "object",
+      "required": ["type", "keys"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.removeLayers"
+        },
+        "keys": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/keys"
+        }
+      }
+    },
+    {
+      "description": "Moves layers to an index of the list without them, keeping their order.",
+      "type": "object",
+      "required": ["type", "keys", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.moveLayers"
+        },
+        "keys": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/keys"
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "description": "Sets some fields of some layers.",
+      "type": "object",
+      "required": ["type", "updates"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.updateLayers"
+        },
+        "updates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["key", "props"],
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/key"
+              },
+              "props": {
+                "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/layerProps"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Appends strokes to a drawing layer: one stroke for each gesture.",
+      "type": "object",
+      "required": ["type", "key", "strokes"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.addStrokes"
+        },
+        "key": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/key"
+        },
+        "strokes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "items": {
+            "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/drawnStroke"
+          }
+        }
+      }
+    },
+    {
+      "description": "Removes strokes from a drawing layer, by index. A drawing keeps at least one.",
+      "type": "object",
+      "required": ["type", "key", "indexes"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.removeStrokes"
+        },
+        "key": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/key"
+        },
+        "indexes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    {
+      "description": "Inserts redactions at an index.",
+      "type": "object",
+      "required": ["type", "at", "redactions"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.insertRedactions"
+        },
+        "at": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "redactions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/redaction"
+          }
+        }
+      }
+    },
+    {
+      "description": "Removes redactions, by key.",
+      "type": "object",
+      "required": ["type", "keys"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.removeRedactions"
+        },
+        "keys": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/keys"
+        }
+      }
+    },
+    {
+      "description": "Moves redactions to an index of the list without them, keeping their order.",
+      "type": "object",
+      "required": ["type", "keys", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.moveRedactions"
+        },
+        "keys": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/keys"
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "description": "Sets some fields of some redactions.",
+      "type": "object",
+      "required": ["type", "updates"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.updateRedactions"
+        },
+        "updates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["key", "props"],
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/key"
+              },
+              "props": {
+                "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v3.schema.json#/$defs/redactionProps"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
