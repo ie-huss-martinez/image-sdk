@@ -1,4 +1,4 @@
-import type { DecodeOutcome, FeatureOutcome, Request } from "./protocol.js";
+import type { DecodeOutcome, FeatureOutcome, GifFrameOutcome, Request } from "./protocol.js";
 
 /** How long a decode may take before the page stops waiting, as the engine will (sdk-core ADR 0031). */
 const DECODE_TIMEOUT = 10_000;
@@ -15,13 +15,18 @@ function inWorker<T>(request: Request, timeout: number, onTimeout: T): Promise<T
       resolve(event.data);
     });
     const transfer: Transferable[] =
-      request.kind === "decode" ? [request.bytes] : request.canvas ? [request.canvas] : [];
+      request.kind === "features" ? (request.canvas ? [request.canvas] : []) : [request.bytes];
     worker.postMessage(request, transfer);
   }).finally(() => worker.terminate());
 }
 
 const decode = (bytes: ArrayBuffer, imageOrientation: "from-image" | "none" = "from-image") =>
   inWorker<DecodeOutcome>({ kind: "decode", bytes, imageOrientation }, DECODE_TIMEOUT, {
+    status: "timeout",
+  });
+
+const gifFrame = (bytes: ArrayBuffer, frame: 0 | 1) =>
+  inWorker<GifFrameOutcome>({ kind: "gifFrame", bytes, frame }, DECODE_TIMEOUT, {
     status: "timeout",
   });
 
@@ -48,11 +53,12 @@ declare global {
     imageCapabilities: {
       decode(bytes: ArrayBuffer, imageOrientation?: "from-image" | "none"): Promise<DecodeOutcome>;
       features(): Promise<FeatureOutcome | undefined>;
+      gifFrame(bytes: ArrayBuffer, frame: 0 | 1): Promise<GifFrameOutcome>;
     };
   }
 }
 
-window.imageCapabilities = { decode, features };
+window.imageCapabilities = { decode, features, gifFrame };
 
 const output = document.querySelector<HTMLOutputElement>("#result");
 const input = document.querySelector<HTMLInputElement>("#file");

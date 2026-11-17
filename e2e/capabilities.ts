@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import {
   fixture,
   gifFrameOutsideScreen,
+  gifWithBackground,
   jpegRotated,
   jpegUltraHdr,
   jpegWithExifThumbnail,
@@ -169,6 +170,12 @@ export const FEATURES = [
   "Canvas of 4,096 × 4,096 (16.8 MP)",
   "Canvas of 8,192 × 6,144 (50.3 MP)",
   "Longest side of a one-pixel-high canvas",
+  "fillText in sans-serif, serif and monospace",
+  "strokeText",
+  "measureText",
+  "Emoji with fillText",
+  "Right-to-left text with fillText",
+  "Text at twice the size through a half-scale transform",
 ] as const;
 
 /** The longest side the page's search can report (examples/vite/src/protocol.ts). */
@@ -196,7 +203,57 @@ export function featureCells(features: Features): Record<(typeof FEATURES)[numbe
     "Canvas of 8,192 × 6,144 (50.3 MP)": draws("8192×6144"),
     // The search stops one short of 2^17: reaching that means "at least".
     "Longest side of a one-pixel-high canvas": `${features.longestSide >= SEARCH_LIMIT ? "at least " : ""}${features.longestSide.toLocaleString("en-US")} pixels`,
+    "fillText in sans-serif, serif and monospace": Object.values(features.text.fills).every(Boolean)
+      ? "draws"
+      : `doesn't draw ${Object.entries(features.text.fills)
+          .filter(([, drew]) => !drew)
+          .map(([family]) => family)
+          .join(", ")}`,
+    strokeText: features.text.strokes ? "draws" : "doesn't draw",
+    measureText: features.text.measures ? "measures" : "doesn't measure",
+    "Emoji with fillText": {
+      colour: "draws in colour",
+      "one colour": "draws in one colour",
+      nothing: "doesn't draw",
+    }[features.text.emoji],
+    "Right-to-left text with fillText": features.text.rightToLeft ? "draws" : "doesn't draw",
+    "Text at twice the size through a half-scale transform": {
+      same: "same pixels",
+      differs: "different pixels",
+      nothing: "doesn't draw",
+    }[features.text.scaled],
   };
+}
+
+/** The rows of the GIF composition table: a file, and the frame read. */
+export const GIF_CASES = [
+  {
+    name: "First frame smaller than the screen, where it doesn't draw",
+    bytes: () => gifWithBackground("first frame"),
+    frame: 0,
+    frames: 1,
+  },
+  {
+    name: "Second frame, where the first was disposed of to the background",
+    bytes: () => gifWithBackground("after disposal 2"),
+    frame: 1,
+    frames: 2,
+  },
+] as const;
+
+/**
+ * What a GIF's bottom-right pixel shows, where no frame drew: the file's
+ * background colour is blue and its frames are red.
+ */
+export function gifCell(outcome: Awaited<ReturnType<Window["imageCapabilities"]["gifFrame"]>>) {
+  if (outcome.status === "unavailable") return "no ImageDecoder";
+  if (outcome.status === "timeout") return "never settles";
+  if (outcome.status !== "decoded" || outcome.pixel === undefined) return "doesn't decode";
+  const [r = 0, g = 0, b = 0, a = 0] = outcome.pixel;
+  if (a < 16) return "transparent";
+  if (a > 240 && b > 160 && r < 96 && g < 96) return "background colour";
+  if (a > 240 && r > 160 && g < 96 && b < 96) return "frame's colour";
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /**
@@ -249,7 +306,7 @@ export function readTable(): Map<string, Partial<Record<Browser, string>>> {
       .map((cell) => cell.trim());
     if (
       cells.length !== 4 ||
-      ["File", "Feature"].includes(cells[0] ?? "") ||
+      ["File", "Feature", "File and frame"].includes(cells[0] ?? "") ||
       cells[0]?.startsWith("---")
     ) {
       continue;

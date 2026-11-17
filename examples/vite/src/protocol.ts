@@ -28,15 +28,45 @@ export interface FeatureOutcome {
   readonly draws: Readonly<Record<string, boolean>>;
   /** The longest side of a one-pixel-high canvas that still draws. */
   readonly longestSide: number;
+  readonly text: TextOutcome;
+}
+
+/** What text the worker's 2D canvas draws (docs/adr/0009). */
+export interface TextOutcome {
+  /** Whether `fillText` left ink in each generic family. */
+  readonly fills: Readonly<Record<(typeof TEXT_FAMILIES)[number], boolean>>;
+  readonly strokes: boolean;
+  /** Whether `measureText` gave a width above zero. */
+  readonly measures: boolean;
+  /** Whether an emoji drew, and whether any of its pixels had a colour. */
+  readonly emoji: "colour" | "one colour" | "nothing";
+  /** Whether Hebrew text left ink. */
+  readonly rightToLeft: boolean;
+  /**
+   * Text drawn at 160 pixels through a half-scale transform, against the
+   * same text drawn at 80: `same` when every pixel is equal.
+   */
+  readonly scaled: "same" | "differs" | "nothing";
+}
+
+/** What one frame of a GIF showed, as a browser composes it (docs/adr/0011). */
+export interface GifFrameOutcome {
+  /** `unavailable` when the frame needs `ImageDecoder` and the worker has none. */
+  readonly status: "decoded" | "rejected" | "unavailable" | "timeout";
+  /** The bottom-right pixel as `[r, g, b, a]`. */
+  readonly pixel?: readonly number[];
 }
 
 export type Request =
   | { kind: "decode"; bytes: ArrayBuffer; imageOrientation: "from-image" | "none" }
-  | { kind: "features"; canvas?: OffscreenCanvas };
+  | { kind: "features"; canvas?: OffscreenCanvas }
+  | { kind: "gifFrame"; bytes: ArrayBuffer; frame: 0 | 1 };
 
 export const ENCODED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/avif"] as const;
 /** The longest side the search tries; a result of one less means "at least that". */
 export const SIDE_CEILING = 1 << 17;
+
+export const TEXT_FAMILIES = ["sans-serif", "serif", "monospace"] as const;
 
 export const CANVAS_SIZES = [
   [4_096, 4_096],
