@@ -632,6 +632,1125 @@
       }
     },
     {
+      "name": "gives a small region blocks of 8 pixels",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 40,
+          "height": 20
+        }
+      },
+      "expected": 8
+    },
+    {
+      "name": "gives a region of 96 pixels blocks of 8, the last size before they grow",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 96,
+          "height": 10
+        }
+      },
+      "expected": 8
+    },
+    {
+      "name": "gives a strip a twelfth of its longer side, rounded up",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 30,
+          "height": 601
+        }
+      },
+      "expected": 51
+    },
+    {
+      "name": "tiles a region with blocks from its top-left corner, the last ones partial",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": 10,
+          "y": 20,
+          "width": 20,
+          "height": 12
+        },
+        "within": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        }
+      },
+      "expected": [
+        {
+          "x": 10,
+          "y": 20,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 18,
+          "y": 20,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 26,
+          "y": 20,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 10,
+          "y": 28,
+          "width": 8,
+          "height": 4
+        },
+        {
+          "x": 18,
+          "y": 28,
+          "width": 8,
+          "height": 4
+        },
+        {
+          "x": 26,
+          "y": 28,
+          "width": 4,
+          "height": 4
+        }
+      ]
+    },
+    {
+      "name": "clips blocks to the crop, and leaves out those outside it",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": 30,
+          "y": 20,
+          "width": 30,
+          "height": 30
+        },
+        "within": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        }
+      },
+      "expected": [
+        {
+          "x": 40,
+          "y": 30,
+          "width": 6,
+          "height": 6
+        },
+        {
+          "x": 46,
+          "y": 30,
+          "width": 8,
+          "height": 6
+        },
+        {
+          "x": 54,
+          "y": 30,
+          "width": 6,
+          "height": 6
+        },
+        {
+          "x": 40,
+          "y": 36,
+          "width": 6,
+          "height": 8
+        },
+        {
+          "x": 46,
+          "y": 36,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 54,
+          "y": 36,
+          "width": 6,
+          "height": 8
+        },
+        {
+          "x": 40,
+          "y": 44,
+          "width": 6,
+          "height": 6
+        },
+        {
+          "x": 46,
+          "y": 44,
+          "width": 8,
+          "height": 6
+        },
+        {
+          "x": 54,
+          "y": 44,
+          "width": 6,
+          "height": 6
+        }
+      ]
+    },
+    {
+      "name": "gives no blocks for a region outside the crop",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": 0,
+          "y": 0,
+          "width": 20,
+          "height": 20
+        },
+        "within": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "tiles a region that starts outside the source",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": -5,
+          "y": -5,
+          "width": 20,
+          "height": 20
+        },
+        "within": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        }
+      },
+      "expected": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 3,
+          "y": 0,
+          "width": 8,
+          "height": 3
+        },
+        {
+          "x": 11,
+          "y": 0,
+          "width": 4,
+          "height": 3
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "width": 3,
+          "height": 8
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 11,
+          "y": 3,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 0,
+          "y": 11,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 3,
+          "y": 11,
+          "width": 8,
+          "height": 4
+        },
+        {
+          "x": 11,
+          "y": 11,
+          "width": 4,
+          "height": 4
+        }
+      ]
+    },
+    {
+      "name": "maps a region to the same pixels at full size, upright",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 50,
+          "y": 40,
+          "width": 30,
+          "height": 20
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 400,
+          "height": 300
+        }
+      },
+      "expected": {
+        "x": 50,
+        "y": 40,
+        "width": 30,
+        "height": 20
+      }
+    },
+    {
+      "name": "moves a region by the crop's corner",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 50,
+          "y": 40,
+          "width": 30,
+          "height": 20
+        },
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        }
+      },
+      "expected": {
+        "x": 10,
+        "y": 10,
+        "width": 30,
+        "height": 20
+      }
+    },
+    {
+      "name": "rounds a region outward when the output is a third of the size",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 50,
+          "y": 40,
+          "width": 30,
+          "height": 20
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 133,
+          "height": 100
+        }
+      },
+      "expected": {
+        "x": 16,
+        "y": 13,
+        "width": 11,
+        "height": 7
+      }
+    },
+    {
+      "name": "covers one output pixel for a region of one scene pixel, however small the output",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 399,
+          "y": 299,
+          "width": 1,
+          "height": 1
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 4,
+          "height": 3
+        }
+      },
+      "expected": {
+        "x": 3,
+        "y": 2,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "name": "turns a region with the image by 90 degrees",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 50,
+          "y": 40,
+          "width": 30,
+          "height": 20
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 300,
+          "height": 400
+        }
+      },
+      "expected": {
+        "x": 240,
+        "y": 50,
+        "width": 20,
+        "height": 30
+      }
+    },
+    {
+      "name": "turns and mirrors a region inside a crop, at half size",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 60,
+          "y": 50,
+          "width": 31,
+          "height": 21
+        },
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 50,
+          "height": 100
+        }
+      },
+      "expected": {
+        "x": 29,
+        "y": 74,
+        "width": 11,
+        "height": 16
+      }
+    },
+    {
+      "name": "clips a region that reaches past the crop",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 100
+        },
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        }
+      },
+      "expected": {
+        "x": 0,
+        "y": 0,
+        "width": 60,
+        "height": 70
+      }
+    },
+    {
+      "name": "gives null for a region the crop leaves out",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 0,
+          "y": 0,
+          "width": 40,
+          "height": 30
+        },
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "gives null for a region outside the source",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": -50,
+          "y": -50,
+          "width": 20,
+          "height": 20
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 400,
+          "height": 300
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "tiles the output's region with blocks, at full size",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 10,
+          "y": 20,
+          "width": 20,
+          "height": 12
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 400,
+          "height": 300
+        }
+      },
+      "expected": [
+        {
+          "x": 10,
+          "y": 20,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 18,
+          "y": 20,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 26,
+          "y": 20,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 10,
+          "y": 28,
+          "width": 8,
+          "height": 4
+        },
+        {
+          "x": 18,
+          "y": 28,
+          "width": 8,
+          "height": 4
+        },
+        {
+          "x": 26,
+          "y": 28,
+          "width": 4,
+          "height": 4
+        }
+      ]
+    },
+    {
+      "name": "rounds the boundaries between blocks to the nearest pixel, and the region's edges outward",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 30
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 133,
+          "height": 100
+        }
+      },
+      "expected": [
+        {
+          "x": 3,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 6,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 9,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 12,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 15,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 18,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 21,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 24,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 27,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 30,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 33,
+          "y": 6,
+          "width": 3,
+          "height": 4
+        },
+        {
+          "x": 36,
+          "y": 6,
+          "width": 1,
+          "height": 4
+        },
+        {
+          "x": 3,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 6,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 9,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 12,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 15,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 18,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 21,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 24,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 27,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 30,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 33,
+          "y": 10,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 36,
+          "y": 10,
+          "width": 1,
+          "height": 3
+        },
+        {
+          "x": 3,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 6,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 9,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 12,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 15,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 18,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 21,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 24,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 27,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 30,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 33,
+          "y": 13,
+          "width": 3,
+          "height": 3
+        },
+        {
+          "x": 36,
+          "y": 13,
+          "width": 1,
+          "height": 3
+        },
+        {
+          "x": 3,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 6,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 9,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 12,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 15,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 18,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 21,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 24,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 27,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 30,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 33,
+          "y": 16,
+          "width": 3,
+          "height": 1
+        },
+        {
+          "x": 36,
+          "y": 16,
+          "width": 1,
+          "height": 1
+        }
+      ]
+    },
+    {
+      "name": "leaves out blocks that have no output pixel",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 30
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 8,
+          "height": 6
+        }
+      },
+      "expected": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "x": 1,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        {
+          "x": 2,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        }
+      ]
+    },
+    {
+      "name": "turns and mirrors the blocks with the image",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 60,
+          "y": 50,
+          "width": 40,
+          "height": 20
+        },
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "expected": [
+        {
+          "x": 60,
+          "y": 140,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 64,
+          "y": 140,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 72,
+          "y": 140,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 60,
+          "y": 148,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 64,
+          "y": 148,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 72,
+          "y": 148,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 60,
+          "y": 156,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 64,
+          "y": 156,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 72,
+          "y": 156,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 60,
+          "y": 164,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 64,
+          "y": 164,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 72,
+          "y": 164,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 60,
+          "y": 172,
+          "width": 4,
+          "height": 8
+        },
+        {
+          "x": 64,
+          "y": 172,
+          "width": 8,
+          "height": 8
+        },
+        {
+          "x": 72,
+          "y": 172,
+          "width": 8,
+          "height": 8
+        }
+      ]
+    },
+    {
+      "name": "gives no blocks for a region the crop leaves out",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 0,
+          "y": 0,
+          "width": 40,
+          "height": 30
+        },
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        }
+      },
+      "expected": []
+    },
+    {
       "name": "generated orientedSize 1",
       "input": {
         "operation": "orientedSize",
@@ -2902,6 +4021,906 @@
         "width": 271,
         "height": 1
       }
+    },
+    {
+      "name": "generated redactionBlockSize 1",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 7991,
+          "height": 6545
+        }
+      },
+      "expected": 666
+    },
+    {
+      "name": "generated redactionBlockSize 2",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 696,
+          "height": 79
+        }
+      },
+      "expected": 58
+    },
+    {
+      "name": "generated redactionBlockSize 3",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 7472,
+          "height": 12
+        }
+      },
+      "expected": 623
+    },
+    {
+      "name": "generated redactionBlockSize 4",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 7994,
+          "height": 2
+        }
+      },
+      "expected": 667
+    },
+    {
+      "name": "generated redactionBlockSize 5",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 4847,
+          "height": 13
+        }
+      },
+      "expected": 404
+    },
+    {
+      "name": "generated redactionBlockSize 6",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 2358,
+          "height": 3882
+        }
+      },
+      "expected": 324
+    },
+    {
+      "name": "generated redactionBlockSize 7",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 3304,
+          "height": 5
+        }
+      },
+      "expected": 276
+    },
+    {
+      "name": "generated redactionBlockSize 8",
+      "input": {
+        "operation": "redactionBlockSize",
+        "region": {
+          "width": 2456,
+          "height": 6487
+        }
+      },
+      "expected": 541
+    },
+    {
+      "name": "generated redactionBlocksInScene 1",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": 6,
+          "y": 152,
+          "width": 157,
+          "height": 253
+        },
+        "within": {
+          "x": 192,
+          "y": 81,
+          "width": 206,
+          "height": 76
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInScene 2",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": -34,
+          "y": 0,
+          "width": 147,
+          "height": 90
+        },
+        "within": {
+          "x": 7,
+          "y": 294,
+          "width": 389,
+          "height": 2
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInScene 3",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": 280,
+          "y": 8,
+          "width": 294,
+          "height": 5
+        },
+        "within": {
+          "x": 6,
+          "y": 184,
+          "width": 5,
+          "height": 116
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInScene 4",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": -5,
+          "y": -4,
+          "width": 6,
+          "height": 4
+        },
+        "within": {
+          "x": 1,
+          "y": 117,
+          "width": 1,
+          "height": 1
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInScene 5",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": 188,
+          "y": 6,
+          "width": 201,
+          "height": 280
+        },
+        "within": {
+          "x": 305,
+          "y": 214,
+          "width": 95,
+          "height": 29
+        }
+      },
+      "expected": [
+        {
+          "x": 305,
+          "y": 214,
+          "width": 3,
+          "height": 8
+        },
+        {
+          "x": 308,
+          "y": 214,
+          "width": 24,
+          "height": 8
+        },
+        {
+          "x": 332,
+          "y": 214,
+          "width": 24,
+          "height": 8
+        },
+        {
+          "x": 356,
+          "y": 214,
+          "width": 24,
+          "height": 8
+        },
+        {
+          "x": 380,
+          "y": 214,
+          "width": 9,
+          "height": 8
+        },
+        {
+          "x": 305,
+          "y": 222,
+          "width": 3,
+          "height": 21
+        },
+        {
+          "x": 308,
+          "y": 222,
+          "width": 24,
+          "height": 21
+        },
+        {
+          "x": 332,
+          "y": 222,
+          "width": 24,
+          "height": 21
+        },
+        {
+          "x": 356,
+          "y": 222,
+          "width": 24,
+          "height": 21
+        },
+        {
+          "x": 380,
+          "y": 222,
+          "width": 9,
+          "height": 21
+        }
+      ]
+    },
+    {
+      "name": "generated redactionBlocksInScene 6",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": 315,
+          "y": -48,
+          "width": 9,
+          "height": 2
+        },
+        "within": {
+          "x": 145,
+          "y": 148,
+          "width": 244,
+          "height": 125
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInScene 7",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": -23,
+          "y": 0,
+          "width": 299,
+          "height": 177
+        },
+        "within": {
+          "x": 4,
+          "y": 4,
+          "width": 16,
+          "height": 294
+        }
+      },
+      "expected": [
+        {
+          "x": 4,
+          "y": 4,
+          "width": 16,
+          "height": 21
+        },
+        {
+          "x": 4,
+          "y": 25,
+          "width": 16,
+          "height": 25
+        },
+        {
+          "x": 4,
+          "y": 50,
+          "width": 16,
+          "height": 25
+        },
+        {
+          "x": 4,
+          "y": 75,
+          "width": 16,
+          "height": 25
+        },
+        {
+          "x": 4,
+          "y": 100,
+          "width": 16,
+          "height": 25
+        },
+        {
+          "x": 4,
+          "y": 125,
+          "width": 16,
+          "height": 25
+        },
+        {
+          "x": 4,
+          "y": 150,
+          "width": 16,
+          "height": 25
+        },
+        {
+          "x": 4,
+          "y": 175,
+          "width": 16,
+          "height": 2
+        }
+      ]
+    },
+    {
+      "name": "generated redactionBlocksInScene 8",
+      "input": {
+        "operation": "redactionBlocksInScene",
+        "region": {
+          "x": -35,
+          "y": 123,
+          "width": 298,
+          "height": 4
+        },
+        "within": {
+          "x": 128,
+          "y": 291,
+          "width": 5,
+          "height": 9
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionRectInOutput 1",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 6,
+          "y": 152,
+          "width": 157,
+          "height": 253
+        },
+        "crop": {
+          "x": 192,
+          "y": 81,
+          "width": 206,
+          "height": 76
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 7994,
+          "height": 7988
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "generated redactionRectInOutput 2",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": -34,
+          "y": 0,
+          "width": 147,
+          "height": 90
+        },
+        "crop": {
+          "x": 7,
+          "y": 294,
+          "width": 389,
+          "height": 2
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 1,
+          "height": 2954
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "generated redactionRectInOutput 3",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 280,
+          "y": 8,
+          "width": 294,
+          "height": 5
+        },
+        "crop": {
+          "x": 6,
+          "y": 184,
+          "width": 5,
+          "height": 116
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 10,
+          "height": 173
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "generated redactionRectInOutput 4",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": -5,
+          "y": -4,
+          "width": 6,
+          "height": 4
+        },
+        "crop": {
+          "x": 1,
+          "y": 117,
+          "width": 1,
+          "height": 1
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": true,
+          "flipY": true
+        },
+        "size": {
+          "width": 5863,
+          "height": 4
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "generated redactionRectInOutput 5",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 188,
+          "y": 6,
+          "width": 201,
+          "height": 280
+        },
+        "crop": {
+          "x": 305,
+          "y": 214,
+          "width": 95,
+          "height": 29
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 3283,
+          "height": 7998
+        }
+      },
+      "expected": {
+        "x": 0,
+        "y": 926,
+        "width": 3283,
+        "height": 7072
+      }
+    },
+    {
+      "name": "generated redactionRectInOutput 6",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": 315,
+          "y": -48,
+          "width": 9,
+          "height": 2
+        },
+        "crop": {
+          "x": 145,
+          "y": 148,
+          "width": 244,
+          "height": 125
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 2379,
+          "height": 6
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "generated redactionRectInOutput 7",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": -23,
+          "y": 0,
+          "width": 299,
+          "height": 177
+        },
+        "crop": {
+          "x": 4,
+          "y": 4,
+          "width": 16,
+          "height": 294
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 8,
+          "height": 6305
+        }
+      },
+      "expected": {
+        "x": 3,
+        "y": 0,
+        "width": 5,
+        "height": 6305
+      }
+    },
+    {
+      "name": "generated redactionRectInOutput 8",
+      "input": {
+        "operation": "redactionRectInOutput",
+        "region": {
+          "x": -35,
+          "y": 123,
+          "width": 298,
+          "height": 4
+        },
+        "crop": {
+          "x": 128,
+          "y": 291,
+          "width": 5,
+          "height": 9
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 2686,
+          "height": 2377
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "generated redactionBlocksInOutput 1",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 6,
+          "y": 152,
+          "width": 157,
+          "height": 253
+        },
+        "crop": {
+          "x": 192,
+          "y": 81,
+          "width": 206,
+          "height": 76
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 7994,
+          "height": 7988
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInOutput 2",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": -34,
+          "y": 0,
+          "width": 147,
+          "height": 90
+        },
+        "crop": {
+          "x": 7,
+          "y": 294,
+          "width": 389,
+          "height": 2
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 1,
+          "height": 2954
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInOutput 3",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 280,
+          "y": 8,
+          "width": 294,
+          "height": 5
+        },
+        "crop": {
+          "x": 6,
+          "y": 184,
+          "width": 5,
+          "height": 116
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 10,
+          "height": 173
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInOutput 4",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": -5,
+          "y": -4,
+          "width": 6,
+          "height": 4
+        },
+        "crop": {
+          "x": 1,
+          "y": 117,
+          "width": 1,
+          "height": 1
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": true,
+          "flipY": true
+        },
+        "size": {
+          "width": 5863,
+          "height": 4
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInOutput 5",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 188,
+          "y": 6,
+          "width": 201,
+          "height": 280
+        },
+        "crop": {
+          "x": 305,
+          "y": 214,
+          "width": 95,
+          "height": 29
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 3283,
+          "height": 7998
+        }
+      },
+      "expected": [
+        {
+          "x": 0,
+          "y": 926,
+          "width": 2377,
+          "height": 758
+        },
+        {
+          "x": 2377,
+          "y": 926,
+          "width": 906,
+          "height": 758
+        },
+        {
+          "x": 0,
+          "y": 1684,
+          "width": 2377,
+          "height": 2020
+        },
+        {
+          "x": 2377,
+          "y": 1684,
+          "width": 906,
+          "height": 2020
+        },
+        {
+          "x": 0,
+          "y": 3704,
+          "width": 2377,
+          "height": 2021
+        },
+        {
+          "x": 2377,
+          "y": 3704,
+          "width": 906,
+          "height": 2021
+        },
+        {
+          "x": 0,
+          "y": 5725,
+          "width": 2377,
+          "height": 2020
+        },
+        {
+          "x": 2377,
+          "y": 5725,
+          "width": 906,
+          "height": 2020
+        },
+        {
+          "x": 0,
+          "y": 7745,
+          "width": 2377,
+          "height": 253
+        },
+        {
+          "x": 2377,
+          "y": 7745,
+          "width": 906,
+          "height": 253
+        }
+      ]
+    },
+    {
+      "name": "generated redactionBlocksInOutput 6",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": 315,
+          "y": -48,
+          "width": 9,
+          "height": 2
+        },
+        "crop": {
+          "x": 145,
+          "y": 148,
+          "width": 244,
+          "height": 125
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 2379,
+          "height": 6
+        }
+      },
+      "expected": []
+    },
+    {
+      "name": "generated redactionBlocksInOutput 7",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": -23,
+          "y": 0,
+          "width": 299,
+          "height": 177
+        },
+        "crop": {
+          "x": 4,
+          "y": 4,
+          "width": 16,
+          "height": 294
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 8,
+          "height": 6305
+        }
+      },
+      "expected": [
+        {
+          "x": 3,
+          "y": 0,
+          "width": 1,
+          "height": 6305
+        },
+        {
+          "x": 4,
+          "y": 0,
+          "width": 1,
+          "height": 6305
+        },
+        {
+          "x": 5,
+          "y": 0,
+          "width": 1,
+          "height": 6305
+        },
+        {
+          "x": 6,
+          "y": 0,
+          "width": 1,
+          "height": 6305
+        },
+        {
+          "x": 7,
+          "y": 0,
+          "width": 1,
+          "height": 6305
+        }
+      ]
+    },
+    {
+      "name": "generated redactionBlocksInOutput 8",
+      "input": {
+        "operation": "redactionBlocksInOutput",
+        "region": {
+          "x": -35,
+          "y": 123,
+          "width": 298,
+          "height": 4
+        },
+        "crop": {
+          "x": 128,
+          "y": 291,
+          "width": 5,
+          "height": 9
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 2686,
+          "height": 2377
+        }
+      },
+      "expected": []
     }
   ]
 }

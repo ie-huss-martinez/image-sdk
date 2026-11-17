@@ -7,6 +7,7 @@ import { checkPlanSupport, type ImagePlanPart } from "../../core/ports/plan-supp
 import { decodeUpright } from "../decode/decode.js";
 import { encodePlan } from "../export/encode.js";
 import { drawPreview } from "../export/preview.js";
+import { forgetSanitised } from "../export/redact.js";
 import { renderSize } from "../export/render.js";
 import { probeImage } from "../probe/probe.js";
 import type { RenderWorkerContract } from "./contract.js";
@@ -27,10 +28,9 @@ function sameDecode(a: ImageProbe, b: ImageProbe): boolean {
 
 /**
  * The parts of a plan this worker draws, beyond the base. A plan with any
- * other is refused before anything is drawn (docs/adr/0009): redactions
- * join this list with their renderer, never before it.
+ * other is refused before anything is drawn (docs/adr/0009).
  */
-const DRAWS: readonly ImagePlanPart[] = [];
+const DRAWS: readonly ImagePlanPart[] = ["redactions"];
 
 /**
  * Answers the render worker's contract (docs/adr/0002). It does nothing on
@@ -76,8 +76,11 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         checkPlanSupport(plan, DRAWS);
         const source = sources.get(plan.base.source);
         if (!source) throw new TypeError(`There's no source with the id "${plan.base.source}".`);
-        // The output canvas is checked before it's allocated (docs/adr/0004).
-        checkOutputLimits(imageLimits.resolve(limits), renderSize(plan, source));
+        // The output canvas is checked before it's allocated (docs/adr/0004),
+        // and so is the sanitised copy a redaction needs (docs/adr/0010).
+        const policy = imageLimits.resolve(limits);
+        checkOutputLimits(policy, renderSize(plan, source));
+        if (plan.redactions.length > 0) checkOutputLimits(policy, source);
         return encodePlan(source, plan, format, signal);
       },
       attachCanvas({ id, canvas }) {
@@ -96,6 +99,7 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         if (!context) throw new TypeError(`There's no canvas with the id "${id}".`);
         const source = sources.get(plan.base.source);
         if (!source) throw new TypeError(`There's no source with the id "${plan.base.source}".`);
+        if (plan.redactions.length > 0) checkOutputLimits(imageLimits.resolve(limits), source);
         await drawPreview(context, source, plan, view, signal);
         return undefined;
       },
@@ -114,7 +118,9 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         return createImageBitmap(context.canvas);
       },
       release({ id }) {
-        sources.get(id)?.close();
+        const source = sources.get(id);
+        if (source) forgetSanitised(source);
+        source?.close();
         sources.delete(id);
         return undefined;
       },

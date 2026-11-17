@@ -659,6 +659,18 @@ export interface ImageProgressOptions extends ImageCallOptions {
 }
 
 // @public
+export interface ImageRect {
+    // (undocumented)
+    readonly height: number;
+    // (undocumented)
+    readonly width: number;
+    // (undocumented)
+    readonly x: number;
+    // (undocumented)
+    readonly y: number;
+}
+
+// @public
 export type ImageRedaction = (ImageRedactionRegion & {
     readonly mode: "solid";
     readonly colour: string;
@@ -923,6 +935,18 @@ export function readImagePlanDocument(value: unknown): {
 
 // @public
 export const REDACTION_MODES: readonly ["solid", "pixelate"];
+
+// @public
+export function redactionBlocksInOutput(region: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2, output: ImageSize): ImageRect[];
+
+// @public
+export function redactionBlocksInScene(region: ImageRect, within: ImageRect): ImageRect[];
+
+// @public
+export function redactionBlockSize(region: ImageSize): number;
+
+// @public
+export function redactionRectInOutput(region: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2, output: ImageSize): ImageRect | null;
 
 // @public
 export interface RemoveRedactionsCommand {

@@ -88,6 +88,13 @@ export {
   REDACTION_MODES,
   UPRIGHT,
 } from "./core/model/plan.js";
+export type { ImageRect } from "./core/model/redaction-geometry.js";
+export {
+  redactionBlockSize,
+  redactionBlocksInOutput,
+  redactionBlocksInScene,
+  redactionRectInOutput,
+} from "./core/model/redaction-geometry.js";
 export type {
   ExifOrientation,
   ImageFormat,

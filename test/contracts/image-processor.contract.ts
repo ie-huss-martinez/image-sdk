@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { developPixels } from "../../src/adapters/export/develop.js";
 import {
+  compositionToSource,
   createPlan,
   type ExifOrientation,
   type ImageEngine,
@@ -10,6 +11,8 @@ import {
   imageLimits,
   isImageError,
   NEUTRAL_DEVELOP,
+  redactionBlocksInScene,
+  redactionRectInOutput,
 } from "../../src/index.js";
 import { aborted, type InspectedExport, rejection, type TestImageSpec } from "./harness-types.js";
 
@@ -249,18 +252,10 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
 
     it("refuses a plan with a part it can't draw, and exports nothing without it", async () => {
       const { engine, processor, plan } = await open(harness, { width: 4, height: 4 });
-      // Until the redaction renderer lands, a redaction is such a part: an
-      // export without it would show what it's meant to hide (ADR 0009).
-      const redacted: ImagePlan = {
-        ...plan,
-        redactions: [
-          { key: "r", mode: "solid", x: 0, y: 0, width: 2, height: 2, colour: "#000000" },
-        ],
-      };
+      // An export that left a part out would show what the plan doesn't (ADR 0009).
       const animated = { ...plan, animation: { loop: 0, frames: [] } } as unknown as ImagePlan;
       const layered = { ...plan, layers: [{ key: "t", kind: "text" }] } as unknown as ImagePlan;
       for (const [unsupported, part] of [
-        [redacted, "redactions"],
         [animated, "animation"],
         [layered, "layers"],
       ] as const) {
@@ -272,6 +267,158 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
       }
       await processor.destroy();
       await engine.destroy();
+    });
+
+    describe("redactions (ADR 0010)", () => {
+      const BLACK = [0, 0, 0, 255];
+      const solid = (x: number, y: number, width: number, height: number, colour = "#000000") =>
+        ({ key: `s${x}-${y}`, mode: "solid", x, y, width, height, colour }) as const;
+
+      it("fills a solid region with exactly its colour, and leaves every other pixel as it was", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 12, height: 8 });
+        const redacted: ImagePlan = { ...plan, redactions: [solid(3, 2, 4, 3, "#10a0f0")] };
+        const output = await harness.inspect(
+          await processor.export({ plan: redacted, format: { type: "png" } }),
+        );
+        for (let y = 0; y < 8; y += 1) {
+          for (let x = 0; x < 12; x += 1) {
+            const inside = x >= 3 && x < 7 && y >= 2 && y < 5;
+            expect(output.pixel(x, y), `${x},${y}`).toEqual(
+              inside ? [0x10, 0xa0, 0xf0, 255] : harness.storedColour(x, y),
+            );
+          }
+        }
+        await processor.destroy();
+        await engine.destroy();
+      });
+
+      it("keeps a redaction on the pixels it covers through every crop, turn and flip", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 10, height: 8 });
+        const region = { x: 4, y: 3, width: 3, height: 2 };
+        const crop = { x: 2, y: 1, width: 7, height: 6 };
+        for (const rotate of [0, 90, 180, 270] as const) {
+          for (const flipX of [false, true]) {
+            const edited: ImagePlan = {
+              ...plan,
+              base: { ...plan.base, crop, orientation: { rotate, flipX, flipY: false } },
+              redactions: [solid(region.x, region.y, region.width, region.height)],
+            };
+            const output = await harness.inspect(
+              await processor.export({ plan: edited, format: { type: "png" } }),
+            );
+            // Every output pixel shows the source pixel the geometry says, or
+            // black where that pixel is redacted.
+            for (let y = 0; y < output.height; y += 1) {
+              for (let x = 0; x < output.width; x += 1) {
+                const at = compositionToSource(
+                  { x: x + 0.5, y: y + 0.5 },
+                  crop,
+                  edited.base.orientation,
+                );
+                const sx = Math.floor(at.x);
+                const sy = Math.floor(at.y);
+                const inside =
+                  sx >= region.x &&
+                  sx < region.x + region.width &&
+                  sy >= region.y &&
+                  sy < region.y + region.height;
+                expect(output.pixel(x, y), `${rotate} ${flipX} ${x},${y}`).toEqual(
+                  inside ? BLACK : harness.storedColour(sx, sy),
+                );
+              }
+            }
+          }
+        }
+        await processor.destroy();
+        await engine.destroy();
+      });
+
+      it("pixelates a region into blocks of one colour, the average of what they cover", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 15, height: 15 });
+        const region = { x: 2, y: 1, width: 12, height: 12 };
+        const redacted: ImagePlan = {
+          ...plan,
+          redactions: [{ key: "p", mode: "pixelate", ...region }],
+        };
+        const output = await harness.inspect(
+          await processor.export({ plan: redacted, format: { type: "png" } }),
+        );
+        const blocks = redactionBlocksInScene(region, { x: 0, y: 0, width: 15, height: 15 });
+        expect(blocks).toHaveLength(4);
+        for (const block of blocks) {
+          const sums = [0, 0, 0];
+          for (let y = block.y; y < block.y + block.height; y += 1) {
+            for (let x = block.x; x < block.x + block.width; x += 1) {
+              harness
+                .storedColour(x, y)
+                .slice(0, 3)
+                .forEach((value, channel) => {
+                  sums[channel] = (sums[channel] as number) + value;
+                });
+            }
+          }
+          const mean = [...sums.map((sum) => Math.round(sum / (block.width * block.height))), 255];
+          for (let y = block.y; y < block.y + block.height; y += 1) {
+            for (let x = block.x; x < block.x + block.width; x += 1) {
+              expect(output.pixel(x, y), `${x},${y}`).toEqual(mean);
+            }
+          }
+        }
+        expect(output.pixel(1, 1)).toEqual(harness.storedColour(1, 1));
+        expect(output.pixel(14, 13)).toEqual(harness.storedColour(14, 13));
+        await processor.destroy();
+        await engine.destroy();
+      });
+
+      it("covers every output pixel a region touches when the export is scaled down", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 30, height: 20 });
+        const region = { x: 7, y: 5, width: 9, height: 7 };
+        const redacted: ImagePlan = {
+          ...plan,
+          output: { kind: "scale", scale: 0.4 },
+          redactions: [solid(region.x, region.y, region.width, region.height, "#ff00ff")],
+        };
+        const output = await harness.inspect(
+          await processor.export({ plan: redacted, format: { type: "png" } }),
+        );
+        const rect = redactionRectInOutput(
+          region,
+          { x: 0, y: 0, width: 30, height: 20 },
+          plan.base.orientation,
+          output,
+        );
+        // 7 to 16 at 0.4 is 2.8 to 6.4: pixels 2 to 6. 5 to 12 is 2 to 4.8: pixels 2 to 4.
+        expect(rect).toEqual({ x: 2, y: 2, width: 5, height: 3 });
+        for (let y = 2; y < 5; y += 1) {
+          for (let x = 2; x < 7; x += 1) {
+            expect(output.pixel(x, y), `${x},${y}`).toEqual([255, 0, 255, 255]);
+          }
+        }
+        await processor.destroy();
+        await engine.destroy();
+      });
+
+      it("applies redactions in order, and leaves out one that covers nothing", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 8, height: 8 });
+        const redacted: ImagePlan = {
+          ...plan,
+          redactions: [
+            solid(1, 1, 4, 4, "#ff0000"),
+            solid(3, 3, 4, 4, "#0000ff"),
+            solid(-20, -20, 5, 5, "#00ff00"),
+          ],
+        };
+        const output = await harness.inspect(
+          await processor.export({ plan: redacted, format: { type: "png" } }),
+        );
+        expect(output.pixel(1, 1)).toEqual([255, 0, 0, 255]);
+        expect(output.pixel(4, 4)).toEqual([0, 0, 255, 255]);
+        expect(output.pixel(6, 6)).toEqual([0, 0, 255, 255]);
+        expect(output.pixel(0, 0)).toEqual(harness.storedColour(0, 0));
+        expect(output.pixel(7, 7)).toEqual(harness.storedColour(7, 7));
+        await processor.destroy();
+        await engine.destroy();
+      });
     });
 
     it("rejects an unregistered source with TypeError, and ABORTED when cancelled", async () => {
