@@ -10,7 +10,10 @@ import {
   checkOutputLimits,
   checkPlanSupport,
   type ImageProcessor,
+  type ImageRect,
   imageLimits,
+  redactionBlocksInOutput,
+  redactionRectInOutput,
 } from "../../src/index.js";
 import type { FakeEngine } from "./fake-engine.js";
 import { encodeJson, type FakeExportFile } from "./fake-image.js";
@@ -27,8 +30,8 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
         throw new Error("The processor was destroyed.");
       }
       throwIfAborted(options?.signal);
-      // It draws the base only, so it refuses anything else (ADR 0009).
-      checkPlanSupport(plan, []);
+      // It draws the base and redactions, and refuses anything else (ADR 0009).
+      checkPlanSupport(plan, ["redactions"]);
       const source = engine.sources.get(plan.base.source);
       if (source === undefined) {
         throw new TypeError(`Unknown source "${plan.base.source}".`);
@@ -55,6 +58,50 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
       // The same reference math as the SDK's renderer (ADR 0006).
       const developed = Uint8ClampedArray.from(pixels);
       developPixels(developed, plan.base.develop, plan.base.filter);
+      // Redactions last, on whole output pixels (ADR 0010). It samples the
+      // nearest pixel, with no scaler to read a neighbourhood, so it needs
+      // no sanitised source.
+      const paint = ({ x, y, width, height }: ImageRect, colour: readonly number[]) => {
+        for (let row = y; row < y + height; row += 1) {
+          for (let column = x; column < x + width; column += 1) {
+            developed.set(colour, (row * size.width + column) * 4);
+          }
+        }
+      };
+      for (const redaction of plan.redactions) {
+        if (redaction.mode === "solid") {
+          const rect = redactionRectInOutput(redaction, crop, plan.base.orientation, size);
+          const colour = [1, 3, 5].map((at) =>
+            Number.parseInt(redaction.colour.slice(at, at + 2), 16),
+          );
+          if (rect) paint(rect, [...colour, 255]);
+          continue;
+        }
+        const blocks = redactionBlocksInOutput(redaction, crop, plan.base.orientation, size);
+        const means = blocks.map(({ x, y, width, height }) => {
+          const sums = [0, 0, 0, 0];
+          for (let row = y; row < y + height; row += 1) {
+            for (let column = x; column < x + width; column += 1) {
+              const at = (row * size.width + column) * 4;
+              const alpha = developed[at + 3] as number;
+              for (let channel = 0; channel < 3; channel += 1) {
+                sums[channel] =
+                  (sums[channel] as number) + (developed[at + channel] as number) * alpha;
+              }
+              sums[3] = (sums[3] as number) + alpha;
+            }
+          }
+          const [red = 0, green = 0, blue = 0, alpha = 0] = sums;
+          return alpha === 0
+            ? [0, 0, 0, 0]
+            : [red, green, blue]
+                .map((sum) => Math.round(sum / alpha))
+                .concat(Math.round(alpha / (width * height)));
+        });
+        blocks.forEach((block, index) => {
+          paint(block, means[index] as number[]);
+        });
+      }
       pixels.splice(0, pixels.length, ...developed);
       const metadata = Object.fromEntries(
         Object.entries(plan.metadata).filter(([, value]) => value !== ""),

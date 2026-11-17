@@ -2,25 +2,11 @@ import { compositionSize, cropRect, outputSize } from "../../core/model/geometry
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageSize } from "../../core/model/source.js";
 import { createDeveloper, needsDevelop } from "./develop.js";
+import { finishRedactions, pixelates, sanitisedSource } from "./redact.js";
+import { yieldToMessages } from "./yield.js";
 
 /** The most bytes one develop strip reads back at once (docs/adr/0006). */
 const STRIP_BYTES = 4_000_000;
-
-/**
- * Lets the worker handle its other messages, such as a cancellation from
- * the page, before the next strip: a message rather than a timer, which
- * engines delay by several milliseconds.
- */
-function yieldToMessages(): Promise<void> {
-  return new Promise((resolve) => {
-    const channel = new MessageChannel();
-    channel.port1.onmessage = () => {
-      channel.port1.close();
-      resolve();
-    };
-    channel.port2.postMessage(undefined);
-  });
-}
 
 /** The size a plan renders at over a source of this size (ADR 0003). */
 export function renderSize(plan: ImagePlan, source: ImageSize): ImageSize {
@@ -35,7 +21,9 @@ export function renderSize(plan: ImagePlan, source: ImageSize): ImageSize {
  * canvas starts white rather than transparent, which encoders would turn
  * black. Develop runs in strips, and the render yields to the worker's
  * messages between them, so a cancelled render stops at the next strip
- * (docs/adr/0006).
+ * (docs/adr/0006). Redactions are applied in two passes: the source is
+ * sanitised before it's drawn, and the regions are finished last
+ * (docs/adr/0010).
  */
 export async function renderPlan(
   source: ImageBitmap,
@@ -54,7 +42,7 @@ export async function renderPlan(
   const context = canvas.getContext("2d", {
     colorSpace: "srgb",
     alpha: !opaque,
-    willReadFrequently: developing,
+    willReadFrequently: developing || pixelates(plan.redactions),
   });
   if (!context) throw new Error("The worker has no 2D canvas.");
   if (opaque) {
@@ -74,7 +62,11 @@ export async function renderPlan(
   if (rotate === 90) context.transform(0, 1, -1, 0, composition.width, 0);
   if (rotate === 180) context.transform(-1, 0, 0, -1, composition.width, composition.height);
   if (rotate === 270) context.transform(0, -1, 1, 0, 0, composition.height);
-  context.drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+  // Redacted pixels are replaced before anything scales them: the scaler
+  // reads a neighbourhood, so covering them afterwards would leave their
+  // trace along the edge (docs/adr/0010).
+  const drawn = await sanitisedSource(source, plan, signal);
+  context.drawImage(drawn, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
   context.setTransform(1, 0, 0, 1, 0, 0);
   if (developing) {
     // Once per render, in strips of bounded size, before any layer is drawn
@@ -94,5 +86,7 @@ export async function renderPlan(
       context.putImageData(strip, 0, y);
     }
   }
+  // Last, over everything drawn: the regions, exact, on whole pixels.
+  await finishRedactions(context, plan, source, size, signal);
   return canvas;
 }

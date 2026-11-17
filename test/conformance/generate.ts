@@ -898,6 +898,169 @@ export function geometryCases(): ConformanceFile {
         ratio: 2,
       }),
     ],
+    [
+      "gives a small region blocks of 8 pixels",
+      op("redactionBlockSize", { region: { width: 40, height: 20 } }),
+    ],
+    [
+      "gives a region of 96 pixels blocks of 8, the last size before they grow",
+      op("redactionBlockSize", { region: { width: 96, height: 10 } }),
+    ],
+    [
+      "gives a strip a twelfth of its longer side, rounded up",
+      op("redactionBlockSize", { region: { width: 30, height: 601 } }),
+    ],
+    [
+      "tiles a region with blocks from its top-left corner, the last ones partial",
+      op("redactionBlocksInScene", {
+        region: { x: 10, y: 20, width: 20, height: 12 },
+        within: whole,
+      }),
+    ],
+    [
+      "clips blocks to the crop, and leaves out those outside it",
+      op("redactionBlocksInScene", {
+        region: { x: 30, y: 20, width: 30, height: 30 },
+        within: crop,
+      }),
+    ],
+    [
+      "gives no blocks for a region outside the crop",
+      op("redactionBlocksInScene", { region: { x: 0, y: 0, width: 20, height: 20 }, within: crop }),
+    ],
+    [
+      "tiles a region that starts outside the source",
+      op("redactionBlocksInScene", {
+        region: { x: -5, y: -5, width: 20, height: 20 },
+        within: whole,
+      }),
+    ],
+    [
+      "maps a region to the same pixels at full size, upright",
+      op("redactionRectInOutput", {
+        region: { x: 50, y: 40, width: 30, height: 20 },
+        crop: whole,
+        orientation: upright,
+        size: source,
+      }),
+    ],
+    [
+      "moves a region by the crop's corner",
+      op("redactionRectInOutput", {
+        region: { x: 50, y: 40, width: 30, height: 20 },
+        crop,
+        orientation: upright,
+        size: { width: 200, height: 100 },
+      }),
+    ],
+    [
+      "rounds a region outward when the output is a third of the size",
+      op("redactionRectInOutput", {
+        region: { x: 50, y: 40, width: 30, height: 20 },
+        crop: whole,
+        orientation: upright,
+        size: { width: 133, height: 100 },
+      }),
+    ],
+    [
+      "covers one output pixel for a region of one scene pixel, however small the output",
+      op("redactionRectInOutput", {
+        region: { x: 399, y: 299, width: 1, height: 1 },
+        crop: whole,
+        orientation: upright,
+        size: { width: 4, height: 3 },
+      }),
+    ],
+    [
+      "turns a region with the image by 90 degrees",
+      op("redactionRectInOutput", {
+        region: { x: 50, y: 40, width: 30, height: 20 },
+        crop: whole,
+        orientation: turned,
+        size: { width: 300, height: 400 },
+      }),
+    ],
+    [
+      "turns and mirrors a region inside a crop, at half size",
+      op("redactionRectInOutput", {
+        region: { x: 60, y: 50, width: 31, height: 21 },
+        crop,
+        orientation: mirrored,
+        size: { width: 50, height: 100 },
+      }),
+    ],
+    [
+      "clips a region that reaches past the crop",
+      op("redactionRectInOutput", {
+        region: { x: 0, y: 0, width: 100, height: 100 },
+        crop,
+        orientation: upright,
+        size: { width: 200, height: 100 },
+      }),
+    ],
+    [
+      "gives null for a region the crop leaves out",
+      op("redactionRectInOutput", {
+        region: { x: 0, y: 0, width: 40, height: 30 },
+        crop,
+        orientation: upright,
+        size: { width: 200, height: 100 },
+      }),
+    ],
+    [
+      "gives null for a region outside the source",
+      op("redactionRectInOutput", {
+        region: { x: -50, y: -50, width: 20, height: 20 },
+        crop: whole,
+        orientation: upright,
+        size: source,
+      }),
+    ],
+    [
+      "tiles the output's region with blocks, at full size",
+      op("redactionBlocksInOutput", {
+        region: { x: 10, y: 20, width: 20, height: 12 },
+        crop: whole,
+        orientation: upright,
+        size: source,
+      }),
+    ],
+    [
+      "rounds the boundaries between blocks to the nearest pixel, and the region's edges outward",
+      op("redactionBlocksInOutput", {
+        region: { x: 10, y: 20, width: 100, height: 30 },
+        crop: whole,
+        orientation: upright,
+        size: { width: 133, height: 100 },
+      }),
+    ],
+    [
+      "leaves out blocks that have no output pixel",
+      op("redactionBlocksInOutput", {
+        region: { x: 10, y: 20, width: 100, height: 30 },
+        crop: whole,
+        orientation: upright,
+        size: { width: 8, height: 6 },
+      }),
+    ],
+    [
+      "turns and mirrors the blocks with the image",
+      op("redactionBlocksInOutput", {
+        region: { x: 60, y: 50, width: 40, height: 20 },
+        crop,
+        orientation: mirrored,
+        size: { width: 100, height: 200 },
+      }),
+    ],
+    [
+      "gives no blocks for a region the crop leaves out",
+      op("redactionBlocksInOutput", {
+        region: { x: 0, y: 0, width: 40, height: 30 },
+        crop,
+        orientation: upright,
+        size: { width: 200, height: 100 },
+      }),
+    ],
   ];
 
   const orientation = fc.record({
@@ -933,6 +1096,13 @@ export function geometryCases(): ConformanceFile {
       height: fc.integer({ min: 1, max: 4_000 }),
     }),
   );
+  // A region near the 400 × 300 source, sometimes partly or wholly outside it.
+  const region = fc.record({
+    x: fc.integer({ min: -60, max: 420 }),
+    y: fc.integer({ min: -60, max: 320 }),
+    width: fc.integer({ min: 1, max: 300 }),
+    height: fc.integer({ min: 1, max: 300 }),
+  });
   const arbitraries: Record<string, fc.Arbitrary<Record<string, unknown>>> = {
     orientedSize: fc.record({ stored: size, orientation: fc.integer({ min: 1, max: 8 }) }),
     compositionSize: fc.record({
@@ -977,6 +1147,10 @@ export function geometryCases(): ConformanceFile {
       source: fc.constant(source),
       ratio,
     }),
+    redactionBlockSize: fc.record({ region: size }),
+    redactionBlocksInScene: fc.record({ region, within: cropArb }),
+    redactionRectInOutput: fc.record({ region, crop: cropArb, orientation, size }),
+    redactionBlocksInOutput: fc.record({ region, crop: cropArb, orientation, size }),
   };
   const generated = GEOMETRY_OPERATIONS.flatMap((operation) => {
     const arbitrary = arbitraries[operation];

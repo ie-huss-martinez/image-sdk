@@ -306,7 +306,7 @@ describe("the image session (ADR 0003)", () => {
     expect(session.getSnapshot().plan?.redactions).toHaveLength(2);
   });
 
-  it("refuses to export a plan with redactions until a processor draws them", async () => {
+  it("exports a plan with redactions", async () => {
     const { session } = setup();
     await session.open(await file());
     session.execute({
@@ -314,8 +314,8 @@ describe("the image session (ADR 0003)", () => {
       at: 0,
       redactions: [{ key: "a", mode: "solid", x: 0, y: 0, width: 2, height: 2, colour: "#000000" }],
     });
-    const error = await session.export({ type: "png" }).catch((reason: unknown) => reason);
-    expect(isImageError(error, "UNSUPPORTED_PLAN")).toBe(true);
+    const { blob } = await session.export({ type: "png" });
+    expect(blob.size).toBeGreaterThan(0);
   });
 
   it("rejects an invalid command and changes nothing", async () => {

@@ -12,9 +12,9 @@
 export default [
   {
     name: "Server-safe core (.), with the shared code it loads",
-    // The core never loads the React editor's chunks. Measured at 16.9 kB
+    // The core never loads the React editor's chunks. Measured at 17.8 kB
     // with the plan's format version 2: the keyed-list reducer, the
-    // redaction commands and the migration (docs/adr/0009, which expects
+    // redaction commands and geometry, and the migration (docs/adr/0009, which expects
     // about 22 kB once layers, drawing and animation have joined it).
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
@@ -42,8 +42,8 @@ export default [
     // The render worker, inlined as a minified string and loaded on the first
     // call (docs/adr/0002): the probes, the decoder and its orientation
     // calibration, the renderer, the encoders' metadata rewrite, and develop
-    // and filters (docs/adr/0006). Measured at 15.7 kB with develop; the
-    // layers and redaction will join it.
+    // and filters (docs/adr/0006). Measured at 18.5 kB with develop and
+    // redaction's two passes (docs/adr/0010); the layers will join it.
     name: "Render worker, inlined (lazy)",
     path: "dist/lazy/inline-worker-*.js",
     brotli: true,

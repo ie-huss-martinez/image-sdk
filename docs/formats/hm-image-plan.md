@@ -152,8 +152,14 @@ The TypeScript tests also check that the schemas agree with the readers. Every d
 | `aspectRatio`, `fitAspect` | An aspect's ratio, and the largest centred crop of it |
 | `moveCrop`, `dragHandle`, `nudgeCropOnScreen` | A crop moved or resized, kept inside its source, in whole pixels |
 | `cropInComposition`, `compositionDeltaToSource`, `handleInSource` | Where a crop shows on screen, and how a drag or a handle on screen maps back to the source |
+| `redactionBlockSize` | The side of a pixelated region's blocks: the larger of 8 and a twelfth of its longer side, rounded up |
+| `redactionBlocksInScene` | A pixelated region's blocks in the scene, from its top-left corner, each clipped to `within`, the crop |
+| `redactionRectInOutput` | The output pixels a region covers, through the crop, the rotation, the flips and the output's size, or `null` |
+| `redactionBlocksInOutput` | A pixelated region's blocks in the output, which tile exactly those pixels |
 
 The results compare exactly, with no tolerance. They need only IEEE addition, multiplication and division, which give the same doubles in every language, and rounding.
+
+**A region is rounded outward, and its blocks to the nearest pixel** ([ADR 0010](../adr/0010-redaction.md)). `redactionRectInOutput` takes `size`, the size being rendered, which needn't keep the composition's proportions: each axis has its own scale, `size.width / composition.width` and `size.height / composition.height`. The region's two edges on each axis go to the output with `floor` for the lower and `ceil` for the upper, so every output pixel the region touches is covered, then are clipped to the output. `redactionBlocksInOutput` maps every block boundary the same way, rounds the ones between blocks with `Math.round`, keeps them in order, and leaves out a block with no pixel. A port that rounds a region's edge inward shows a sliver of what's redacted, so these cases matter more than most.
 
 **Rounding is JavaScript's `Math.round`:** halves round toward positive infinity, so −2.5 rounds to −2. Many languages round halves away from zero, such as Rust's `f64::round`, which gives −3. A port rounds as `floor(x + 0.5)` does, and the vectors include negative halves. `fitAspect` centres with `floor`.
 

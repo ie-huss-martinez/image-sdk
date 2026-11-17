@@ -17,6 +17,12 @@ import {
   sourceToComposition,
 } from "../../src/core/model/geometry.js";
 import type { ImagePlan } from "../../src/core/model/plan.js";
+import {
+  redactionBlockSize,
+  redactionBlocksInOutput,
+  redactionBlocksInScene,
+  redactionRectInOutput,
+} from "../../src/core/model/redaction-geometry.js";
 import { createImageReducer } from "../../src/core/operations/commands.js";
 import {
   type ImageCommand,
@@ -71,7 +77,9 @@ type GeometryArgument =
   | "handle"
   | "key"
   | "step"
-  | "resize";
+  | "resize"
+  | "region"
+  | "size";
 type GeometryArguments = { readonly [Name in GeometryArgument]: never };
 
 /** The geometry functions a port implements, by the name a case gives. */
@@ -96,6 +104,12 @@ const GEOMETRY: Readonly<Record<string, (input: GeometryArguments) => unknown>> 
   handleInSource: ({ handle, orientation }) => handleInSource(handle, orientation),
   nudgeCropOnScreen: ({ crop, key, step, resize, orientation, source, ratio }) =>
     nudgeCropOnScreen(crop, key, step, resize, orientation, source, ratio ?? undefined),
+  redactionBlockSize: ({ region }) => redactionBlockSize(region),
+  redactionBlocksInScene: ({ region, within }) => redactionBlocksInScene(region, within),
+  redactionRectInOutput: ({ region, crop, orientation, size }) =>
+    redactionRectInOutput(region, crop, orientation, size),
+  redactionBlocksInOutput: ({ region, crop, orientation, size }) =>
+    redactionBlocksInOutput(region, crop, orientation, size),
 };
 
 /** The names of the geometry operations, in the order the vectors list them. */

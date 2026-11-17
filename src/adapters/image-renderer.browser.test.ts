@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { type ImageError, isImageError } from "../core/errors/image-error.js";
-import { createPlan, type ImageDevelop, NEUTRAL_DEVELOP } from "../core/model/plan.js";
+import {
+  createPlan,
+  type ImageDevelop,
+  type ImagePlan,
+  NEUTRAL_DEVELOP,
+} from "../core/model/plan.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import { fittedView, type ImageRenderer } from "../core/ports/image-renderer.js";
 import { classifyQuadrants, QUADRANT_COLOURS, quadrantCentres } from "./decode/orientation.js";
@@ -177,17 +182,15 @@ describe("the preview renderer (docs/adr/0002)", () => {
     opened.push({ engine, renderer });
     await renderer.render(createPlan("s"), fittedView(48, 32));
     const before = await snapshot(renderer);
-    // A preview that drew the image without its redaction would show what
-    // the redaction hides, so nothing is drawn (ADR 0009).
-    const redacted = {
+    // A preview that drew the image without a part of its plan would show
+    // what the plan doesn't, so nothing is drawn (ADR 0009).
+    const animated = {
       ...createPlan("s"),
-      redactions: [
-        { key: "r", mode: "solid", x: 0, y: 0, width: 48, height: 32, colour: "#000000" },
-      ],
-    } as const;
-    const error = await renderer.render(redacted, fittedView(48, 32)).catch((e: unknown) => e);
+      animation: { loop: 0, frames: [] },
+    } as unknown as ImagePlan;
+    const error = await renderer.render(animated, fittedView(48, 32)).catch((e: unknown) => e);
     expect(isImageError(error, "UNSUPPORTED_PLAN")).toBe(true);
-    expect((error as ImageError).details).toEqual({ reason: "redactions" });
+    expect((error as ImageError).details).toEqual({ reason: "animation" });
     const after = await snapshot(renderer);
     expect(after.pixel(24, 16)).toEqual(before.pixel(24, 16));
   });
