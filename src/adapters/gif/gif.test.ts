@@ -90,6 +90,7 @@ describe("the GIF frame table (docs/adr/0011)", () => {
           data: 30,
         },
       ],
+      complete: true,
     });
     expect(screens(SMALLEST)).toEqual([[opaque(WHITE)]]);
   });

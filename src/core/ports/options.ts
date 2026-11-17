@@ -42,6 +42,16 @@ export interface ImageRegisterOptions extends ImageProgressOptions {
    * directly.
    */
   readonly filePolicy?: ImageFilePolicy;
+  /**
+   * Which frames of an animated file the source holds (docs/adr/0011).
+   *
+   * - `"first"`, the default: its first frame, as a still.
+   * - `"all"`: every frame. The engine decodes each once to check it, so
+   *   the call takes as long as that; `onProgress` follows it, and the
+   *   source's `frames` are those that decoded. A file with one frame is a
+   *   still either way.
+   */
+  readonly frames?: "first" | "all";
 }
 
 /**

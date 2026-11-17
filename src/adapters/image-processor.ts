@@ -39,7 +39,7 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
   return {
     async export(job: ImageExportJob, options?: ImageExportOptions): Promise<Blob> {
       if (destroyed) throw new Error("The image processor has been destroyed.");
-      const { plan, format } = job;
+      const { plan, format, frame = 0 } = job;
       if (!FORMATS.has(format.type)) {
         throw new TypeError(`"${String(format.type)}" isn't an export format.`);
       }
@@ -48,6 +48,7 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
           throw new RangeError("quality must be from 0 to 1.");
         }
       }
+      checkFrame(plan, frame);
       internals.check();
       // The base's source, and every image layer's: a plan that names one
       // the engine doesn't hold is the caller's mistake, found before the worker.
@@ -64,6 +65,7 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
           {
             plan,
             format,
+            frame,
             limits: Object.fromEntries(
               OUTPUT_LIMITS.map((limit) => [limit, policy.limits[limit].maximum]),
             ) as Record<(typeof OUTPUT_LIMITS)[number], number>,
@@ -83,6 +85,22 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
       destroyed = true;
     },
   };
+}
+
+/**
+ * Refuses a frame the plan doesn't have: an index into its animation's
+ * frames, and only 0 for a still.
+ *
+ * @throws `RangeError`
+ */
+export function checkFrame(plan: ImagePlan, frame: number): void {
+  // An animation with no frames isn't a plan this checks: the worker refuses it.
+  const frames = Math.max(1, plan.animation?.frames.length ?? 1);
+  if (!Number.isInteger(frame) || frame < 0 || frame >= frames) {
+    throw new RangeError(
+      frames === 1 ? "A still has only frame 0." : `frame must be from 0 to ${frames - 1}.`,
+    );
+  }
 }
 
 /** The ids of the sources a plan's image layers draw. */

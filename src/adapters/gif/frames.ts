@@ -55,6 +55,11 @@ export interface GifFile {
   /** The file's colour table, or `null`. */
   readonly table: GifColourTable | null;
   readonly frames: readonly GifFrame[];
+  /**
+   * Whether the frames end at the file's trailer. `false` when they end
+   * where the file stopped being a GIF: it was cut short, or damaged.
+   */
+  readonly complete: boolean;
 }
 
 /** The end of a chain of data sub-blocks that starts at `start`: the offset after its terminator. */
@@ -121,6 +126,7 @@ export function readGifFrames(bytes: Uint8Array): GifFile {
   }
 
   const frames: GifFrame[] = [];
+  let complete = false;
   let loop: number | null = null;
   // The graphic control extension applies to the next frame only.
   let delay = 0;
@@ -131,7 +137,10 @@ export function readGifFrames(bytes: Uint8Array): GifFile {
     try {
       need(bytes, offset, 1, "a block");
       const introducer = bytes[offset] as number;
-      if (introducer === 0x3b) break;
+      if (introducer === 0x3b) {
+        complete = true;
+        break;
+      }
       if (introducer === 0x21) {
         need(bytes, offset, 2, "an extension label");
         const label = bytes[offset + 1] as number;
@@ -232,5 +241,5 @@ export function readGifFrames(bytes: Uint8Array): GifFile {
     }
   }
   if (frames.length === 0) throw invalid("gif", "there are no frames");
-  return { width, height, loop, table, frames };
+  return { width, height, loop, table, frames, complete };
 }

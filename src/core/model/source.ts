@@ -94,10 +94,42 @@ export interface ImageSourceInfo {
   readonly format: ImageFormat;
   readonly width: number;
   readonly height: number;
+  /**
+   * How many frames the source holds: 1 for a still, and for an animated
+   * file registered as its first frame. For a source registered with all
+   * its frames, the frames that decoded (docs/adr/0011).
+   */
   readonly frames: number;
   readonly hasAlpha: boolean;
-  /** The bytes the decoded source takes in the worker: frames × width × height × 4. */
+  /**
+   * The bytes the source takes in the worker: width × height × 4 for a
+   * still. An animated source counts what's held, not every frame: its
+   * screens in memory and its frame cache's ceiling (docs/adr/0011).
+   */
   readonly decodedBytes: number;
+  /**
+   * The timing the file gives its frames, for a source registered with all
+   * its frames; `null` for a still.
+   */
+  readonly timing: ImageSourceTiming | null;
+  /**
+   * Whether the file's frames ended early: before its end, or at a frame
+   * that couldn't be decoded (docs/adr/0011). The frames before that are
+   * the source's. Always `false` for a still.
+   */
+  readonly incomplete: boolean;
+}
+
+/**
+ * How an animated file plays (docs/adr/0011), as the file has it.
+ *
+ * @public
+ */
+export interface ImageSourceTiming {
+  /** `null`: play once. 0: for ever. Otherwise that many repeats. */
+  readonly loop: number | null;
+  /** Each frame's delay in hundredths of a second, 0 to 65,535: one for each of the source's frames. */
+  readonly delays: readonly number[];
 }
 
 /**

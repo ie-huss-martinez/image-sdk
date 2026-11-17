@@ -7,6 +7,7 @@
 - **Amended:** 2026-11-17, before the animation was built: it ships in 0.7.0, since 0.6.0 carried the decoder and the malformed-file fixes on their own; an animation ends at the frame before one that can't be decoded, decided when the file is opened, under "A later frame that can't be decoded"; and the reserved disposal methods' mapping is marked as read from decoders, not measured, until its test exists
 - **Amended:** 2026-11-17, as the model was built: the format's ceiling of 4,096 frames and `too-many-frames`, which refusals are the schema's, the two commands that only undo, and that no command gives a plan an animation, under "The animation in the plan"
 - **Amended:** 2026-11-17, as the frame store was built: the reserved disposal methods' mapping is measured, and how the cache is planned, under "What the worker holds"
+- **Amended:** 2026-11-17, as the engine came to hold frames: how a source is registered with them, what it reports, and how a call names the frame it draws, under "Holding a source with its frames"
 
 ## Context
 
@@ -74,6 +75,16 @@ The frame table ends where the file stops being a GIF, and the probe counts the 
 - **The editor says so.** A source records whether its file's frames ended early, either way: before its trailer, or at a frame that couldn't be decoded. `ImageSourceInfo` gains `incomplete: boolean` for it, `false` for every still. When it's `true`, the editor says, once, at open and in the Info panel, that the file is damaged and how many frames opened, in text from the catalogue. It's information, not an error: the image is open and can be edited and exported.
 - **The usage event** for an open carries nothing new: no file name, no frame count.
 - **Tests:** a file whose third frame is short opens as two frames in the three engines, with `incomplete` set and the notice shown; the same for a file with no trailer; a sound file has neither. The plan, the timeline and the export of such a file hold exactly the frames that decoded. An open of many frames shows its first frame and its progress before it's done; cancelling it mid-way leaves the earlier document open and usable, and the worker answers a render of that document while the check runs.
+
+### Holding a source with its frames
+
+- **A source is a still unless it's registered with its frames.** `engine.register` takes `frames: "first" | "all"`, and `"first"` is the default: the file's first frame, held as before. So an animated file can still be opened as a still, which is what a file over `maxAnimationPixels` gets, and what a host that doesn't want animations asks for. With `"all"`, a GIF of several frames is held with every frame that decodes; a file of one frame is a still either way, and so, for now, is any other format.
+- **What a source says of itself:** `frames` is how many frames it holds, 1 for a still; `timing` is the file's loop count and each held frame's delay, `null` for a still; `incomplete` says the file's frames ended early; and `decodedBytes` is what the worker holds for it: for a source with its frames, its first frame's bitmap, the file's bytes, one screen and the frame cache at its fullest, not every frame.
+- **Progress is one report for each frame checked,** as the fraction of the frames the file lists, through `register`'s `onProgress`. The first report comes when the first frame has decoded. A file whose frames end early stops short of 1, and the call's last report is 1 as it resolves.
+- **A call names the frame it draws by its place in the plan:** `frame` on an export's job and on a render's view is an index into the plan's `animation.frames`, 0 when omitted. The frame shown is view state, so it's on the view with the zoom. A frame the plan doesn't have is a `RangeError`, found on the page.
+- **The worker draws a frame from a bitmap of its own for that call,** made from the frame store's screen and closed when the call ends, with what a redaction kept of it. Two calls can then draw two frames at once, such as an export of one frame while the preview shows another. The source's first frame keeps the bitmap it was registered with.
+- **A plan with an animation is drawn only over a source that holds its frames.** Over a still, or naming a frame the source doesn't hold, it's `UNSUPPORTED_PLAN` with `animation`: drawing the first frame instead would show what the plan doesn't say ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)).
+- **Tests:** in the three engines, through the real engine and worker, every frame of a plan exports as the browser's `ImageDecoder` composes it, in any order, reordered, repeated and cropped; the preview draws the view's frame; a file with a bad frame holds the frames before it and never draws past them; a registration is cancelled while its frames are checked and the engine goes on working; and another call is answered while a check runs.
 
 ### What the worker holds
 

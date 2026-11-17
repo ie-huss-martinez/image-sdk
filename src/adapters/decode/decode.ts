@@ -1,7 +1,7 @@
 import { ImageError, isImageError } from "../../core/errors/image-error.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { createGifComposer } from "../gif/compose.js";
-import { readGifFrames } from "../gif/frames.js";
+import { type GifFile, readGifFrames } from "../gif/frames.js";
 import { type Calibration, calibrate } from "./calibration.js";
 import { orientBitmap } from "./orientation.js";
 
@@ -27,9 +27,43 @@ const browser: DecodeEnvironment = {
   calibrate,
 };
 
-/** A bitmap of RGBA pixels that aren't premultiplied, as files are decoded. */
-const bitmapOf = (pixels: Uint8ClampedArray<ArrayBuffer>, width: number, height: number) =>
+/**
+ * A bitmap of RGBA pixels that aren't premultiplied, as files are decoded.
+ * The pixels are copied: the bitmap doesn't follow the buffer afterwards.
+ *
+ * @internal
+ */
+export const bitmapOf = (
+  pixels: Uint8ClampedArray<ArrayBuffer>,
+  width: number,
+  height: number,
+): Promise<ImageBitmap> =>
   createImageBitmap(new ImageData(pixels, width, height), { premultiplyAlpha: "none" });
+
+/**
+ * A GIF's bytes and its frame table, checked against the probe that
+ * bounded it (docs/adr/0011): the table the decoder reads must be the one
+ * the probe walked.
+ *
+ * @internal
+ */
+export async function readGif(
+  file: Blob,
+  probe: ImageProbe,
+): Promise<{ readonly bytes: Uint8Array; readonly gif: GifFile }> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const gif = readGifFrames(bytes);
+  if (
+    gif.frames.length !== probe.frames ||
+    gif.width !== probe.stored.width ||
+    gif.height !== probe.stored.height
+  ) {
+    throw new ImageError("INVALID_IMAGE", "The GIF's frames differ from what its probe read.", {
+      details: { format: "gif", problem: "the frame table differs from the probe" },
+    });
+  }
+  return { bytes, gif };
+}
 
 /**
  * A GIF's first frame, by the SDK's own decoder (docs/adr/0011): the browser's
@@ -45,19 +79,7 @@ async function decodeGif(
   probe: ImageProbe,
   environment: DecodeEnvironment,
 ): Promise<ImageBitmap> {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const gif = readGifFrames(bytes);
-  // The probe bounded this file by its frames and its screen: the table the
-  // decoder reads must be the one the probe walked.
-  if (
-    gif.frames.length !== probe.frames ||
-    gif.width !== probe.stored.width ||
-    gif.height !== probe.stored.height
-  ) {
-    throw new ImageError("INVALID_IMAGE", "The GIF's frames differ from what its probe read.", {
-      details: { format: "gif", problem: "the frame table differs from the probe" },
-    });
-  }
+  const { bytes, gif } = await readGif(file, probe);
   const screen = createGifComposer(bytes, gif).next();
   return (environment.fromPixels ?? bitmapOf)(screen, gif.width, gif.height);
 }
