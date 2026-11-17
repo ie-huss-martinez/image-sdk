@@ -49,4 +49,44 @@ describe("a session over the SDK's own engine and processor (ADR 0003)", () => {
     await session.destroy();
     await engine.destroy();
   });
+
+  it("adds a second image as a layer source in the worker, and releases it when nothing refers to it", async () => {
+    const png = async (width: number, height: number, colour: string) => {
+      const canvas = new OffscreenCanvas(width, height);
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("no 2D canvas");
+      context.fillStyle = colour;
+      context.fillRect(0, 0, width, height);
+      return canvas.convertToBlob();
+    };
+    const engine = createImageEngine();
+    const session = createImageSession({ engine, processor: createImageProcessor(engine) });
+    const base = await session.open(await png(40, 30, "#204060"));
+    const added = await session.insertImage(await png(16, 12, "#c08040"));
+    expect([added.width, added.height]).toEqual([16, 12]);
+    expect(session.getSnapshot().plan?.layers[0]).toMatchObject({
+      kind: "image",
+      source: added.id,
+      x: 12,
+      y: 9,
+      width: 16,
+      height: 12,
+    });
+    // Both are decoded in the worker: each gives a thumbnail of its own size.
+    expect((await engine.thumbnail(base.id, 100)).width).toBe(40);
+    expect((await engine.thumbnail(added.id, 100)).width).toBe(16);
+    // A file that isn't an image is refused, and the document is unchanged.
+    await expect(session.insertImage(new Blob(["not an image"]))).rejects.toMatchObject({
+      code: "UNSUPPORTED_FORMAT",
+    });
+    expect(session.getSnapshot().plan?.layers).toHaveLength(1);
+    // Undone, then a new edit: nothing refers to it, and the worker lets it go.
+    session.undo();
+    session.execute({ type: "image.setDevelop", values: { exposure: 5 } });
+    expect(session.getSnapshot().sources.map((source) => source.id)).toEqual([base.id]);
+    await expect(engine.thumbnail(added.id, 100)).rejects.toThrow();
+    expect((await engine.thumbnail(base.id, 100)).width).toBe(40);
+    await session.destroy();
+    await engine.destroy();
+  });
 });

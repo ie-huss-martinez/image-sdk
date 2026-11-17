@@ -15,8 +15,9 @@ import {
   type ImageLimitName,
   imageLimits,
 } from "../errors/image-limits.js";
-import { compositionSize, outputSize } from "../model/geometry.js";
-import { createPlan, type ImagePlan } from "../model/plan.js";
+import { compositionSize, cropRect, outputSize } from "../model/geometry.js";
+import { createImageKey } from "../model/keys.js";
+import { createPlan, type ImageImageLayer, type ImagePlan } from "../model/plan.js";
 import type {
   ImageKeepableMetadata,
   ImageMetadataPresence,
@@ -56,8 +57,20 @@ export interface ImageSessionSnapshot {
   readonly plan: ImagePlan | null;
   /** The document's source, or `null` before a file is open. */
   readonly source: ImageSessionSource | null;
+  /**
+   * Every source the session holds: the document's, then those of image
+   * layers, including ones only the history still refers to (ADR 0004).
+   */
+  readonly sources: readonly ImageSessionSource[];
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  /**
+   * Whether undo steps were dropped to make room for an image, since the
+   * document was opened: they can no longer be undone.
+   */
+  readonly historyTrimmed: boolean;
+  /** Whether an image is being added as a layer. */
+  readonly inserting: boolean;
   /** Whether a file is being opened. The current document stays until it's ready. */
   readonly opening: boolean;
   /** Whether an export is in progress. */
@@ -75,7 +88,7 @@ export interface ImageSessionSnapshot {
  * @public
  */
 export interface ImageSessionEvent {
-  readonly type: "open" | "execute" | "undo" | "redo" | "export";
+  readonly type: "open" | "insert" | "execute" | "undo" | "redo" | "export";
   readonly outcome: "done" | "failed" | "cancelled";
   /** The types of the commands applied or undone. */
   readonly commands: readonly ImageCommand["type"][];
@@ -138,6 +151,28 @@ export interface ImageSession {
    */
   open(file: Blob, options?: { readonly signal?: AbortSignal }): Promise<ImageSessionSource>;
   /**
+   * Probes, checks and decodes another file, and adds it to the document as
+   * an image layer, as one undoable step (ADR 0003, ADR 0004).
+   *
+   * - **Limits:** the file's own, as for `open`; `maxFiles`, counting every
+   *   source the session holds; and `maxSessionSize`, counting their decoded
+   *   bytes. When the image doesn't fit, the session first drops the oldest
+   *   undo steps that alone keep another image, and marks the history as
+   *   trimmed. If that isn't enough, nothing is dropped and it fails with
+   *   `SESSION_TOO_LARGE`.
+   * - **Placement:** by default the image is centred on what's shown, at
+   *   its own size or half the composition's, whichever is smaller, over
+   *   every layer. `place` returns other commands; they must refer to the
+   *   source, or it's released.
+   * - **Lifetime:** the session holds the source while the plan, an undo
+   *   or redo step, or an export in progress refers to it, and releases it
+   *   then.
+   *
+   * A failure, a cancellation, or another file opened meanwhile adds
+   * nothing and releases the source.
+   */
+  insertImage(file: Blob, options?: ImageInsertOptions): Promise<ImageSessionSource>;
+  /**
    * Applies commands as one undoable step. They're checked by the reducer,
    * then the output against `maxImageDimension` and `maxImagePixels`; a
    * failure throws `ImageError` and changes nothing.
@@ -173,8 +208,79 @@ export interface ImageSession {
     format: ImageExportFormat,
     options?: { readonly signal?: AbortSignal; readonly onProgress?: (fraction: number) => void },
   ): Promise<ImageSessionExport>;
-  /** Releases the source the session holds. Later calls throw. */
+  /** Releases every source the session holds. Later calls throw. */
   destroy(): Promise<void>;
+}
+
+/**
+ * Options for {@link ImageSession.insertImage}.
+ *
+ * @public
+ */
+export interface ImageInsertOptions {
+  readonly signal?: AbortSignal;
+  /**
+   * The commands that add the image to the plan, instead of the default
+   * layer: given the new source and the plan as it is.
+   */
+  readonly place?: (
+    source: ImageSessionSource,
+    plan: ImagePlan,
+  ) => ImageCommand | readonly ImageCommand[];
+}
+
+/** The ids of the sources a command's image layers name. */
+function sourcesIn(command: ImageCommand): string[] {
+  const of = (layer: { kind?: unknown; source?: unknown }) =>
+    layer.kind === "image" && typeof layer.source === "string" ? [layer.source] : [];
+  switch (command.type) {
+    case "image.insertLayers":
+      return command.layers.flatMap(of);
+    case "image.restoreLayers":
+      return command.entries.flatMap(({ layer }) => of(layer));
+    case "image.updateLayers":
+      // An update may point a layer at another source.
+      return command.updates.flatMap(({ props }) =>
+        typeof props["source"] === "string" ? [props["source"]] : [],
+      );
+    default:
+      return [];
+  }
+}
+
+/** The ids of the sources a plan's image layers name. */
+const sourcesOf = (plan: ImagePlan) =>
+  plan.layers.flatMap((layer) => (layer.kind === "image" ? [layer.source] : []));
+
+/**
+ * The default layer for an inserted image: centred on what's shown, at its
+ * own size or half the composition's, whichever is smaller, keeping its
+ * shape.
+ */
+function defaultLayer(
+  source: ImageSourceInfo,
+  plan: ImagePlan,
+  base: ImageSourceInfo,
+): ImageImageLayer {
+  const shown = cropRect(plan.base.crop, base);
+  const scale = Math.min(1, shown.width / 2 / source.width, shown.height / 2 / source.height);
+  const width = Math.max(1, Math.round(source.width * scale));
+  const height = Math.max(1, Math.round(source.height * scale));
+  const used = new Set([...plan.layers, ...plan.redactions].map((item) => item.key));
+  return {
+    key: createImageKey(used),
+    kind: "image",
+    name: "",
+    visible: true,
+    opacity: 100,
+    x: shown.x + Math.round((shown.width - width) / 2),
+    y: shown.y + Math.round((shown.height - height) / 2),
+    width,
+    height,
+    rotation: 0,
+    source: source.id,
+    crop: null,
+  };
 }
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -240,6 +346,9 @@ const PRESENCE: readonly (keyof ImageMetadataPresence)[] = [
   "other",
 ];
 
+/** A probed image's decoded bytes, as the session counts them (ADR 0004). */
+const decodedBytes = (probe: ImageProbe) => probe.oriented.width * probe.oriented.height * 4;
+
 /** The source's own limits, and what holding it costs against `maxSessionSize`. */
 function checkSource(
   policy: ImageFilePolicy,
@@ -247,8 +356,8 @@ function checkSource(
   probe: ImageProbe,
 ): readonly ImageLimitName[] {
   const near = checkFileLimits(policy, file.size, probe);
-  // One document at a time: the session holds this one source.
-  const bytes = probe.oriented.width * probe.oriented.height * 4;
+  // A new document holds this one source: the previous one's are released.
+  const bytes = decodedBytes(probe);
   if (policy.check("maxSessionSize", bytes) === "warning") near.push("maxSessionSize");
   return near;
 }
@@ -274,14 +383,18 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
   const policy: ImageFilePolicy = imageLimits.resolve(options.filePolicy);
   const history = createHistory<ImageCommand>();
   let source: ImageSessionSource | null = null;
-  const reducer = createImageReducer((id) =>
-    source !== null && source.id === id ? source : undefined,
-  );
+  /** The sources of image layers, by id, in the order they were added. */
+  const extras = new Map<string, ImageSessionSource>();
+  /** The plans of exports in progress, whose sources must outlive them. */
+  const exports = new Set<ImagePlan>();
+  const sourceOf = (id: string) => (source?.id === id ? source : extras.get(id));
+  const reducer = createImageReducer(sourceOf);
   let plan: ImagePlan | null = null;
   /** Each open's number: only the latest may become the document. */
   let opens = 0;
   let opening = 0;
   let exporting = 0;
+  let inserting = 0;
   /** Which document an async result belongs to. */
   let generation = 0;
   let warnings: readonly ImageLimitName[] = [];
@@ -293,8 +406,11 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     status: plan !== null ? "ready" : !destroyed && opening > 0 ? "opening" : "empty",
     plan,
     source,
+    sources: source ? [source, ...extras.values()] : [],
     canUndo: history.canUndo,
     canRedo: history.canRedo,
+    historyTrimmed: history.trimmed,
+    inserting: !destroyed && inserting > 0,
     opening: !destroyed && opening > 0,
     exporting: !destroyed && exporting > 0,
     warnings,
@@ -320,6 +436,77 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     new ImageError("ABORTED", "A later open replaced this one.", {
       details: { reason: "superseded" },
     });
+
+  /**
+   * The ids of the sources something still refers to: the plan, exports in
+   * progress, and history steps, leaving out the first `dropped` of the
+   * order they'd be dropped in.
+   */
+  const referenced = (dropped = 0): Set<string> => {
+    const ids = new Set<string>();
+    for (const held of [plan, ...exports]) {
+      if (held) for (const id of sourcesOf(held)) ids.add(id);
+    }
+    const gone = new Set(history.dropOrder.slice(0, dropped));
+    for (const step of history.steps) {
+      if (gone.has(step)) continue;
+      for (const command of [...step.commands, ...step.inverses]) {
+        for (const id of sourcesIn(command)) ids.add(id);
+      }
+    }
+    return ids;
+  };
+
+  /** Releases every layer source nothing refers to any more (ADR 0003). */
+  const releaseUnreferenced = () => {
+    const kept = referenced();
+    for (const id of [...extras.keys()]) {
+      if (kept.has(id)) continue;
+      extras.delete(id);
+      void engine.release(id).catch(() => {});
+    }
+  };
+
+  /** The decoded bytes of every source held, leaving out the layer sources `without` names. */
+  const heldBytes = (without: ReadonlySet<string> = new Set()) => {
+    let bytes = source?.decodedBytes ?? 0;
+    for (const [id, extra] of extras) if (!without.has(id)) bytes += extra.decodedBytes;
+    return bytes;
+  };
+
+  /** Whether the session may hold this many decoded bytes: `false`, or the check's outcome. */
+  const fits = (bytes: number) => {
+    try {
+      return policy.check("maxSessionSize", bytes);
+    } catch {
+      return false;
+    }
+  };
+
+  /**
+   * Makes room for an image of `bytes` (ADR 0004). If it doesn't fit, drops
+   * the fewest of the oldest history steps whose going frees enough: steps
+   * that alone keep another image. If no number of them is enough, drops
+   * nothing, and throws `SESSION_TOO_LARGE`.
+   */
+  const makeRoom = (bytes: number): readonly ImageLimitName[] => {
+    const warned = (outcome: unknown): ImageLimitName[] =>
+      outcome === "warning" ? ["maxSessionSize"] : [];
+    const now = fits(heldBytes() + bytes);
+    if (now !== false) return warned(now);
+    for (let dropped = 1; dropped <= history.dropOrder.length; dropped += 1) {
+      const kept = referenced(dropped);
+      const freed = new Set([...extras.keys()].filter((id) => !kept.has(id)));
+      const after = fits(heldBytes(freed) + bytes);
+      if (after === false) continue;
+      history.drop(dropped);
+      releaseUnreferenced();
+      return warned(after);
+    }
+    // Throws the limit's own error, with what it would take.
+    policy.check("maxSessionSize", heldBytes() + bytes);
+    return [];
+  };
 
   /** The plan after `commands`, with its output checked, and the step. */
   const attempt = (from: ImagePlan, commands: readonly ImageCommand[]) => {
@@ -349,6 +536,8 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       throw fail(reason);
     }
     error = null;
+    // A step that moved from one stack to the other still refers to its sources.
+    releaseUnreferenced();
     publish();
     emit({ type: direction, outcome: "done", commands: commands.map((c) => c.type) });
     return true;
@@ -368,6 +557,8 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       plan = result.state;
       history.push(result.step);
       error = null;
+      // A new step drops what could be redone, and with it what only that kept.
+      releaseUnreferenced();
       emit({ type: "execute", outcome: "done", commands: commands.map((c) => c.type) });
     } catch (reason) {
       emit({ type: "execute", outcome: "failed", commands: commands.map((c) => c.type) });
@@ -425,6 +616,9 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         warnings = near;
         error = null;
         if (previous) void engine.release(previous.id).catch(() => {});
+        // The previous document's layer sources go with it, unless an
+        // export of it is still running.
+        releaseUnreferenced();
         emit({ type: "open", outcome: "done", commands: [] });
         return source;
       } catch (reason) {
@@ -437,6 +631,90 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         throw failure;
       } finally {
         opening -= 1;
+        if (!destroyed) publish();
+      }
+    },
+
+    async insertImage(file, insertOptions = {}) {
+      assertAlive();
+      if (plan === null || source === null) {
+        throw new ImageError("INVALID_COMMAND", "There's no image to add a layer to yet.");
+      }
+      const started = generation;
+      nextId += 1;
+      const id = `source-${nextId}`;
+      let registered = false;
+      /** Once the session holds the source, only `releaseUnreferenced` releases it. */
+      let held = false;
+      inserting += 1;
+      publish();
+      try {
+        const { probe, info } = await withProcessingTime(
+          policy,
+          async (signal) => {
+            throwIfAborted(signal);
+            policy.check("maxFileSize", file.size);
+            const probe = await engine.probe(file, { signal });
+            throwIfAborted(signal);
+            checkFileLimits(policy, file.size, probe);
+            const info = await engine.register(id, file, probe, { filePolicy: policy, signal });
+            registered = true;
+            throwIfAborted(signal);
+            return { probe, info };
+          },
+          insertOptions,
+        );
+        assertAlive();
+        if (started !== generation || plan === null || source === null) throw superseded();
+
+        // From here to the end nothing awaits, so nothing can change under us.
+        const near = checkFileLimits(policy, file.size, probe);
+        // Every source held, and this one.
+        if (policy.check("maxFiles", extras.size + 2) === "warning") near.push("maxFiles");
+        near.push(...makeRoom(info.decodedBytes));
+        const added: ImageSessionSource = {
+          ...info,
+          fileSize: file.size,
+          metadata: probe.metadata,
+          keepable: probe.keepable,
+        };
+        extras.set(id, added);
+        held = true;
+        try {
+          const placed = insertOptions.place?.(added, plan) ?? {
+            type: "image.insertLayers",
+            at: plan.layers.length,
+            layers: [defaultLayer(added, plan, source)],
+          };
+          const commands = Array.isArray(placed)
+            ? (placed as readonly ImageCommand[])
+            : [placed as ImageCommand];
+          // Checked before anything runs: commands that never name the
+          // source would change the plan and leave the image out of it.
+          if (!commands.some((command) => sourcesIn(command).includes(id))) {
+            throw new ImageError(
+              "INVALID_COMMAND",
+              "The commands don't add the image to the plan.",
+            );
+          }
+          executeCommands(commands);
+        } finally {
+          // Commands that failed, or that don't name the source, leave it
+          // unreferenced: it's released here.
+          releaseUnreferenced();
+        }
+        warnings = near;
+        emit({ type: "insert", outcome: "done", commands: [] });
+        return added;
+      } catch (reason) {
+        if (registered && !held) await engine.release(id).catch(() => {});
+        const failure = isImageError(reason) ? reason : asImageError(reason);
+        const cancelled = failure.code === "ABORTED";
+        if (!cancelled && !destroyed && started === generation) fail(failure);
+        emit({ type: "insert", outcome: cancelled ? "cancelled" : "failed", commands: [] });
+        throw failure;
+      } finally {
+        inserting -= 1;
         if (!destroyed) publish();
       }
     },
@@ -482,6 +760,9 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       const exported = plan;
       const from = source;
       exporting += 1;
+      // Its sources outlive it: a layer removed, or another file opened,
+      // while it runs releases nothing it draws.
+      exports.add(exported);
       publish();
       try {
         const size = outputSize(exported.output, compositionSize(exported, from));
@@ -527,19 +808,24 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         throw failure;
       } finally {
         exporting -= 1;
-        if (!destroyed) publish();
+        exports.delete(exported);
+        if (!destroyed) {
+          releaseUnreferenced();
+          publish();
+        }
       }
     },
 
     async destroy() {
       if (destroyed) return;
       destroyed = true;
-      const held = source;
+      const held = [...(source ? [source.id] : []), ...extras.keys()];
       source = null;
+      extras.clear();
       plan = null;
       history.clear();
       publish();
-      if (held) await engine.release(held.id).catch(() => {});
+      await Promise.all(held.map((id) => engine.release(id).catch(() => {})));
     },
   };
 }
