@@ -15,6 +15,7 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `crop` | The crop frame and its handles, with the crop panel |
  * | `redact` | A solid redaction selected, with its frame and handles, and the redact panel |
  * | `redact-pixelate` | Two redactions, the second pixelated and selected, with the warning that pixelation may not hide text |
+ * | `layers` | Two shape layers, the top one turned and selected, with its frame and handles, and the layers panel |
  * | `filters` | The Filters panel, with Sepia chosen |
  * | `export-summary` | The export dialog's choices and its summary of the metadata it removes |
  * | `export-done` | The export dialog's result, with Download focused |
@@ -22,7 +23,7 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `notices` | An image with a colour profile, and the notice that its colours are clipped on export |
  * | `info` | The Info panel, for that image |
  * | `element-empty`, `element-open` | `<hm-image-editor>`, whose styles arrive through the host's imports |
- * | `rtl-open`, `rtl-crop`, `rtl-redact` | An image, cropping it and redacting it, in a right-to-left page: the layout mirrors, the image and its frames' handles don't |
+ * | `rtl-open`, `rtl-crop`, `rtl-redact`, `rtl-layers` | An image, cropping it, redacting it and its layers, in a right-to-left page: the layout mirrors, the image and its frames' handles don't |
  * | `engine-unavailable` | Terminal engine recovery notice after resource loss; stale preview, controls and dialogs removed |
  * | `long-text`, `long-text-export` | A host's longer text, as a translation can be: the panels and the export dialog wrap it |
  *
@@ -91,6 +92,50 @@ const EDITOR: Readonly<Record<string, State>> = {
     await expect(page.getByText("Pixelation may not hide text.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Area 2: pixelated, 12 × 8" })).toBeVisible();
   },
+  layers: async (page) => {
+    await opened(page);
+    await page.evaluate(() => {
+      const shape = { kind: "shape", fill: "#f0c020", stroke: null, visible: true, opacity: 100 };
+      window.imageEditor.execute([
+        {
+          type: "image.insertLayers",
+          at: 0,
+          layers: [
+            {
+              ...shape,
+              key: "a",
+              name: "",
+              shape: "rectangle",
+              x: 4,
+              y: 4,
+              width: 18,
+              height: 10,
+              rotation: 0,
+            },
+            {
+              ...shape,
+              key: "b",
+              name: "Badge",
+              shape: "ellipse",
+              fill: "#ffffff",
+              x: 22,
+              y: 12,
+              width: 20,
+              height: 14,
+              rotation: 200,
+            },
+          ],
+        },
+      ]);
+    });
+    await page.getByRole("button", { name: "Layers", exact: true }).click();
+    // The top layer is selected; its frame takes focus, turned as it is.
+    await page.getByRole("group", { name: "Layer 1 of 2: Badge" }).focus();
+    await expect(page.getByRole("button", { name: "Badge", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  },
   filters: async (page) => {
     await opened(page);
     await page.getByRole("radio", { name: "Filters" }).click();
@@ -121,6 +166,7 @@ const RIGHT_TO_LEFT: Readonly<Record<string, State>> = {
   "rtl-open": opened,
   "rtl-crop": EDITOR["crop"] as State,
   "rtl-redact": EDITOR["redact"] as State,
+  "rtl-layers": EDITOR["layers"] as State,
 };
 
 /** On the editor page with `?long-text`, the example's longer overrides. */

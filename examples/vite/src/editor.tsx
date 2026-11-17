@@ -1,5 +1,6 @@
 import "@hussmartinez/ui/styles.css";
 import "@hussmartinez/image-sdk/styles.css";
+import type { ImageCommand } from "@hussmartinez/image-sdk";
 import {
   ImageEditor,
   type ImageEditorHandle,
@@ -43,6 +44,8 @@ declare global {
       open(bytes: ArrayBuffer): Promise<void>;
       status(): string;
       plan(): unknown;
+      /** Runs commands as a host does, such as inserting layers. */
+      execute(commands: unknown): void;
     };
   }
 }
@@ -51,6 +54,7 @@ window.imageEditor = {
   open: async (bytes) => handle.current?.open(new Blob([bytes])),
   status: () => handle.current?.session.getSnapshot().status ?? "empty",
   plan: () => handle.current?.session.getSnapshot().plan ?? null,
+  execute: (commands) => handle.current?.execute(commands as ImageCommand[]),
 };
 
 const element = document.querySelector("#editor");

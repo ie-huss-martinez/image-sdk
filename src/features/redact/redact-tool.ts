@@ -24,6 +24,7 @@ export const redactTool: ImageTool = /* @__PURE__ */ defineTool({
             ...state,
             tool: "redact",
             crop: null,
+            layers: null,
             preview: null,
             redact: { selected: null, mode: "solid", colour: DEFAULT_REDACTION_COLOUR },
           },

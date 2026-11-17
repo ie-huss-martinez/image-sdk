@@ -168,6 +168,35 @@ export const imageEditorMessages: {
         readonly one: "Area removed. {count} area is redacted.";
         readonly other: "Area removed. {count, number} areas are redacted.";
     };
+    readonly "tools.layers": "Layers";
+    readonly "toolbar.groups.layers": "Layers";
+    readonly "layers.panel": "Layers";
+    readonly "layers.list": "Layers, the top one first";
+    readonly "layers.none": "No layers yet.";
+    readonly "layers.kinds.text": "Text";
+    readonly "layers.kinds.rectangle": "Rectangle";
+    readonly "layers.kinds.ellipse": "Ellipse";
+    readonly "layers.kinds.image": "Image";
+    readonly "layers.visible": "Show {name}";
+    readonly "layers.selected": "Selected layer";
+    readonly "layers.moveUp": "Move up";
+    readonly "layers.moveDown": "Move down";
+    readonly "layers.duplicate": "Duplicate";
+    readonly "layers.remove": "Delete";
+    readonly "layers.name": "Name";
+    readonly "layers.x": "Left";
+    readonly "layers.y": "Top";
+    readonly "layers.width": "Width";
+    readonly "layers.height": "Height";
+    readonly "layers.rotation": "Turn, in degrees";
+    readonly "layers.opacity": "Opacity, in percent";
+    readonly "layers.done": "Done";
+    readonly "layers.frame": "Layer {index, number} of {count, number}: {name}";
+    readonly "layers.frameDescription": "{width, number} × {height, number} pixels, from {x, number}, {y, number}, turned {degrees, number}°. Arrow keys move it; with Shift, they resize it; Delete removes it and Escape closes the layers.";
+    readonly "layers.movedUp": "Moved {name} up. It's layer {index, number} of {count, number}.";
+    readonly "layers.movedDown": "Moved {name} down. It's layer {index, number} of {count, number}.";
+    readonly "layers.duplicated": "Duplicated {name}.";
+    readonly "layers.removed": "Deleted {name}.";
     readonly "inspector.label": "Panels";
     readonly "inspector.adjust": "Adjust";
     readonly "inspector.filters": "Filters";
@@ -404,13 +433,16 @@ export interface ImageEditorState {
         readonly aspect: ImageAspect;
     } | null;
     readonly dialog: "export" | null;
+    readonly layers: {
+        readonly selected: string | null;
+    } | null;
     readonly preview: ImagePlan | null;
     readonly redact: {
         readonly selected: string | null;
         readonly mode: ImageRedactionMode;
         readonly colour: string;
     } | null;
-    readonly tool: "crop" | "redact" | null;
+    readonly tool: "crop" | "redact" | "layers" | null;
 }
 
 // @public
@@ -443,6 +475,15 @@ export function ImageInfoPanel(props: ImageInfoPanelProps): ReactNode;
 
 // @public
 export interface ImageInfoPanelProps {
+    // (undocumented)
+    readonly className?: string;
+}
+
+// @public
+export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode;
+
+// @public
+export interface ImageLayersPanelProps {
     // (undocumented)
     readonly className?: string;
 }

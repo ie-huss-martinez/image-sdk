@@ -175,7 +175,15 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     editor.set((state) =>
       state.tool === null && state.dialog === null
         ? state
-        : { ...state, tool: null, crop: null, redact: null, preview: null, dialog: null },
+        : {
+            ...state,
+            tool: null,
+            crop: null,
+            redact: null,
+            layers: null,
+            preview: null,
+            dialog: null,
+          },
     );
   }, [editor, sourceId]);
 
@@ -204,6 +212,16 @@ function ImageEditorBody(props: BodyProps): ReactNode {
       // Redacting starts on the button that adds an area without dragging;
       // cropping starts on its frame, which focuses itself.
       root.current?.querySelector<HTMLElement>(".hm-image-redact-add")?.focus();
+      return;
+    }
+    if (tool === "layers") {
+      // The layers start on the list: the selected layer's button, which is
+      // the top one's. With no layers, focus stays where it was.
+      root.current
+        ?.querySelector<HTMLElement>(
+          '.hm-image-layers-list [aria-pressed="true"], .hm-image-layers-list button',
+        )
+        ?.focus();
       return;
     }
     if (was === null || tool !== null) return;

@@ -1,6 +1,7 @@
 import { cropTool, flipHorizontalTool, flipVerticalTool } from "./crop/crop-tools.js";
 import { exportTool } from "./export/export-tool.js";
 import { redoTool, undoTool } from "./history/history-tools.js";
+import { layersTool } from "./layers/layers-tool.js";
 import { openTool } from "./open/open-tool.js";
 import { rotateLeftTool, rotateRightTool } from "./orientation/orientation-tools.js";
 import { redactTool } from "./redact/redact-tool.js";
@@ -22,6 +23,7 @@ export const imageTools: readonly ImageTool[] = [
   flipVerticalTool,
   cropTool,
   redactTool,
+  layersTool,
   zoomInTool,
   zoomOutTool,
   zoomFitTool,
@@ -35,6 +37,7 @@ export const DEFAULT_TOOLBAR: readonly (readonly string[])[] = [
   ["image.rotate-left", "image.rotate-right", "image.flip-horizontal", "image.flip-vertical"],
   ["image.crop"],
   ["image.redact"],
+  ["image.layers"],
   ["image.zoom-in", "image.zoom-out", "image.zoom-fit"],
   ["image.export"],
 ];

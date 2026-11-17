@@ -4,15 +4,15 @@ import type { ImageCrop, ImagePlan, ImageRedactionMode } from "../core/model/pla
 
 /**
  * The editor's own state, outside the session and its history
- * (docs/adr/0007): the active tool, a crop in progress, the redaction
- * that's selected, and a gesture's transient plan, which the stage renders
- * instead of the session's.
+ * (docs/adr/0007): the active tool, a crop in progress, the redaction or
+ * the layer that's selected, and a gesture's transient plan, which the
+ * stage renders instead of the session's.
  *
  * @public
  */
 export interface ImageEditorState {
   /** The tool that takes over the stage, such as `crop`, or `null`. */
-  readonly tool: "crop" | "redact" | null;
+  readonly tool: "crop" | "redact" | "layers" | null;
   /** The crop being made, in whole pixels of the oriented source, and its aspect. */
   readonly crop: { readonly pending: ImageCrop; readonly aspect: ImageAspect } | null;
   /**
@@ -24,6 +24,12 @@ export interface ImageEditorState {
     readonly mode: ImageRedactionMode;
     readonly colour: string;
   } | null;
+  /**
+   * While the layers are shown: the key of the selected layer, if any
+   * (docs/adr/0013). Selection is view state, outside the plan and its
+   * history.
+   */
+  readonly layers: { readonly selected: string | null } | null;
   /**
    * A gesture's plan while it runs: the session's plan with the gesture's
    * change, which isn't an edit until the gesture ends.
@@ -37,6 +43,7 @@ export const IDLE: ImageEditorState = Object.freeze({
   tool: null,
   crop: null,
   redact: null,
+  layers: null,
   preview: null,
   dialog: null,
 });

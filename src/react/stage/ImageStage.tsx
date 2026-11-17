@@ -10,6 +10,7 @@ import {
   useImageInternals,
   useImageView,
 } from "../hooks.js";
+import { LayersOverlay } from "../layers/LayersOverlay.js";
 import { RedactOverlay } from "../redact/RedactOverlay.js";
 import { StageNotices } from "./StageNotices.js";
 
@@ -104,7 +105,8 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   const cropping = editorState.tool === "crop";
   const redacting = editorState.tool === "redact";
   // Room around the image for the handles of a frame at its edge.
-  const inset = cropping || redacting ? CROP_INSET : 0;
+  const layering = editorState.tool === "layers";
+  const inset = cropping || redacting || layering ? CROP_INSET : 0;
   // What the stage shows: while cropping, the whole image under the plan's
   // other edits; during a gesture, its transient plan; otherwise the plan.
   const plan = useMemo(() => {
@@ -216,6 +218,22 @@ export function ImageStage(props: ImageStageProps): ReactNode {
       {redacting && plan && source && size ? (
         <div className="hm-image-stage-overlay">
           <RedactOverlay
+            plan={plan}
+            source={source}
+            view={{
+              width: size.width,
+              height: size.height,
+              pixelRatio: 1,
+              zoom: view.zoom,
+              pan: view.pan,
+              inset,
+            }}
+          />
+        </div>
+      ) : null}
+      {layering && plan && source && size ? (
+        <div className="hm-image-stage-overlay">
+          <LayersOverlay
             plan={plan}
             source={source}
             view={{

@@ -20,3 +20,4 @@ Use [`template.md`](template.md) for new records. Name files `NNNN-short-title.m
 | [0010](0010-redaction.md) | Redaction destroys pixels, and a test proves it | Accepted |
 | [0011](0011-gif-and-animation.md) | GIF: our own decoder, an animation in the plan, and export through a job worker | Accepted |
 | [0012](0012-interface-text-outside-the-server-safe-entry.md) | Interface text stays out of the server-safe entry | Accepted |
+| [0013](0013-layers-in-the-editor.md) | Layers in the editor: the list, the frames and their keys | Accepted |

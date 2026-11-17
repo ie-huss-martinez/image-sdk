@@ -121,6 +121,16 @@ const { blob } = await session.export({ type: "png" });
 
 A redaction costs memory while it exists: one more canvas the size of the image, checked against the file policy before it's allocated. If it can't be allocated, the preview keeps its last frame and the export fails; the image is never drawn without its redactions.
 
+## Layers
+
+The editor's Layers tool lists a plan's text, shape and image layers and lets people arrange them ([ADR 0013](docs/adr/0013-layers-in-the-editor.md)). Press `L` or the toolbar's Layers button.
+
+- **In the panel:** the layers, the top one first, each with a button that selects it and one that shows or hides it; buttons that move the selected layer up and down, duplicate it and delete it; and fields for its name, position, size, turn and opacity.
+- **On the image:** each layer has a frame. Press one to select the top layer under the pointer, drag it to move the layer, and drag a handle of the selected one to resize it.
+- **With the keyboard:** on a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it and `Delete` removes it. In the list, `Alt` (`Option` on macOS) with the Up or Down arrow moves the focused layer up or down the stack, and `Delete` removes it.
+
+The tools that add text, shapes and images come in a later release. Until then a layer comes from a plan, or from a command: `image.insertLayers`, or `session.insertImage(file)` for an image.
+
 ## Formats and browsers
 
 The engine reads PNG, JPEG, WebP, GIF, BMP and AVIF with the browser's decoder after checking headers and limits in its worker. Animated inputs open as a single first frame. HEIC is recognised, but decoding depends on the browser: all three pinned test engines reject it with `DECODE_FAILED`. SVG is unsupported. Export formats are PNG, JPEG and WebP; an unavailable encoder fails with `UNSUPPORTED_FORMAT`. Exports are sRGB; colours outside sRGB can be clipped.
