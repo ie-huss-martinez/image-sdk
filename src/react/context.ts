@@ -5,7 +5,6 @@ import { isImageError } from "../core/errors/image-error.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageSession } from "../core/session/session.js";
 import type { ImageEditorState } from "../features/editor-state.js";
-import { insertOnTop, newImageLayer } from "../features/layers/new-layer.js";
 import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
 import type { ImageViewState } from "./view-store.js";
 
@@ -23,8 +22,8 @@ export interface ImageContextValue {
 
 /**
  * Adds images as layers for the editor's controls (docs/adr/0013): one at a
- * time, placed in the middle of the image as it's shown, then selected with
- * the layers showing. A failure goes to the editor's state, which the stage
+ * time, placed by the session in the middle of the image as it's shown, then
+ * selected with the layers showing. A failure goes to the editor's state, which the stage
  * shows; a cancellation shows nothing.
  */
 export interface ImageInserter {
@@ -43,19 +42,15 @@ export function createInserter(
       controller?.abort();
       const current = new AbortController();
       controller = current;
-      let key: string | undefined;
       try {
-        await session.insertImage(file, {
-          signal: current.signal,
-          place: (image, plan) => {
-            const base = session.getSnapshot().source;
-            // The session checked that an image is open before it called.
-            const layer = newImageLayer(plan, base ?? image, image);
-            key = layer.key;
-            return insertOnTop(plan, layer);
-          },
-        });
-        const selected = key ?? null;
+        // The session places it: in the middle, fitted, and neither turned
+        // nor mirrored as it's seen.
+        const image = await session.insertImage(file, { signal: current.signal });
+        const layers = session.getSnapshot().plan?.layers ?? [];
+        const added = [...layers]
+          .reverse()
+          .find((layer) => layer.kind === "image" && layer.source === image.id);
+        const selected = added?.key ?? null;
         editor.set((state) => ({
           ...state,
           tool: "layers",

@@ -63,7 +63,7 @@ Positioned kinds (`text`, `shape`, `image`) have a **box**: `x`, `y`, `width` an
 
 **A box can be mirrored.** `flipX` mirrors the layer left to right about the box's own vertical axis, before the box is turned.
 
-- **Why a layer needs it.** The plan's flips mirror the whole scene, layers included, which is right when someone flips an image they've already annotated. But text added after a flip would read backwards, with nothing in the layer to undo it. With `flipX`, the editor adds a layer mirrored back as well as turned back, so it reads as it's meant to whatever the base's orientation ([ADR 0013](0013-layers-in-the-editor.md)). And an image layer can be mirrored for its own sake.
+- **Why a layer needs it.** The plan's flips mirror the whole scene, layers included, which is right when someone flips an image they've already annotated. But text added after a flip would read backwards, with nothing in the layer to undo it. With `flipX`, a new layer is mirrored back as well as turned back, so it reads as it's meant to whatever the base's orientation: by the editor's tools ([ADR 0013](0013-layers-in-the-editor.md)) and by the session's default placement for `insertImage`, from one calculation in the core. And an image layer can be mirrored for its own sake.
 - **One flip, not two.** A mirror top to bottom is `flipX` with a half turn. One field means one way to write each box.
 - **Required, like every other field.** An optional field would give two documents for one plan, absent and `false`, and `image.updateLayers`' inverse, which carries the previous value of each field it set, can't carry "absent".
 - **In format version 2,** which no release has shipped, so it costs no version.
