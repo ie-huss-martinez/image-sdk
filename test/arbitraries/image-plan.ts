@@ -130,6 +130,32 @@ const propsFor = (item: ImageRedaction) => {
   return fc.oneof(sameMode, withMode);
 };
 
+/** What every layer has. */
+const shared = (itemKey: string) => ({
+  key: fc.constant(itemKey),
+  name: fc.constantFrom("", "Caption", "Logo 2", "שכבה", "📷"),
+  visible: fc.boolean(),
+  opacity: fc.integer({ min: 0, max: 100 }),
+});
+/** One run: 1 to 6 points, from the drawing's origin. */
+const run = fc
+  .array(fc.tuple(fc.integer({ min: -30, max: 30 }), fc.integer({ min: -30, max: 30 })), {
+    minLength: 1,
+    maxLength: 6,
+  })
+  .map((points) => points.flat());
+/** One stroke: what one gesture drew, in one run or a few. */
+const drawnStroke = fc.record({
+  colour,
+  width: fc.integer({ min: 1, max: 40 }),
+  runs: fc.array(run, { minLength: 1, maxLength: 3 }),
+});
+/** Two points of the scene that differ: an arrow's ends. */
+const ends = fc
+  .tuple(position, position, position, position)
+  .filter(([ax, ay, bx, by]) => ax !== bx || ay !== by)
+  .map(([ax, ay, bx, by]) => ({ from: { x: ax, y: ay }, to: { x: bx, y: by } }));
+
 const box = {
   x: position,
   y: position,
@@ -166,7 +192,7 @@ const textOwn = {
 };
 const imageOwn = { source: fc.constant("s"), crop };
 
-/** A layer with the given key: text, a shape, or an image of source `s`. */
+/** A layer with the given key: text, a shape, an image of source `s`, a drawing or an arrow. */
 const layerWith = (itemKey: string): fc.Arbitrary<ImageLayer> =>
   fc.oneof(
     fc.record({ ...common(itemKey), kind: fc.constant("text" as const), ...textOwn }),
@@ -181,10 +207,48 @@ const layerWith = (itemKey: string): fc.Arbitrary<ImageLayer> =>
       )
       .map(([layer, painted]) => ({ ...layer, ...painted })),
     fc.record({ ...common(itemKey), kind: fc.constant("image" as const), ...imageOwn }),
+    fc.record({
+      ...shared(itemKey),
+      kind: fc.constant("drawing" as const),
+      x: position,
+      y: position,
+      strokes: fc.array(drawnStroke, { minLength: 1, maxLength: 3 }),
+    }),
+    fc
+      .tuple(
+        fc.record({
+          ...shared(itemKey),
+          kind: fc.constant("arrow" as const),
+          colour,
+          width: fc.integer({ min: 1, max: 40 }),
+        }),
+        ends,
+      )
+      .map(([layer, points]) => ({ ...layer, ...points })),
   );
 
 /** Some fields that apply to a layer: of every layer, of its box, or of its own kind. */
 const layerPropsFor = (item: ImageLayer): fc.Arbitrary<Record<string, unknown>> => {
+  const every = {
+    name: fc.constantFrom("", "Caption", "שכבה"),
+    visible: fc.boolean(),
+    opacity: fc.integer({ min: 0, max: 100 }),
+  };
+  // A drawing has an origin and no box; an arrow has two ends, set together so they differ.
+  if (item.kind === "drawing") {
+    return fc.record({ ...every, x: position, y: position }, { requiredKeys: [] });
+  }
+  if (item.kind === "arrow") {
+    return fc
+      .tuple(
+        fc.record(
+          { ...every, colour, width: fc.integer({ min: 1, max: 40 }) },
+          { requiredKeys: [] },
+        ),
+        fc.option(ends, { nil: undefined }),
+      )
+      .map(([a, b]) => ({ ...a, ...b }));
+  }
   const shared = fc.record(
     {
       name: fc.constantFrom("", "Caption", "שכבה"),
@@ -254,6 +318,31 @@ export function commandOn(state: ImagePlan): fc.Arbitrary<ImageCommand> {
         }),
       ),
     );
+  }
+  // Strokes added to a drawing, and removed from one that keeps at least one.
+  for (const layer of state.layers) {
+    if (layer.kind !== "drawing") continue;
+    onLayers.push(
+      fc.record({
+        type: fc.constant("image.addStrokes" as const),
+        key: fc.constant(layer.key),
+        strokes: fc.array(drawnStroke, { minLength: 1, maxLength: 2 }),
+      }),
+    );
+    if (layer.strokes.length > 1) {
+      onLayers.push(
+        fc
+          .shuffledSubarray(
+            layer.strokes.map((_, index) => index),
+            { minLength: 1, maxLength: layer.strokes.length - 1 },
+          )
+          .map((indexes) => ({
+            type: "image.removeStrokes" as const,
+            key: layer.key,
+            indexes,
+          })),
+      );
+    }
   }
   const insert = fresh.chain((names) =>
     fc.record({

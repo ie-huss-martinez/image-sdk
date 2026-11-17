@@ -1,11 +1,11 @@
-# `hm-image-plan` and `hm-image-command`, version 2
+# `hm-image-plan` and `hm-image-command`, version 3
 
 image-sdk's portable formats ([sdk-core ADR 0045](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0045-portable-formats-and-conformance-vectors.md)). A port in another language reads and writes them, and proves it applies commands as this SDK does by passing the vectors in [`conformance/`](../../conformance).
 
 | Format | Schema | What it holds |
 |---|---|---|
-| `hm-image-plan` 2 | [`formats/hm-image-plan/v2.schema.json`](../../formats/hm-image-plan/v2.schema.json) | A plan ([ADR 0003](../adr/0003-layer-plan-document-model.md), [ADR 0009](../adr/0009-scene-space-layers-and-plan-versions.md)), with the sources it uses |
-| `hm-image-command` 2 | [`formats/hm-image-command/v2.schema.json`](../../formats/hm-image-command/v2.schema.json) | One user-level edit command |
+| `hm-image-plan` 3 | [`formats/hm-image-plan/v3.schema.json`](../../formats/hm-image-plan/v3.schema.json) | A plan ([ADR 0003](../adr/0003-layer-plan-document-model.md), [ADR 0009](../adr/0009-scene-space-layers-and-plan-versions.md), [ADR 0014](../adr/0014-drawing-strokes-and-arrows.md)), with the sources it uses |
+| `hm-image-command` 3 | [`formats/hm-image-command/v3.schema.json`](../../formats/hm-image-command/v3.schema.json) | One user-level edit command |
 
 ## Versions
 
@@ -15,11 +15,14 @@ Each release that widens the plan is a new version, with a migration from the on
 |---|---|---|---|
 | 1 | 0.3.0 | The base, the output and the kept metadata | [plan](../../formats/hm-image-plan/v1.schema.json), [command](../../formats/hm-image-command/v1.schema.json) |
 | 2 | 0.4.0 | `layers`, with text, shape and image layers; `redactions`; `animation`, always `null`; and the layer and redaction commands | [plan](../../formats/hm-image-plan/v2.schema.json), [command](../../formats/hm-image-command/v2.schema.json) |
+| 3 | 0.5.0 | The `drawing` and `arrow` kinds of layer, and the stroke commands | [plan](../../formats/hm-image-plan/v3.schema.json), [command](../../formats/hm-image-command/v3.schema.json) |
 
-- **A reader accepts every version up to its own, and writes its own.** `readImagePlanDocument` reads versions 1 and 2, and `toImagePlanDocument` writes version 2.
+- **A reader accepts every version up to its own, and writes its own.** `readImagePlanDocument` reads versions 1, 2 and 3, and `toImagePlanDocument` writes version 3.
 - **A later version is refused as later, never as damaged:** `UNSUPPORTED_FORMAT` with `unknown-format-version`, which an application can show as "update the application".
 - **Version 1 to 2:** the document gains `layers: []`, `redactions: []` and `animation: null`, and nothing else changes. A version 1 document is checked as version 1 first, so one that already has those fields is refused, not migrated.
-- **Version 1's commands are valid in version 2, unchanged.**
+- **Version 2 to 3:** only the version changes. A version 2 document is read with version 2's kinds of layer, so one that holds a drawing or an arrow is refused as `unknown-layer-kind`, not read.
+- **Each version's commands are valid in the next, unchanged.**
+- **A reader of version 2 refuses a version 3 document as later,** whatever it holds. That's why a new kind is a new version: had version 2 grown a kind, an older reader would call the document damaged.
 
 ## Loading the schemas
 
@@ -27,8 +30,8 @@ The schemas ship with the package, under `@hussmartinez/image-sdk/formats/`, so 
 
 ```ts
 import { Ajv2020 } from "ajv/dist/2020.js";
-import planSchema from "@hussmartinez/image-sdk/formats/hm-image-plan/v2.schema.json" with { type: "json" };
-import commandSchema from "@hussmartinez/image-sdk/formats/hm-image-command/v2.schema.json" with { type: "json" };
+import planSchema from "@hussmartinez/image-sdk/formats/hm-image-plan/v3.schema.json" with { type: "json" };
+import commandSchema from "@hussmartinez/image-sdk/formats/hm-image-command/v3.schema.json" with { type: "json" };
 
 const ajv = new Ajv2020({ strict: true });
 // The command schema refers to the plan schema's definitions by its $id, so compile that first.
@@ -38,7 +41,7 @@ const isCommand = ajv.compile(commandSchema);
 if (!isPlan(JSON.parse(text))) console.error(isPlan.errors);
 ```
 
-In Node without a bundler, `createRequire(import.meta.url).resolve("@hussmartinez/image-sdk/formats/hm-image-plan/v2.schema.json")` gives the file's path. The vectors in `conformance/` stay in the repository: they're for ports and the SDK's own tests, not for hosts.
+In Node without a bundler, `createRequire(import.meta.url).resolve("@hussmartinez/image-sdk/formats/hm-image-plan/v3.schema.json")` gives the file's path. The vectors in `conformance/` stay in the repository: they're for ports and the SDK's own tests, not for hosts.
 
 ## `hm-image-plan`
 
@@ -89,7 +92,12 @@ In Node without a bundler, `createRequire(import.meta.url).resolve("@hussmartine
   | `shape` | `shape`, `rectangle` or `ellipse`; `fill`, a colour or `null`; `stroke`, `{ colour, width }` with a width from 1 to 1,024 pixels, or `null`. One of `fill` and `stroke` isn't `null`. The stroke is inside the box |
   | `image` | `source`, the id of a source the document lists; `crop`, in that source's pixels, or `null` for all of it. Drawn to fill the box |
 
-  Colours are `#rrggbb` in lower case.
+  | `drawing` | No box: `x` and `y`, its origin, and `strokes`, 1 to 1,024 of them in the order they're drawn. A stroke is `{ colour, width, runs }`: a width from 1 to 1,024 pixels, and 1 to 64 runs, each `[x0, y0, x1, y1, …]` of 1 to 2,000 points in whole pixels from the origin. A run is drawn as a polyline with round joins and ends; one of a single point is a dot. The drawing is composited as one, so strokes that cross don't darken each other |
+  | `arrow` | No box: `from` and `to`, each `{ x, y }` in scene pixels, which differ; `colour`; `width`, the shaft's, from 1 to 1,024 pixels. It's drawn as the polygon `arrowOutline` gives, filled |
+
+  Colours are `#rrggbb` in lower case. Text, shape and image layers have the box; a drawing and an arrow have their own geometry instead ([ADR 0014](../adr/0014-drawing-strokes-and-arrows.md)).
+- **A stroke is what one gesture drew.** It has more than one run only when it's long: `simplifyStroke` cuts a long stroke into runs that share their end points. The format doesn't require a run to start where the last ended.
+- **A drawing's points stay in the scene:** its origin plus each point is within 65,536 pixels of the scene's origin, when it's inserted, when strokes are added, and when it's moved.
 - **What text can hold.** A layer's `text` and `name` can't hold:
   - the C0 control characters other than a line feed, U+0000 to U+0009 and U+000B to U+001F, or U+007F. A carriage return is one of them: lines end with a line feed alone;
   - the bidirectional embedding, override and isolate controls, U+202A to U+202E and U+2066 to U+2069. They can make text read in another order than it's stored: "invoice" then U+202E then "fdp.exe" shows as "invoiceexe.pdf". A caption that's reviewed in one tool and shown in another must read the same in both.
@@ -117,7 +125,9 @@ The edits a user makes, as [ADR 0003](../adr/0003-layer-plan-document-model.md),
 | `image.insertLayers { at, layers }` | Inserts layers at an index: 0 is under every layer, the number of layers is over them all |
 | `image.removeLayers { keys }` | Removes layers |
 | `image.moveLayers { keys, to }` | Moves layers to an index of the list without them. They keep the order they had |
-| `image.updateLayers { updates: [{ key, props }] }` | Sets some fields of some layers: any field of the layer's kind except `key` and `kind` |
+| `image.updateLayers { updates: [{ key, props }] }` | Sets some fields of some layers: any field of the layer's kind except `key`, `kind` and a drawing's `strokes` |
+| `image.addStrokes { key, strokes }` | Appends strokes to a drawing: one for each gesture |
+| `image.removeStrokes { key, indexes }` | Removes strokes from a drawing, by index. A drawing keeps at least one: to remove the last, remove the layer |
 | `image.insertRedactions { at, redactions }` | Inserts redactions at an index, from 0 to the number there are |
 | `image.removeRedactions { keys }` | Removes redactions |
 | `image.moveRedactions { keys, to }` | Moves redactions to an index of the list without them. They keep the order they had in the list, whatever order `keys` names them in |
@@ -125,7 +135,7 @@ The edits a user makes, as [ADR 0003](../adr/0003-layer-plan-document-model.md),
 
 - **`keys`** lists at least one key, none twice.
 - **An update's `props`** may be empty. Setting `mode` to `pixelate` drops the colour, so `colour` can't be set with it, or on a redaction that's already pixelated. Setting `mode` to `solid` needs a `colour` in the same `props`.
-- **Inverses aren't part of the format.** Each command's inverse restores the plan exactly, and the vectors check that, but an inverse's shape is the reducer's own. Four commands exist only as inverses, `image.restoreLayers`, `image.setLayerOrder`, `image.restoreRedactions` and `image.setRedactionOrder`: the TypeScript reducer applies them, the schema doesn't include them, and a port needn't have them.
+- **Inverses aren't part of the format.** Each command's inverse restores the plan exactly, and the vectors check that, but an inverse's shape is the reducer's own. Five commands exist only as inverses, `image.restoreLayers`, `image.setLayerOrder`, `image.restoreStrokes`, `image.restoreRedactions` and `image.setRedactionOrder`: the TypeScript reducer applies them, the schema doesn't include them, and a port needn't have them.
 - **The reducer refuses unknown fields here too.**
 
 ## Rejections
@@ -142,15 +152,19 @@ A refusal is compared by its code and `details.reason`, never its message:
 |---|---|
 | `invalid-key` | A key that's empty, or over 64 code points |
 | `duplicate-key` | A new layer or redaction whose key the plan already uses, in either list; two new items, or two updates, with one key |
-| `invalid-index` | An index past the end of the list |
+| `invalid-index` | An index past the end of the list; a stroke index the drawing doesn't have, or one listed twice |
 | `unknown-layer` | A key no layer has |
-| `unknown-layer-kind` | A kind other than `text`, `shape` and `image` |
+| `unknown-layer-kind` | A kind other than `text`, `shape`, `image`, `drawing` and `arrow`; in a version 2 document, a `drawing` or an `arrow` too |
 | `invalid-box` | A box under 1 × 1, further than 65,536 pixels from the origin, or turned by other than 0 to 3599 |
 | `invalid-opacity` | An opacity that isn't from 0 to 100 |
 | `invalid-text` | Text or a name with a character it can't hold, as above |
 | `text-too-long` | Text over 1,000 code points, or a name over 100 |
 | `empty-shape` | A shape with neither a fill nor a stroke, new or after an update |
-| `wrong-kind` | An update that sets a field another kind of layer has, such as `fill` on a text layer |
+| `empty-drawing` | A drawing with no strokes, or a removal that would leave none |
+| `empty-arrow` | An arrow whose `from` and `to` are one point, new or after an update |
+| `invalid-points` | A run with an odd number of coordinates, or a point outside the scene's coordinates once its drawing's origin is added, when it's inserted, added to or moved |
+| `too-many-strokes` | Strokes added to a drawing that would then have more than 1,024. A host's limit on points is the session's `maxDrawingPoints`, with the `TOO_MANY_POINTS` code |
+| `wrong-kind` | An update that sets a field another kind of layer has, such as `fill` on a text layer or `width` on a drawing; a stroke command for a layer that isn't a drawing |
 | `unknown-redaction` | A key no redaction has |
 | `unknown-redaction-mode` | A mode other than `solid` and `pixelate` |
 | `invalid-region` | A region under 1 × 1, or further than 65,536 pixels from the scene's origin |
@@ -200,10 +214,14 @@ The TypeScript tests also check that the schemas agree with the readers. Every d
 | `sceneToLayerSource` | The transform from the scene to the pixels of an image layer's source, which a renderer uses to replace what a redaction covers |
 | `fitTextLines` | Where a text layer's lines go: the scale that fits the block in the box, and each line's left edge and baseline |
 | `isRightToLeft` | Whether text reads right to left: whether its first letter with a direction is from a right-to-left script |
+| `simplifyStroke` | A pointer's samples as one stroke's runs: repeats dropped, long input cut into runs of at most 2,000 points that share their ends, each simplified by Ramer–Douglas–Peucker with distance to the segment, compared as whole numbers ([ADR 0014](../adr/0014-drawing-strokes-and-arrows.md)) |
+| `arrowOutline` | An arrow's seven-point polygon, its tip exactly on `to` |
+| `drawingBounds`, `arrowBounds` | The smallest whole-pixel rectangle of the scene that holds what the layer draws |
+| `drawingPoints` | How many points a plan's drawings hold, which `maxDrawingPoints` limits |
 
 A transform is six numbers, `[a, b, c, d, e, f]`, as a canvas takes them: `x' = a·x + c·y + e` and `y' = b·x + d·y + f`.
 
-The results compare exactly, with no tolerance, except those of `layerToScene`, `sceneToOutput`, `layerToOutput`, `sceneToLayerSource` and `fitTextLines`, whose cases state a tolerance of 10⁻⁹: they're computed with sines, cosines and divisions, which differ between languages in their last bits (ADR 0045, section 3). A quarter turn is exact: its sine and cosine are 0, 1 and −1, never the nearest double to them. The others need only IEEE addition, multiplication and division, which give the same doubles in every language, and rounding.
+The results compare exactly, with no tolerance, except those of `layerToScene`, `sceneToOutput`, `layerToOutput`, `sceneToLayerSource`, `fitTextLines` and `arrowOutline`, whose cases state a tolerance of 10⁻⁹: they're computed with sines, cosines and divisions, which differ between languages in their last bits (ADR 0045, section 3). A quarter turn is exact: its sine and cosine are 0, 1 and −1, never the nearest double to them. The others need only IEEE addition, multiplication and division, which give the same doubles in every language, and rounding.
 
 **A region is rounded outward, and its blocks to the nearest pixel** ([ADR 0010](../adr/0010-redaction.md)). `redactionRectInOutput` takes `size`, the size being rendered, which needn't keep the composition's proportions: each axis has its own scale, `size.width / composition.width` and `size.height / composition.height`. The region's two edges on each axis go to the output with `floor` for the lower and `ceil` for the upper, so every output pixel the region touches is covered, then are clipped to the output. `redactionBlocksInOutput` maps every block boundary the same way, rounds the ones between blocks with `Math.round`, keeps them in order, and leaves out a block with no pixel. A port that rounds a region's edge inward shows a sliver of what's redacted, so these cases matter more than most.
 

@@ -8,7 +8,7 @@
       "name": "reads a document unchanged",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -139,7 +139,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -325,7 +325,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -445,7 +445,7 @@
       "name": "reads a plan with no redactions",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -558,7 +558,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -671,10 +671,1485 @@
       }
     },
     {
-      "name": "reads redactions keyed __proto__, constructor and toString",
+      "name": "reads version 2 as it is: only the version changes",
       "input": {
         "format": "hm-image-plan",
         "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "caption",
+            "kind": "text",
+            "name": "",
+            "visible": true,
+            "opacity": 100,
+            "x": 2,
+            "y": 20,
+            "width": 30,
+            "height": 8,
+            "rotation": 0,
+            "flipX": false,
+            "text": "Harbour\nat dusk 📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#ffffff",
+            "align": "center"
+          },
+          {
+            "key": "ring",
+            "kind": "shape",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "flipX": false,
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          },
+          {
+            "key": "inset",
+            "kind": "image",
+            "name": "",
+            "visible": false,
+            "opacity": 100,
+            "x": 25,
+            "y": 0,
+            "width": 12,
+            "height": 9,
+            "rotation": 3599,
+            "flipX": true,
+            "source": "t",
+            "crop": {
+              "x": 100,
+              "y": 100,
+              "width": 1200,
+              "height": 900
+            }
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "caption",
+            "name": "",
+            "visible": true,
+            "opacity": 100,
+            "x": 2,
+            "y": 20,
+            "width": 30,
+            "height": 8,
+            "rotation": 0,
+            "flipX": false,
+            "kind": "text",
+            "text": "Harbour\nat dusk 📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#ffffff",
+            "align": "center"
+          },
+          {
+            "key": "ring",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "flipX": false,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          },
+          {
+            "key": "inset",
+            "name": "",
+            "visible": false,
+            "opacity": 100,
+            "x": 25,
+            "y": 0,
+            "width": 12,
+            "height": 9,
+            "rotation": 3599,
+            "flipX": true,
+            "kind": "image",
+            "source": "t",
+            "crop": {
+              "x": 100,
+              "y": 100,
+              "width": 1200,
+              "height": 900
+            }
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "reads a drawing and an arrow",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "caption",
+            "kind": "text",
+            "name": "",
+            "visible": true,
+            "opacity": 100,
+            "x": 2,
+            "y": 20,
+            "width": 30,
+            "height": 8,
+            "rotation": 0,
+            "flipX": false,
+            "text": "Harbour\nat dusk 📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#ffffff",
+            "align": "center"
+          },
+          {
+            "key": "ring",
+            "kind": "shape",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "flipX": false,
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          },
+          {
+            "key": "inset",
+            "kind": "image",
+            "name": "",
+            "visible": false,
+            "opacity": 100,
+            "x": 25,
+            "y": 0,
+            "width": 12,
+            "height": 9,
+            "rotation": 3599,
+            "flipX": true,
+            "source": "t",
+            "crop": {
+              "x": 100,
+              "y": 100,
+              "width": 1200,
+              "height": 900
+            }
+          },
+          {
+            "key": "sketch",
+            "kind": "drawing",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "x": 10,
+            "y": 5,
+            "strokes": [
+              {
+                "colour": "#102030",
+                "width": 3,
+                "runs": [
+                  [
+                    0,
+                    0,
+                    4,
+                    3,
+                    9,
+                    3
+                  ]
+                ]
+              },
+              {
+                "colour": "#ff0000",
+                "width": 6,
+                "runs": [
+                  [
+                    2,
+                    2
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "key": "pointer",
+            "kind": "arrow",
+            "name": "Look",
+            "visible": true,
+            "opacity": 100,
+            "from": {
+              "x": 30,
+              "y": 25
+            },
+            "to": {
+              "x": 12,
+              "y": 8
+            },
+            "colour": "#ffcc00",
+            "width": 2
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "caption",
+            "name": "",
+            "visible": true,
+            "opacity": 100,
+            "x": 2,
+            "y": 20,
+            "width": 30,
+            "height": 8,
+            "rotation": 0,
+            "flipX": false,
+            "kind": "text",
+            "text": "Harbour\nat dusk 📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#ffffff",
+            "align": "center"
+          },
+          {
+            "key": "ring",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "flipX": false,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          },
+          {
+            "key": "inset",
+            "name": "",
+            "visible": false,
+            "opacity": 100,
+            "x": 25,
+            "y": 0,
+            "width": 12,
+            "height": 9,
+            "rotation": 3599,
+            "flipX": true,
+            "kind": "image",
+            "source": "t",
+            "crop": {
+              "x": 100,
+              "y": 100,
+              "width": 1200,
+              "height": 900
+            }
+          },
+          {
+            "key": "sketch",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "kind": "drawing",
+            "x": 10,
+            "y": 5,
+            "strokes": [
+              {
+                "colour": "#102030",
+                "width": 3,
+                "runs": [
+                  [
+                    0,
+                    0,
+                    4,
+                    3,
+                    9,
+                    3
+                  ]
+                ]
+              },
+              {
+                "colour": "#ff0000",
+                "width": 6,
+                "runs": [
+                  [
+                    2,
+                    2
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "key": "pointer",
+            "name": "Look",
+            "visible": true,
+            "opacity": 100,
+            "kind": "arrow",
+            "from": {
+              "x": 30,
+              "y": 25
+            },
+            "to": {
+              "x": 12,
+              "y": 8
+            },
+            "colour": "#ffcc00",
+            "width": 2
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "refuses a drawing in a version 2 document, which has none",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "sketch",
+            "kind": "drawing",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "x": 10,
+            "y": 5,
+            "strokes": [
+              {
+                "colour": "#102030",
+                "width": 3,
+                "runs": [
+                  [
+                    0,
+                    0,
+                    4,
+                    3,
+                    9,
+                    3
+                  ]
+                ]
+              },
+              {
+                "colour": "#ff0000",
+                "width": 6,
+                "runs": [
+                  [
+                    2,
+                    2
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "unknown-layer-kind"
+        }
+      }
+    },
+    {
+      "name": "refuses an arrow in a version 2 document, which has none",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "pointer",
+            "kind": "arrow",
+            "name": "Look",
+            "visible": true,
+            "opacity": 100,
+            "from": {
+              "x": 30,
+              "y": 25
+            },
+            "to": {
+              "x": 12,
+              "y": 8
+            },
+            "colour": "#ffcc00",
+            "width": 2
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "unknown-layer-kind"
+        }
+      }
+    },
+    {
+      "name": "refuses a drawing with no strokes",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "sketch",
+            "kind": "drawing",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "x": 10,
+            "y": 5,
+            "strokes": []
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "empty-drawing"
+        }
+      }
+    },
+    {
+      "name": "refuses an arrow whose ends are one point",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "pointer",
+            "kind": "arrow",
+            "name": "Look",
+            "visible": true,
+            "opacity": 100,
+            "from": {
+              "x": 30,
+              "y": 25
+            },
+            "to": {
+              "x": 30,
+              "y": 25
+            },
+            "colour": "#ffcc00",
+            "width": 2
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "empty-arrow"
+        }
+      }
+    },
+    {
+      "name": "refuses a run with an odd number of coordinates",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "sketch",
+            "kind": "drawing",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "x": 10,
+            "y": 5,
+            "strokes": [
+              {
+                "colour": "#000000",
+                "width": 1,
+                "runs": [
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "invalid-points"
+        }
+      }
+    },
+    {
+      "name": "refuses a point outside the scene, from its drawing's origin",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "sketch",
+            "kind": "drawing",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "x": 65000,
+            "y": 5,
+            "strokes": [
+              {
+                "colour": "#000000",
+                "width": 1,
+                "runs": [
+                  [
+                    0,
+                    0,
+                    600,
+                    0
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "invalid-points"
+        }
+      }
+    },
+    {
+      "name": "refuses a stroke with no runs",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "sketch",
+            "kind": "drawing",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "x": 10,
+            "y": 5,
+            "strokes": [
+              {
+                "colour": "#000000",
+                "width": 1,
+                "runs": []
+              }
+            ]
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a drawing with a box",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "sketch",
+            "kind": "drawing",
+            "name": "",
+            "visible": true,
+            "opacity": 80,
+            "x": 10,
+            "y": 5,
+            "strokes": [
+              {
+                "colour": "#102030",
+                "width": 3,
+                "runs": [
+                  [
+                    0,
+                    0,
+                    4,
+                    3,
+                    9,
+                    3
+                  ]
+                ]
+              },
+              {
+                "colour": "#ff0000",
+                "width": 6,
+                "runs": [
+                  [
+                    2,
+                    2
+                  ]
+                ]
+              }
+            ],
+            "width": 4,
+            "height": 4
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "reads redactions keyed __proto__, constructor and toString",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -812,7 +2287,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -953,7 +2428,7 @@
       "name": "refuses two redactions with one key",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -1093,7 +2568,7 @@
       "name": "refuses more redactions than the format holds",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -9416,7 +10891,7 @@
       "name": "refuses a redaction with a visibility",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -9549,7 +11024,7 @@
       "name": "refuses a blurred redaction",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -9680,7 +11155,7 @@
       "name": "refuses a redaction of no pixels",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -9811,7 +11286,7 @@
       "name": "refuses a colour that isn't #rrggbb",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -9943,7 +11418,7 @@
       "name": "refuses an empty key",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10074,7 +11549,7 @@
       "name": "reads a plan with no layers",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10147,7 +11622,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10223,7 +11698,7 @@
       "name": "refuses a layer and a redaction with one key",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10355,7 +11830,7 @@
       "name": "refuses a layer of an unknown kind",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10457,7 +11932,7 @@
       "name": "refuses a layer without every field of its kind",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10544,7 +12019,7 @@
       "name": "refuses an image layer whose source the document doesn't list",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10647,7 +12122,7 @@
       "name": "refuses an image layer's crop outside its own source",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10750,7 +12225,7 @@
       "name": "refuses text with a right-to-left override",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10851,7 +12326,7 @@
       "name": "refuses text of 1,001 code points",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -10952,7 +12427,7 @@
       "name": "refuses a shape with neither a fill nor a stroke",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -11051,7 +12526,7 @@
       "name": "refuses an opacity over 100",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -11153,7 +12628,7 @@
       "name": "refuses a layer without flipX",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -11254,7 +12729,7 @@
       "name": "refuses a layer whose flipX isn't a boolean",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -11356,7 +12831,7 @@
       "name": "reads a document whose layers are all mirrored",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -11487,7 +12962,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -11621,7 +13096,7 @@
       "name": "refuses a box turned by 3600",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -11723,7 +13198,7 @@
       "name": "refuses layers and redactions that are more than 1,024 together",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20022,7 +21497,7 @@
       "name": "refuses an animation, which arrives in a later version",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20165,7 +21640,7 @@
       "name": "reads a new plan: no crop, upright, neutral, unfiltered, full size",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20288,7 +21763,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20414,7 +21889,7 @@
       "name": "reads a box to fit",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20546,7 +22021,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20681,7 +22156,7 @@
       "name": "reads a source with its asset",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20817,7 +22292,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -20956,7 +22431,7 @@
       "name": "reads source ids named __proto__, constructor and toString",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "__proto__": {
             "width": 10,
@@ -21086,7 +22561,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "__proto__": {
             "width": 10,
@@ -21219,7 +22694,7 @@
       "name": "crops a source keyed toString within its own size",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "__proto__": {
             "width": 10,
@@ -21354,7 +22829,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "__proto__": {
             "width": 10,
@@ -21492,7 +22967,7 @@
       "name": "refuses a base whose source only Object.prototype has",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "__proto__": {
             "width": 10,
@@ -21631,7 +23106,7 @@
       "name": "refuses another format",
       "input": {
         "format": "hm-video-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -21771,7 +23246,7 @@
       "name": "refuses a later version",
       "input": {
         "format": "hm-image-plan",
-        "version": 3,
+        "version": 4,
         "sources": {
           "s": {
             "width": 40,
@@ -21912,7 +23387,7 @@
       "input": [
         {
           "format": "hm-image-plan",
-          "version": 2,
+          "version": 3,
           "sources": {
             "s": {
               "width": 40,
@@ -22193,7 +23668,7 @@
       "name": "refuses an unknown field",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -22334,7 +23809,7 @@
       "name": "refuses a missing field",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -22470,7 +23945,7 @@
       "name": "refuses a source of no pixels",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 0,
@@ -22606,7 +24081,7 @@
       "name": "refuses an asset that isn't a SHA-256",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -22747,7 +24222,7 @@
       "name": "refuses a media type in capitals",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -22888,7 +24363,7 @@
       "name": "refuses a base whose source isn't listed",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -23028,7 +24503,7 @@
       "name": "refuses a crop outside its source",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -23168,7 +24643,7 @@
       "name": "refuses an unknown base field",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -23309,7 +24784,7 @@
       "name": "refuses develop without every adjustment",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -23442,7 +24917,7 @@
       "name": "refuses a level over 100",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -23582,7 +25057,7 @@
       "name": "refuses a rotation of 45 degrees",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -23722,7 +25197,7 @@
       "name": "refuses an unknown preset",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -23862,7 +25337,7 @@
       "name": "refuses a strength over 100",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24002,7 +25477,7 @@
       "name": "refuses an unknown adjustment",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24143,7 +25618,7 @@
       "name": "refuses a scale over 1",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24283,7 +25758,7 @@
       "name": "refuses an unknown metadata field",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24424,7 +25899,7 @@
       "name": "refuses a kept field over 2,000 code points",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24564,7 +26039,7 @@
       "name": "reads 2,000 code points outside the BMP, which are 4,000 UTF-16 units",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24695,7 +26170,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24829,7 +26304,7 @@
       "name": "refuses 2,001 code points outside the BMP",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -24969,7 +26444,7 @@
       "name": "generated 1",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25016,7 +26491,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25066,7 +26541,7 @@
       "name": "generated 2",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25102,16 +26577,37 @@
             "key": "toString",
             "name": "Caption",
             "visible": true,
-            "opacity": 33,
-            "x": 34,
-            "y": 2,
-            "width": 19,
-            "height": 1,
-            "rotation": 1741,
+            "opacity": 95,
+            "x": -8,
+            "y": -2,
+            "width": 4,
+            "height": 47,
+            "rotation": 3365,
             "flipX": true,
             "kind": "image",
             "source": "s",
-            "crop": null
+            "crop": {
+              "x": 30,
+              "y": 1,
+              "width": 9,
+              "height": 23
+            }
+          },
+          {
+            "key": "f qt0p",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 54,
+            "x": 18,
+            "y": 41,
+            "width": 8,
+            "height": 18,
+            "rotation": 1332,
+            "flipX": true,
+            "kind": "shape",
+            "shape": "rectangle",
+            "fill": "#fffff5",
+            "stroke": null
           },
           {
             "key": "OhrUNV",
@@ -25138,47 +26634,27 @@
             "name": "Caption",
             "visible": true,
             "opacity": 2,
-            "x": 5,
-            "y": 0,
-            "width": 1,
-            "height": 48,
-            "rotation": 2171,
-            "flipX": false,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#000012",
-            "stroke": {
-              "colour": "#81c25c",
-              "width": 40
-            }
+            "kind": "arrow",
+            "from": {
+              "x": 3,
+              "y": 18
+            },
+            "to": {
+              "x": 1,
+              "y": -1
+            },
+            "colour": "#c2ec5b",
+            "width": 38
           }
         ],
-        "redactions": [
-          {
-            "key": "_|",
-            "mode": "solid",
-            "x": 60,
-            "y": -20,
-            "width": 2,
-            "height": 1,
-            "colour": "#b6a104"
-          },
-          {
-            "key": " qt",
-            "mode": "pixelate",
-            "x": 60,
-            "y": 5,
-            "width": 5,
-            "height": 2
-          }
-        ],
+        "redactions": [],
         "animation": null,
         "output": {
           "kind": "scale",
           "scale": 1
         },
         "metadata": {
-          "title": "",
+          "title": "_",
           "description": "",
           "artist": "",
           "copyright": ""
@@ -25186,7 +26662,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25222,16 +26698,37 @@
             "key": "toString",
             "name": "Caption",
             "visible": true,
-            "opacity": 33,
-            "x": 34,
-            "y": 2,
-            "width": 19,
-            "height": 1,
-            "rotation": 1741,
+            "opacity": 95,
+            "x": -8,
+            "y": -2,
+            "width": 4,
+            "height": 47,
+            "rotation": 3365,
             "flipX": true,
             "kind": "image",
             "source": "s",
-            "crop": null
+            "crop": {
+              "x": 30,
+              "y": 1,
+              "width": 9,
+              "height": 23
+            }
+          },
+          {
+            "key": "f qt0p",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 54,
+            "x": 18,
+            "y": 41,
+            "width": 8,
+            "height": 18,
+            "rotation": 1332,
+            "flipX": true,
+            "kind": "shape",
+            "shape": "rectangle",
+            "fill": "#fffff5",
+            "stroke": null
           },
           {
             "key": "OhrUNV",
@@ -25258,47 +26755,27 @@
             "name": "Caption",
             "visible": true,
             "opacity": 2,
-            "x": 5,
-            "y": 0,
-            "width": 1,
-            "height": 48,
-            "rotation": 2171,
-            "flipX": false,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#000012",
-            "stroke": {
-              "colour": "#81c25c",
-              "width": 40
-            }
+            "kind": "arrow",
+            "from": {
+              "x": 3,
+              "y": 18
+            },
+            "to": {
+              "x": 1,
+              "y": -1
+            },
+            "colour": "#c2ec5b",
+            "width": 38
           }
         ],
-        "redactions": [
-          {
-            "key": "_|",
-            "mode": "solid",
-            "x": 60,
-            "y": -20,
-            "width": 2,
-            "height": 1,
-            "colour": "#b6a104"
-          },
-          {
-            "key": " qt",
-            "mode": "pixelate",
-            "x": 60,
-            "y": 5,
-            "width": 5,
-            "height": 2
-          }
-        ],
+        "redactions": [],
         "animation": null,
         "output": {
           "kind": "scale",
           "scale": 1
         },
         "metadata": {
-          "title": "",
+          "title": "_",
           "description": "",
           "artist": "",
           "copyright": ""
@@ -25309,7 +26786,7 @@
       "name": "generated 3",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25342,266 +26819,186 @@
         },
         "layers": [
           {
-            "key": "(R",
+            "key": "Q`a(x6",
+            "name": "שכבה",
+            "visible": false,
+            "opacity": 52,
+            "kind": "drawing",
+            "x": -4,
+            "y": 55,
+            "strokes": [
+              {
+                "colour": "#dbddac",
+                "width": 34,
+                "runs": [
+                  [
+                    -20,
+                    0,
+                    24,
+                    19,
+                    20,
+                    16,
+                    27,
+                    -3,
+                    19,
+                    2
+                  ],
+                  [
+                    -16,
+                    -3,
+                    15,
+                    -25,
+                    -15,
+                    4,
+                    23,
+                    -12,
+                    -28,
+                    -18
+                  ]
+                ]
+              },
+              {
+                "colour": "#d1f7fd",
+                "width": 10,
+                "runs": [
+                  [
+                    -20,
+                    -22,
+                    5,
+                    12
+                  ],
+                  [
+                    -11,
+                    -10
+                  ]
+                ]
+              },
+              {
+                "colour": "#2d61ba",
+                "width": 14,
+                "runs": [
+                  [
+                    -12,
+                    28,
+                    12,
+                    11,
+                    -1,
+                    7,
+                    -16,
+                    22
+                  ]
+                ]
+              },
+              {
+                "colour": "#951da5",
+                "width": 32,
+                "runs": [
+                  [
+                    -2,
+                    24,
+                    -10,
+                    23
+                  ],
+                  [
+                    8,
+                    -8
+                  ]
+                ]
+              },
+              {
+                "colour": "#3db283",
+                "width": 3,
+                "runs": [
+                  [
+                    7,
+                    16,
+                    -13,
+                    9,
+                    -4,
+                    -21,
+                    30,
+                    -11
+                  ],
+                  [
+                    29,
+                    24,
+                    0,
+                    15,
+                    18,
+                    -10
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "key": "__proto__",
             "name": "Logo 2",
-            "visible": true,
-            "opacity": 13,
-            "x": 1,
-            "y": 25,
-            "width": 20,
-            "height": 33,
-            "rotation": 3163,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": null
+            "visible": false,
+            "opacity": 3,
+            "kind": "arrow",
+            "from": {
+              "x": 46,
+              "y": -14
+            },
+            "to": {
+              "x": 5,
+              "y": 55
+            },
+            "colour": "#bfeea2",
+            "width": 13
           },
           {
             "key": ":9(D2",
-            "name": "שכבה",
-            "visible": false,
-            "opacity": 97,
-            "x": -12,
-            "y": -20,
-            "width": 6,
-            "height": 48,
-            "rotation": 1698,
-            "flipX": false,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#fffff5",
-            "stroke": null
-          },
-          {
-            "key": "pmC+b(",
-            "name": "",
-            "visible": true,
-            "opacity": 74,
-            "x": 13,
-            "y": 2,
-            "width": 2,
-            "height": 4,
-            "rotation": 11,
-            "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": null
-          }
-        ],
-        "redactions": [
-          {
-            "key": "yEP@",
-            "mode": "pixelate",
-            "x": 2,
-            "y": 13,
-            "width": 23,
-            "height": 5
-          },
-          {
-            "key": "! ",
-            "mode": "pixelate",
-            "x": 2,
-            "y": 0,
-            "width": 33,
-            "height": 15
-          }
-        ],
-        "animation": null,
-        "output": {
-          "kind": "scale",
-          "scale": 1
-        },
-        "metadata": {
-          "title": "",
-          "description": "",
-          "artist": "",
-          "copyright": ""
-        }
-      },
-      "expected": {
-        "format": "hm-image-plan",
-        "version": 2,
-        "sources": {
-          "s": {
-            "width": 40,
-            "height": 30
-          },
-          "t": {
-            "width": 4000,
-            "height": 3000
-          }
-        },
-        "base": {
-          "source": "s",
-          "crop": null,
-          "orientation": {
-            "rotate": 0,
-            "flipX": false,
-            "flipY": false
-          },
-          "develop": {
-            "temperature": 0,
-            "tint": 0,
-            "exposure": 0,
-            "highlights": 0,
-            "shadows": 0,
-            "contrast": 0,
-            "saturation": 0,
-            "vibrance": 0
-          },
-          "filter": null
-        },
-        "layers": [
-          {
-            "key": "(R",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 13,
-            "x": 1,
-            "y": 25,
-            "width": 20,
-            "height": 33,
-            "rotation": 3163,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": null
-          },
-          {
-            "key": ":9(D2",
-            "name": "שכבה",
-            "visible": false,
-            "opacity": 97,
-            "x": -12,
-            "y": -20,
-            "width": 6,
-            "height": 48,
-            "rotation": 1698,
-            "flipX": false,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#fffff5",
-            "stroke": null
-          },
-          {
-            "key": "pmC+b(",
-            "name": "",
-            "visible": true,
-            "opacity": 74,
-            "x": 13,
-            "y": 2,
-            "width": 2,
-            "height": 4,
-            "rotation": 11,
-            "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": null
-          }
-        ],
-        "redactions": [
-          {
-            "key": "yEP@",
-            "mode": "pixelate",
-            "x": 2,
-            "y": 13,
-            "width": 23,
-            "height": 5
-          },
-          {
-            "key": "! ",
-            "mode": "pixelate",
-            "x": 2,
-            "y": 0,
-            "width": 33,
-            "height": 15
-          }
-        ],
-        "animation": null,
-        "output": {
-          "kind": "scale",
-          "scale": 1
-        },
-        "metadata": {
-          "title": "",
-          "description": "",
-          "artist": "",
-          "copyright": ""
-        }
-      }
-    },
-    {
-      "name": "generated 4",
-      "input": {
-        "format": "hm-image-plan",
-        "version": 2,
-        "sources": {
-          "s": {
-            "width": 40,
-            "height": 30
-          },
-          "t": {
-            "width": 4000,
-            "height": 3000
-          }
-        },
-        "base": {
-          "source": "s",
-          "crop": null,
-          "orientation": {
-            "rotate": 0,
-            "flipX": false,
-            "flipY": false
-          },
-          "develop": {
-            "temperature": 0,
-            "tint": 0,
-            "exposure": 0,
-            "highlights": 0,
-            "shadows": 0,
-            "contrast": 0,
-            "saturation": 0,
-            "vibrance": 0
-          },
-          "filter": null
-        },
-        "layers": [
-          {
-            "key": "qo_",
-            "name": "",
-            "visible": true,
-            "opacity": 6,
-            "x": 2,
-            "y": -20,
-            "width": 31,
-            "height": 47,
-            "rotation": 16,
-            "flipX": true,
-            "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#000009",
-            "stroke": {
-              "colour": "#b24366",
-              "width": 24
-            }
-          },
-          {
-            "key": "Dr-q",
             "name": "",
             "visible": false,
-            "opacity": 26,
-            "x": 49,
-            "y": 42,
-            "width": 49,
-            "height": 11,
-            "rotation": 4,
-            "flipX": true,
-            "kind": "text",
-            "text": "\naZ",
-            "font": "sans-serif",
-            "bold": false,
-            "colour": "#eb9464",
-            "align": "center"
+            "opacity": 50,
+            "kind": "arrow",
+            "from": {
+              "x": -16,
+              "y": 38
+            },
+            "to": {
+              "x": -16,
+              "y": 40
+            },
+            "colour": "#adacd3",
+            "width": 2
+          },
+          {
+            "key": "mC+",
+            "name": "",
+            "visible": false,
+            "opacity": 99,
+            "kind": "drawing",
+            "x": 30,
+            "y": 34,
+            "strokes": [
+              {
+                "colour": "#6a7d1c",
+                "width": 40,
+                "runs": [
+                  [
+                    -13,
+                    11,
+                    5,
+                    -14,
+                    24,
+                    24
+                  ],
+                  [
+                    0,
+                    -19
+                  ],
+                  [
+                    -15,
+                    16,
+                    25,
+                    -6
+                  ]
+                ]
+              }
+            ]
           }
         ],
         "redactions": [],
@@ -25619,7 +27016,240 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "layers": [
+          {
+            "key": "Q`a(x6",
+            "name": "שכבה",
+            "visible": false,
+            "opacity": 52,
+            "kind": "drawing",
+            "x": -4,
+            "y": 55,
+            "strokes": [
+              {
+                "colour": "#dbddac",
+                "width": 34,
+                "runs": [
+                  [
+                    -20,
+                    0,
+                    24,
+                    19,
+                    20,
+                    16,
+                    27,
+                    -3,
+                    19,
+                    2
+                  ],
+                  [
+                    -16,
+                    -3,
+                    15,
+                    -25,
+                    -15,
+                    4,
+                    23,
+                    -12,
+                    -28,
+                    -18
+                  ]
+                ]
+              },
+              {
+                "colour": "#d1f7fd",
+                "width": 10,
+                "runs": [
+                  [
+                    -20,
+                    -22,
+                    5,
+                    12
+                  ],
+                  [
+                    -11,
+                    -10
+                  ]
+                ]
+              },
+              {
+                "colour": "#2d61ba",
+                "width": 14,
+                "runs": [
+                  [
+                    -12,
+                    28,
+                    12,
+                    11,
+                    -1,
+                    7,
+                    -16,
+                    22
+                  ]
+                ]
+              },
+              {
+                "colour": "#951da5",
+                "width": 32,
+                "runs": [
+                  [
+                    -2,
+                    24,
+                    -10,
+                    23
+                  ],
+                  [
+                    8,
+                    -8
+                  ]
+                ]
+              },
+              {
+                "colour": "#3db283",
+                "width": 3,
+                "runs": [
+                  [
+                    7,
+                    16,
+                    -13,
+                    9,
+                    -4,
+                    -21,
+                    30,
+                    -11
+                  ],
+                  [
+                    29,
+                    24,
+                    0,
+                    15,
+                    18,
+                    -10
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "key": "__proto__",
+            "name": "Logo 2",
+            "visible": false,
+            "opacity": 3,
+            "kind": "arrow",
+            "from": {
+              "x": 46,
+              "y": -14
+            },
+            "to": {
+              "x": 5,
+              "y": 55
+            },
+            "colour": "#bfeea2",
+            "width": 13
+          },
+          {
+            "key": ":9(D2",
+            "name": "",
+            "visible": false,
+            "opacity": 50,
+            "kind": "arrow",
+            "from": {
+              "x": -16,
+              "y": 38
+            },
+            "to": {
+              "x": -16,
+              "y": 40
+            },
+            "colour": "#adacd3",
+            "width": 2
+          },
+          {
+            "key": "mC+",
+            "name": "",
+            "visible": false,
+            "opacity": 99,
+            "kind": "drawing",
+            "x": 30,
+            "y": 34,
+            "strokes": [
+              {
+                "colour": "#6a7d1c",
+                "width": 40,
+                "runs": [
+                  [
+                    -13,
+                    11,
+                    5,
+                    -14,
+                    24,
+                    24
+                  ],
+                  [
+                    0,
+                    -19
+                  ],
+                  [
+                    -15,
+                    16,
+                    25,
+                    -6
+                  ]
+                ]
+              }
+            ]
+          }
+        ],
+        "redactions": [],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      }
+    },
+    {
+      "name": "generated 4",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25656,37 +27286,402 @@
             "name": "",
             "visible": true,
             "opacity": 6,
+            "kind": "drawing",
             "x": 2,
             "y": -20,
-            "width": 31,
-            "height": 47,
-            "rotation": 16,
-            "flipX": true,
-            "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#000009",
-            "stroke": {
-              "colour": "#b24366",
-              "width": 24
-            }
+            "strokes": [
+              {
+                "colour": "#fe0434",
+                "width": 18,
+                "runs": [
+                  [
+                    -9,
+                    2,
+                    15,
+                    -25,
+                    -18,
+                    -23,
+                    5,
+                    22,
+                    -7,
+                    -6,
+                    2,
+                    -10
+                  ],
+                  [
+                    12,
+                    15,
+                    -9,
+                    -14,
+                    -10,
+                    9,
+                    10,
+                    -30
+                  ],
+                  [
+                    19,
+                    -8,
+                    -1,
+                    12,
+                    17,
+                    29,
+                    -12,
+                    -28,
+                    26,
+                    18,
+                    25,
+                    6
+                  ]
+                ]
+              },
+              {
+                "colour": "#73523b",
+                "width": 25,
+                "runs": [
+                  [
+                    -21,
+                    28
+                  ]
+                ]
+              },
+              {
+                "colour": "#eb8283",
+                "width": 21,
+                "runs": [
+                  [
+                    -13,
+                    -7,
+                    9,
+                    -24,
+                    -12,
+                    13,
+                    -1,
+                    -26,
+                    -10,
+                    11,
+                    -9,
+                    -12
+                  ],
+                  [
+                    12,
+                    -10,
+                    19,
+                    28,
+                    19,
+                    -27,
+                    3,
+                    0,
+                    -23,
+                    7,
+                    -7,
+                    10
+                  ],
+                  [
+                    10,
+                    -27,
+                    -25,
+                    -13,
+                    12,
+                    -10
+                  ]
+                ]
+              }
+            ]
           },
           {
             "key": "Dr-q",
-            "name": "",
+            "name": "📷",
+            "visible": true,
+            "opacity": 96,
+            "kind": "arrow",
+            "from": {
+              "x": 39,
+              "y": 55
+            },
+            "to": {
+              "x": 8,
+              "y": -4
+            },
+            "colour": "#000017",
+            "width": 33
+          },
+          {
+            "key": "A",
+            "name": "Logo 2",
             "visible": false,
-            "opacity": 26,
-            "x": 49,
-            "y": 42,
-            "width": 49,
-            "height": 11,
-            "rotation": 4,
-            "flipX": true,
+            "opacity": 94,
+            "x": 4,
+            "y": 34,
+            "width": 4,
+            "height": 5,
+            "rotation": 7,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 19,
+              "y": 9,
+              "width": 17,
+              "height": 4
+            }
+          },
+          {
+            "key": ".kK_",
+            "name": "📷",
+            "visible": true,
+            "opacity": 48,
+            "x": 55,
+            "y": 21,
+            "width": 22,
+            "height": 5,
+            "rotation": 2422,
+            "flipX": false,
             "kind": "text",
-            "text": "\naZ",
+            "text": "aZ",
             "font": "sans-serif",
-            "bold": false,
-            "colour": "#eb9464",
-            "align": "center"
+            "bold": true,
+            "colour": "#f25e1c",
+            "align": "end"
+          },
+          {
+            "key": "EW",
+            "name": "Caption",
+            "visible": false,
+            "opacity": 75,
+            "x": 16,
+            "y": -1,
+            "width": 28,
+            "height": 1,
+            "rotation": 8,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
+          }
+        ],
+        "redactions": [],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 1
+        },
+        "metadata": {
+          "title": "",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 3,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": null,
+          "orientation": {
+            "rotate": 0,
+            "flipX": false,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 0,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": 0,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": null
+        },
+        "layers": [
+          {
+            "key": "qo_",
+            "name": "",
+            "visible": true,
+            "opacity": 6,
+            "kind": "drawing",
+            "x": 2,
+            "y": -20,
+            "strokes": [
+              {
+                "colour": "#fe0434",
+                "width": 18,
+                "runs": [
+                  [
+                    -9,
+                    2,
+                    15,
+                    -25,
+                    -18,
+                    -23,
+                    5,
+                    22,
+                    -7,
+                    -6,
+                    2,
+                    -10
+                  ],
+                  [
+                    12,
+                    15,
+                    -9,
+                    -14,
+                    -10,
+                    9,
+                    10,
+                    -30
+                  ],
+                  [
+                    19,
+                    -8,
+                    -1,
+                    12,
+                    17,
+                    29,
+                    -12,
+                    -28,
+                    26,
+                    18,
+                    25,
+                    6
+                  ]
+                ]
+              },
+              {
+                "colour": "#73523b",
+                "width": 25,
+                "runs": [
+                  [
+                    -21,
+                    28
+                  ]
+                ]
+              },
+              {
+                "colour": "#eb8283",
+                "width": 21,
+                "runs": [
+                  [
+                    -13,
+                    -7,
+                    9,
+                    -24,
+                    -12,
+                    13,
+                    -1,
+                    -26,
+                    -10,
+                    11,
+                    -9,
+                    -12
+                  ],
+                  [
+                    12,
+                    -10,
+                    19,
+                    28,
+                    19,
+                    -27,
+                    3,
+                    0,
+                    -23,
+                    7,
+                    -7,
+                    10
+                  ],
+                  [
+                    10,
+                    -27,
+                    -25,
+                    -13,
+                    12,
+                    -10
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "key": "Dr-q",
+            "name": "📷",
+            "visible": true,
+            "opacity": 96,
+            "kind": "arrow",
+            "from": {
+              "x": 39,
+              "y": 55
+            },
+            "to": {
+              "x": 8,
+              "y": -4
+            },
+            "colour": "#000017",
+            "width": 33
+          },
+          {
+            "key": "A",
+            "name": "Logo 2",
+            "visible": false,
+            "opacity": 94,
+            "x": 4,
+            "y": 34,
+            "width": 4,
+            "height": 5,
+            "rotation": 7,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 19,
+              "y": 9,
+              "width": 17,
+              "height": 4
+            }
+          },
+          {
+            "key": ".kK_",
+            "name": "📷",
+            "visible": true,
+            "opacity": 48,
+            "x": 55,
+            "y": 21,
+            "width": 22,
+            "height": 5,
+            "rotation": 2422,
+            "flipX": false,
+            "kind": "text",
+            "text": "aZ",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#f25e1c",
+            "align": "end"
+          },
+          {
+            "key": "EW",
+            "name": "Caption",
+            "visible": false,
+            "opacity": 75,
+            "x": 16,
+            "y": -1,
+            "width": 28,
+            "height": 1,
+            "rotation": 8,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           }
         ],
         "redactions": [],
@@ -25707,7 +27702,7 @@
       "name": "generated 5",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25763,7 +27758,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25822,7 +27817,7 @@
       "name": "generated 6",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25869,7 +27864,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -25919,7 +27914,7 @@
       "name": "generated 7",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26010,7 +28005,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26104,7 +28099,7 @@
       "name": "generated 8",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26119,8 +28114,8 @@
           "source": "s",
           "crop": null,
           "orientation": {
-            "rotate": 180,
-            "flipX": true,
+            "rotate": 0,
+            "flipX": false,
             "flipY": false
           },
           "develop": {
@@ -26141,42 +28136,84 @@
             "name": "Logo 2",
             "visible": false,
             "opacity": 53,
+            "kind": "drawing",
             "x": 3,
             "y": 5,
-            "width": 46,
-            "height": 4,
-            "rotation": 9,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": {
-              "x": 1,
-              "y": 25,
-              "width": 29,
-              "height": 3
-            }
-          },
-          {
-            "key": "__proto__",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 26,
-            "x": -17,
-            "y": 57,
-            "width": 46,
-            "height": 6,
-            "rotation": 9,
-            "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": null
+            "strokes": [
+              {
+                "colour": "#000015",
+                "width": 4,
+                "runs": [
+                  [
+                    28,
+                    23,
+                    -26,
+                    -26,
+                    17,
+                    2,
+                    -7,
+                    -11,
+                    21,
+                    23
+                  ],
+                  [
+                    4,
+                    -21,
+                    -11,
+                    29,
+                    0,
+                    13,
+                    -3,
+                    -14,
+                    -19,
+                    18,
+                    29,
+                    0
+                  ]
+                ]
+              },
+              {
+                "colour": "#000010",
+                "width": 16,
+                "runs": [
+                  [
+                    -1,
+                    2
+                  ],
+                  [
+                    -23,
+                    18,
+                    -20,
+                    -4
+                  ]
+                ]
+              }
+            ]
           }
         ],
-        "redactions": [],
+        "redactions": [
+          {
+            "key": "\\)HW9n",
+            "mode": "pixelate",
+            "x": -1,
+            "y": 25,
+            "width": 38,
+            "height": 46
+          },
+          {
+            "key": "?Hv",
+            "mode": "solid",
+            "x": -19,
+            "y": -16,
+            "width": 47,
+            "height": 15,
+            "colour": "#000004"
+          }
+        ],
         "animation": null,
         "output": {
           "kind": "scale",
-          "scale": 1
+          "scale": 0.02767125099975299
         },
         "metadata": {
           "title": "",
@@ -26187,7 +28224,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26202,8 +28239,8 @@
           "source": "s",
           "crop": null,
           "orientation": {
-            "rotate": 180,
-            "flipX": true,
+            "rotate": 0,
+            "flipX": false,
             "flipY": false
           },
           "develop": {
@@ -26224,42 +28261,84 @@
             "name": "Logo 2",
             "visible": false,
             "opacity": 53,
+            "kind": "drawing",
             "x": 3,
             "y": 5,
-            "width": 46,
-            "height": 4,
-            "rotation": 9,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": {
-              "x": 1,
-              "y": 25,
-              "width": 29,
-              "height": 3
-            }
-          },
-          {
-            "key": "__proto__",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 26,
-            "x": -17,
-            "y": 57,
-            "width": 46,
-            "height": 6,
-            "rotation": 9,
-            "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": null
+            "strokes": [
+              {
+                "colour": "#000015",
+                "width": 4,
+                "runs": [
+                  [
+                    28,
+                    23,
+                    -26,
+                    -26,
+                    17,
+                    2,
+                    -7,
+                    -11,
+                    21,
+                    23
+                  ],
+                  [
+                    4,
+                    -21,
+                    -11,
+                    29,
+                    0,
+                    13,
+                    -3,
+                    -14,
+                    -19,
+                    18,
+                    29,
+                    0
+                  ]
+                ]
+              },
+              {
+                "colour": "#000010",
+                "width": 16,
+                "runs": [
+                  [
+                    -1,
+                    2
+                  ],
+                  [
+                    -23,
+                    18,
+                    -20,
+                    -4
+                  ]
+                ]
+              }
+            ]
           }
         ],
-        "redactions": [],
+        "redactions": [
+          {
+            "key": "\\)HW9n",
+            "mode": "pixelate",
+            "x": -1,
+            "y": 25,
+            "width": 38,
+            "height": 46
+          },
+          {
+            "key": "?Hv",
+            "mode": "solid",
+            "x": -19,
+            "y": -16,
+            "width": 47,
+            "height": 15,
+            "colour": "#000004"
+          }
+        ],
         "animation": null,
         "output": {
           "kind": "scale",
-          "scale": 1
+          "scale": 0.02767125099975299
         },
         "metadata": {
           "title": "",
@@ -26273,7 +28352,7 @@
       "name": "generated 9",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26346,7 +28425,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26422,7 +28501,7 @@
       "name": "generated 10",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26469,7 +28548,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26519,7 +28598,7 @@
       "name": "generated 11",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26552,41 +28631,78 @@
         },
         "layers": [
           {
-            "key": "H-2",
-            "name": "Logo 2",
-            "visible": false,
-            "opacity": 75,
-            "x": 2,
-            "y": 59,
-            "width": 3,
-            "height": 5,
-            "rotation": 2304,
+            "key": "__proto__",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 3,
+            "x": 55,
+            "y": 2,
+            "width": 16,
+            "height": 25,
+            "rotation": 2941,
             "flipX": true,
             "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#a6f389",
+            "shape": "ellipse",
+            "fill": "#000016",
             "stroke": {
-              "colour": "#3b68f4",
-              "width": 2
+              "colour": "#bb7b93",
+              "width": 3
             }
           },
           {
-            "key": "%",
+            "key": "-",
             "name": "Caption",
             "visible": true,
-            "opacity": 36,
-            "x": -20,
-            "y": -10,
-            "width": 21,
-            "height": 18,
-            "rotation": 992,
-            "flipX": false,
+            "opacity": 92,
+            "x": 1,
+            "y": 18,
+            "width": 1,
+            "height": 13,
+            "rotation": 1034,
+            "flipX": true,
             "kind": "text",
-            "text": "📷a📷中中",
-            "font": "sans-serif",
-            "bold": true,
-            "colour": "#618465",
+            "text": "Z📷é",
+            "font": "monospace",
+            "bold": false,
+            "colour": "#bb1a49",
             "align": "start"
+          },
+          {
+            "key": "y(",
+            "name": "📷",
+            "visible": true,
+            "opacity": 5,
+            "x": 2,
+            "y": 59,
+            "width": 46,
+            "height": 42,
+            "rotation": 2936,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 19,
+              "y": 26,
+              "width": 19,
+              "height": 2
+            }
+          },
+          {
+            "key": "toString",
+            "name": "📷",
+            "visible": false,
+            "opacity": 3,
+            "kind": "arrow",
+            "from": {
+              "x": -4,
+              "y": 60
+            },
+            "to": {
+              "x": -8,
+              "y": 1
+            },
+            "colour": "#fc15b8",
+            "width": 2
           }
         ],
         "redactions": [],
@@ -26604,7 +28720,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26637,41 +28753,78 @@
         },
         "layers": [
           {
-            "key": "H-2",
-            "name": "Logo 2",
-            "visible": false,
-            "opacity": 75,
-            "x": 2,
-            "y": 59,
-            "width": 3,
-            "height": 5,
-            "rotation": 2304,
+            "key": "__proto__",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 3,
+            "x": 55,
+            "y": 2,
+            "width": 16,
+            "height": 25,
+            "rotation": 2941,
             "flipX": true,
             "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#a6f389",
+            "shape": "ellipse",
+            "fill": "#000016",
             "stroke": {
-              "colour": "#3b68f4",
-              "width": 2
+              "colour": "#bb7b93",
+              "width": 3
             }
           },
           {
-            "key": "%",
+            "key": "-",
             "name": "Caption",
             "visible": true,
-            "opacity": 36,
-            "x": -20,
-            "y": -10,
-            "width": 21,
-            "height": 18,
-            "rotation": 992,
-            "flipX": false,
+            "opacity": 92,
+            "x": 1,
+            "y": 18,
+            "width": 1,
+            "height": 13,
+            "rotation": 1034,
+            "flipX": true,
             "kind": "text",
-            "text": "📷a📷中中",
-            "font": "sans-serif",
-            "bold": true,
-            "colour": "#618465",
+            "text": "Z📷é",
+            "font": "monospace",
+            "bold": false,
+            "colour": "#bb1a49",
             "align": "start"
+          },
+          {
+            "key": "y(",
+            "name": "📷",
+            "visible": true,
+            "opacity": 5,
+            "x": 2,
+            "y": 59,
+            "width": 46,
+            "height": 42,
+            "rotation": 2936,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 19,
+              "y": 26,
+              "width": 19,
+              "height": 2
+            }
+          },
+          {
+            "key": "toString",
+            "name": "📷",
+            "visible": false,
+            "opacity": 3,
+            "kind": "arrow",
+            "from": {
+              "x": -4,
+              "y": 60
+            },
+            "to": {
+              "x": -8,
+              "y": 1
+            },
+            "colour": "#fc15b8",
+            "width": 2
           }
         ],
         "redactions": [],
@@ -26692,7 +28845,7 @@
       "name": "generated 12",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26738,24 +28891,12 @@
             "height": 50,
             "rotation": 849,
             "flipX": true,
-            "kind": "text",
-            "text": " שéa📷aé ש",
-            "font": "sans-serif",
-            "bold": true,
-            "colour": "#000005",
-            "align": "start"
+            "kind": "image",
+            "source": "s",
+            "crop": null
           }
         ],
         "redactions": [
-          {
-            "key": "toString",
-            "mode": "solid",
-            "x": 38,
-            "y": -9,
-            "width": 5,
-            "height": 42,
-            "colour": "#000010"
-          },
           {
             "key": "constructor",
             "mode": "pixelate",
@@ -26779,7 +28920,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26825,24 +28966,12 @@
             "height": 50,
             "rotation": 849,
             "flipX": true,
-            "kind": "text",
-            "text": " שéa📷aé ש",
-            "font": "sans-serif",
-            "bold": true,
-            "colour": "#000005",
-            "align": "start"
+            "kind": "image",
+            "source": "s",
+            "crop": null
           }
         ],
         "redactions": [
-          {
-            "key": "toString",
-            "mode": "solid",
-            "x": 38,
-            "y": -9,
-            "width": 5,
-            "height": 42,
-            "colour": "#000010"
-          },
           {
             "key": "constructor",
             "mode": "pixelate",
@@ -26869,7 +28998,7 @@
       "name": "generated 13",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -26917,100 +29046,94 @@
             "height": 15,
             "rotation": 1737,
             "flipX": true,
-            "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#adae18",
-            "stroke": null
-          },
-          {
-            "key": "<kC#8",
-            "name": "Caption",
-            "visible": false,
-            "opacity": 0,
-            "x": 40,
-            "y": 58,
-            "width": 6,
-            "height": 31,
-            "rotation": 988,
-            "flipX": false,
-            "kind": "text",
-            "text": "שZ中Zשש📷📷ש📷",
-            "font": "sans-serif",
-            "bold": true,
-            "colour": "#693a17",
-            "align": "center"
-          },
-          {
-            "key": ":",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 15,
-            "x": -10,
-            "y": -14,
-            "width": 47,
-            "height": 30,
-            "rotation": 1653,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": {
-              "x": 34,
-              "y": 12,
-              "width": 5,
-              "height": 1
-            }
-          },
-          {
-            "key": "pJ",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 6,
-            "x": 2,
-            "y": 23,
-            "width": 44,
-            "height": 4,
-            "rotation": 10,
-            "flipX": true,
             "kind": "image",
             "source": "s",
             "crop": null
           },
           {
             "key": "^.",
-            "name": "📷",
+            "name": "Logo 2",
             "visible": false,
-            "opacity": 11,
-            "x": 34,
-            "y": 3,
-            "width": 4,
-            "height": 27,
-            "rotation": 7,
-            "flipX": true,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#547b35",
-            "stroke": {
-              "colour": "#7fdc0f",
-              "width": 3
-            }
+            "opacity": 75,
+            "kind": "drawing",
+            "x": -13,
+            "y": -18,
+            "strokes": [
+              {
+                "colour": "#b5dcdb",
+                "width": 10,
+                "runs": [
+                  [
+                    -15,
+                    -11
+                  ]
+                ]
+              },
+              {
+                "colour": "#3e588c",
+                "width": 30,
+                "runs": [
+                  [
+                    -22,
+                    -9,
+                    -2,
+                    9,
+                    -3,
+                    14
+                  ],
+                  [
+                    -8,
+                    25,
+                    4,
+                    26,
+                    -29,
+                    -1
+                  ],
+                  [
+                    -28,
+                    -26,
+                    -7,
+                    -5
+                  ]
+                ]
+              },
+              {
+                "colour": "#c75292",
+                "width": 11,
+                "runs": [
+                  [
+                    -7,
+                    -11,
+                    -27,
+                    -29,
+                    -28,
+                    -5,
+                    30,
+                    -17,
+                    -19,
+                    4
+                  ]
+                ]
+              }
+            ]
           },
           {
             "key": "cC0.a",
-            "name": "Caption",
+            "name": "",
             "visible": true,
-            "opacity": 97,
-            "x": 54,
-            "y": 46,
-            "width": 15,
-            "height": 1,
-            "rotation": 3597,
+            "opacity": 100,
+            "x": 42,
+            "y": -17,
+            "width": 3,
+            "height": 43,
+            "rotation": 11,
             "flipX": false,
             "kind": "text",
-            "text": "a 📷",
-            "font": "serif",
+            "text": " ",
+            "font": "monospace",
             "bold": false,
-            "colour": "#000014",
-            "align": "end"
+            "colour": "#fffffe",
+            "align": "start"
           }
         ],
         "redactions": [],
@@ -27028,7 +29151,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27076,100 +29199,94 @@
             "height": 15,
             "rotation": 1737,
             "flipX": true,
-            "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#adae18",
-            "stroke": null
-          },
-          {
-            "key": "<kC#8",
-            "name": "Caption",
-            "visible": false,
-            "opacity": 0,
-            "x": 40,
-            "y": 58,
-            "width": 6,
-            "height": 31,
-            "rotation": 988,
-            "flipX": false,
-            "kind": "text",
-            "text": "שZ中Zשש📷📷ש📷",
-            "font": "sans-serif",
-            "bold": true,
-            "colour": "#693a17",
-            "align": "center"
-          },
-          {
-            "key": ":",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 15,
-            "x": -10,
-            "y": -14,
-            "width": 47,
-            "height": 30,
-            "rotation": 1653,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": {
-              "x": 34,
-              "y": 12,
-              "width": 5,
-              "height": 1
-            }
-          },
-          {
-            "key": "pJ",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 6,
-            "x": 2,
-            "y": 23,
-            "width": 44,
-            "height": 4,
-            "rotation": 10,
-            "flipX": true,
             "kind": "image",
             "source": "s",
             "crop": null
           },
           {
             "key": "^.",
-            "name": "📷",
+            "name": "Logo 2",
             "visible": false,
-            "opacity": 11,
-            "x": 34,
-            "y": 3,
-            "width": 4,
-            "height": 27,
-            "rotation": 7,
-            "flipX": true,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#547b35",
-            "stroke": {
-              "colour": "#7fdc0f",
-              "width": 3
-            }
+            "opacity": 75,
+            "kind": "drawing",
+            "x": -13,
+            "y": -18,
+            "strokes": [
+              {
+                "colour": "#b5dcdb",
+                "width": 10,
+                "runs": [
+                  [
+                    -15,
+                    -11
+                  ]
+                ]
+              },
+              {
+                "colour": "#3e588c",
+                "width": 30,
+                "runs": [
+                  [
+                    -22,
+                    -9,
+                    -2,
+                    9,
+                    -3,
+                    14
+                  ],
+                  [
+                    -8,
+                    25,
+                    4,
+                    26,
+                    -29,
+                    -1
+                  ],
+                  [
+                    -28,
+                    -26,
+                    -7,
+                    -5
+                  ]
+                ]
+              },
+              {
+                "colour": "#c75292",
+                "width": 11,
+                "runs": [
+                  [
+                    -7,
+                    -11,
+                    -27,
+                    -29,
+                    -28,
+                    -5,
+                    30,
+                    -17,
+                    -19,
+                    4
+                  ]
+                ]
+              }
+            ]
           },
           {
             "key": "cC0.a",
-            "name": "Caption",
+            "name": "",
             "visible": true,
-            "opacity": 97,
-            "x": 54,
-            "y": 46,
-            "width": 15,
-            "height": 1,
-            "rotation": 3597,
+            "opacity": 100,
+            "x": 42,
+            "y": -17,
+            "width": 3,
+            "height": 43,
+            "rotation": 11,
             "flipX": false,
             "kind": "text",
-            "text": "a 📷",
-            "font": "serif",
+            "text": " ",
+            "font": "monospace",
             "bold": false,
-            "colour": "#000014",
-            "align": "end"
+            "colour": "#fffffe",
+            "align": "start"
           }
         ],
         "redactions": [],
@@ -27190,7 +29307,7 @@
       "name": "generated 14",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27237,7 +29354,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27287,7 +29404,7 @@
       "name": "generated 15",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27373,7 +29490,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27462,7 +29579,7 @@
       "name": "generated 16",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27522,7 +29639,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27585,7 +29702,7 @@
       "name": "generated 17",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27622,15 +29739,83 @@
             "name": "Caption",
             "visible": true,
             "opacity": 25,
+            "kind": "drawing",
             "x": -13,
             "y": 39,
-            "width": 47,
-            "height": 45,
-            "rotation": 3386,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": null
+            "strokes": [
+              {
+                "colour": "#da74ec",
+                "width": 27,
+                "runs": [
+                  [
+                    29,
+                    0,
+                    0,
+                    13,
+                    -27,
+                    14,
+                    -10,
+                    5,
+                    -29,
+                    -6,
+                    23,
+                    -27
+                  ],
+                  [
+                    24,
+                    -4,
+                    1,
+                    -28,
+                    8,
+                    21,
+                    5,
+                    20,
+                    22,
+                    -9
+                  ],
+                  [
+                    8,
+                    -16,
+                    -13,
+                    -23
+                  ]
+                ]
+              },
+              {
+                "colour": "#ff8099",
+                "width": 31,
+                "runs": [
+                  [
+                    22,
+                    7,
+                    -26,
+                    2,
+                    -25,
+                    21
+                  ]
+                ]
+              },
+              {
+                "colour": "#466b91",
+                "width": 30,
+                "runs": [
+                  [
+                    -3,
+                    5,
+                    -16,
+                    -3,
+                    11,
+                    -29
+                  ],
+                  [
+                    -4,
+                    2,
+                    -3,
+                    -30
+                  ]
+                ]
+              }
+            ]
           }
         ],
         "redactions": [],
@@ -27648,7 +29833,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27685,15 +29870,83 @@
             "name": "Caption",
             "visible": true,
             "opacity": 25,
+            "kind": "drawing",
             "x": -13,
             "y": 39,
-            "width": 47,
-            "height": 45,
-            "rotation": 3386,
-            "flipX": true,
-            "kind": "image",
-            "source": "s",
-            "crop": null
+            "strokes": [
+              {
+                "colour": "#da74ec",
+                "width": 27,
+                "runs": [
+                  [
+                    29,
+                    0,
+                    0,
+                    13,
+                    -27,
+                    14,
+                    -10,
+                    5,
+                    -29,
+                    -6,
+                    23,
+                    -27
+                  ],
+                  [
+                    24,
+                    -4,
+                    1,
+                    -28,
+                    8,
+                    21,
+                    5,
+                    20,
+                    22,
+                    -9
+                  ],
+                  [
+                    8,
+                    -16,
+                    -13,
+                    -23
+                  ]
+                ]
+              },
+              {
+                "colour": "#ff8099",
+                "width": 31,
+                "runs": [
+                  [
+                    22,
+                    7,
+                    -26,
+                    2,
+                    -25,
+                    21
+                  ]
+                ]
+              },
+              {
+                "colour": "#466b91",
+                "width": 30,
+                "runs": [
+                  [
+                    -3,
+                    5,
+                    -16,
+                    -3,
+                    11,
+                    -29
+                  ],
+                  [
+                    -4,
+                    2,
+                    -3,
+                    -30
+                  ]
+                ]
+              }
+            ]
           }
         ],
         "redactions": [],
@@ -27714,7 +29967,7 @@
       "name": "generated 18",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27757,32 +30010,51 @@
             "height": 46,
             "rotation": 5,
             "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": {
-              "x": 28,
-              "y": 2,
-              "width": 3,
-              "height": 2
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#00000a",
+            "stroke": {
+              "colour": "#7004a1",
+              "width": 35
             }
           },
           {
             "key": "m",
-            "name": "Caption",
+            "name": "שכבה",
             "visible": true,
-            "opacity": 82,
-            "x": -12,
-            "y": 58,
-            "width": 9,
-            "height": 47,
-            "rotation": 2669,
-            "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": null
+            "opacity": 84,
+            "x": 0,
+            "y": 59,
+            "width": 21,
+            "height": 3,
+            "rotation": 1999,
+            "flipX": true,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#9ab103",
+            "stroke": null
           }
         ],
-        "redactions": [],
+        "redactions": [
+          {
+            "key": "*n",
+            "mode": "solid",
+            "x": 12,
+            "y": -12,
+            "width": 45,
+            "height": 3,
+            "colour": "#ffffeb"
+          },
+          {
+            "key": ")sh7\\+",
+            "mode": "solid",
+            "x": 2,
+            "y": -7,
+            "width": 2,
+            "height": 45,
+            "colour": "#fffffd"
+          }
+        ],
         "animation": null,
         "output": {
           "kind": "fit",
@@ -27798,7 +30070,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27841,32 +30113,51 @@
             "height": 46,
             "rotation": 5,
             "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": {
-              "x": 28,
-              "y": 2,
-              "width": 3,
-              "height": 2
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#00000a",
+            "stroke": {
+              "colour": "#7004a1",
+              "width": 35
             }
           },
           {
             "key": "m",
-            "name": "Caption",
+            "name": "שכבה",
             "visible": true,
-            "opacity": 82,
-            "x": -12,
-            "y": 58,
-            "width": 9,
-            "height": 47,
-            "rotation": 2669,
-            "flipX": false,
-            "kind": "image",
-            "source": "s",
-            "crop": null
+            "opacity": 84,
+            "x": 0,
+            "y": 59,
+            "width": 21,
+            "height": 3,
+            "rotation": 1999,
+            "flipX": true,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#9ab103",
+            "stroke": null
           }
         ],
-        "redactions": [],
+        "redactions": [
+          {
+            "key": "*n",
+            "mode": "solid",
+            "x": 12,
+            "y": -12,
+            "width": 45,
+            "height": 3,
+            "colour": "#ffffeb"
+          },
+          {
+            "key": ")sh7\\+",
+            "mode": "solid",
+            "x": 2,
+            "y": -7,
+            "width": 2,
+            "height": 45,
+            "colour": "#fffffd"
+          }
+        ],
         "animation": null,
         "output": {
           "kind": "fit",
@@ -27885,7 +30176,7 @@
       "name": "generated 19",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27937,7 +30228,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -27992,7 +30283,7 @@
       "name": "generated 20",
       "input": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -28035,26 +30326,28 @@
             "height": 3,
             "rotation": 631,
             "flipX": false,
-            "kind": "text",
-            "text": "中",
-            "font": "serif",
-            "bold": true,
-            "colour": "#ffffea",
-            "align": "start"
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 3,
+              "y": 15,
+              "width": 16,
+              "height": 3
+            }
           },
           {
             "key": "E2!6",
             "name": "Caption",
             "visible": true,
-            "opacity": 99,
-            "x": 1,
-            "y": 55,
-            "width": 41,
-            "height": 40,
-            "rotation": 3,
+            "opacity": 11,
+            "x": 55,
+            "y": 21,
+            "width": 40,
+            "height": 4,
+            "rotation": 1421,
             "flipX": true,
             "kind": "text",
-            "text": " 中a",
+            "text": "a",
             "font": "sans-serif",
             "bold": false,
             "colour": "#4f443c",
@@ -28095,7 +30388,7 @@
       },
       "expected": {
         "format": "hm-image-plan",
-        "version": 2,
+        "version": 3,
         "sources": {
           "s": {
             "width": 40,
@@ -28138,26 +30431,28 @@
             "height": 3,
             "rotation": 631,
             "flipX": false,
-            "kind": "text",
-            "text": "中",
-            "font": "serif",
-            "bold": true,
-            "colour": "#ffffea",
-            "align": "start"
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 3,
+              "y": 15,
+              "width": 16,
+              "height": 3
+            }
           },
           {
             "key": "E2!6",
             "name": "Caption",
             "visible": true,
-            "opacity": 99,
-            "x": 1,
-            "y": 55,
-            "width": 41,
-            "height": 40,
-            "rotation": 3,
+            "opacity": 11,
+            "x": 55,
+            "y": 21,
+            "width": 40,
+            "height": 4,
+            "rotation": 1421,
             "flipX": true,
             "kind": "text",
-            "text": " 中a",
+            "text": "a",
             "font": "sans-serif",
             "bold": false,
             "colour": "#4f443c",

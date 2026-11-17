@@ -41,6 +41,7 @@ describe("imageLimits", () => {
       maxFrames: { maximum: 300, warning: 100 },
       maxSessionSize: { maximum: 1_000_000_000, warning: 500_000_000 },
       maxLayers: { maximum: 256, warning: infinity },
+      maxDrawingPoints: { maximum: 200_000, warning: 100_000 },
     });
   });
 
@@ -66,6 +67,7 @@ describe("imageLimits", () => {
     ["maxFrames", 301, "TOO_MANY_FRAMES"],
     ["maxSessionSize", 1_000_000_001, "SESSION_TOO_LARGE"],
     ["maxLayers", 257, "TOO_MANY_LAYERS"],
+    ["maxDrawingPoints", 200_001, "TOO_MANY_POINTS"],
   ] as const)("throws %s violations with their own code", (limit, actual, code) => {
     const policy = imageLimits.resolve();
     expect(

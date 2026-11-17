@@ -34,6 +34,7 @@ const ALL_CODES: Record<ImageErrorCode, true> = {
   TOO_MANY_FRAMES: true,
   SESSION_TOO_LARGE: true,
   TOO_MANY_LAYERS: true,
+  TOO_MANY_POINTS: true,
 };
 
 function violation(run: () => unknown): unknown {

@@ -120,12 +120,18 @@ export function useLayerActions(): LayerActions {
         const index = layers().findIndex((layer) => layer.key === key);
         const layer = layers()[index];
         if (!plan || !layer) return;
-        const copy: ImageLayer = {
-          ...layer,
-          key: newRedactionKey(plan),
-          x: Math.min(layer.x + DUPLICATE_OFFSET, MAX_SCENE_COORDINATE),
-          y: Math.min(layer.y + DUPLICATE_OFFSET, MAX_SCENE_COORDINATE),
-        };
+        const moved = (value: number) => Math.min(value + DUPLICATE_OFFSET, MAX_SCENE_COORDINATE);
+        const copyKey = newRedactionKey(plan);
+        // An arrow is placed by its two ends; every other kind by its x and y.
+        const copy: ImageLayer =
+          layer.kind === "arrow"
+            ? {
+                ...layer,
+                key: copyKey,
+                from: { x: moved(layer.from.x), y: moved(layer.from.y) },
+                to: { x: moved(layer.to.x), y: moved(layer.to.y) },
+              }
+            : { ...layer, key: copyKey, x: moved(layer.x), y: moved(layer.y) };
         session.execute({ type: "image.insertLayers", at: index + 1, layers: [copy] });
         select(copy.key);
         announce(messages.t("layers.duplicated", { name: layerLabel(layer, messages) }));

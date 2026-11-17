@@ -44,23 +44,25 @@ const schema = (path: string) =>
   JSON.parse(readFileSync(new URL(`../../formats/${path}`, import.meta.url), "utf8")) as object;
 const FORMATS = "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats";
 // Every version's schemas: a reader reads them all, and writes the latest.
-for (const version of [1, 2]) ajv.addSchema(schema(`hm-image-plan/v${version}.schema.json`));
+for (const version of [1, 2, 3]) ajv.addSchema(schema(`hm-image-plan/v${version}.schema.json`));
 const planSchema = (version: number) =>
   ajv.getSchema(`${FORMATS}/hm-image-plan/v${version}.schema.json`) as (value: unknown) => boolean;
-const planValid = planSchema(2);
-const commandValid = ajv.compile(schema("hm-image-command/v2.schema.json"));
+const planValid = planSchema(3);
+const commandValid = ajv.compile(schema("hm-image-command/v3.schema.json"));
+const commandValidV2 = ajv.compile(schema("hm-image-command/v2.schema.json"));
 const commandValidV1 = ajv.compile(schema("hm-image-command/v1.schema.json"));
 
 /** The schema of the version a document names, or the latest for one that names none. */
-const validForItsVersion = (document: unknown) =>
-  (document as { version?: unknown } | null)?.version === 1
-    ? planSchema(1)(document)
-    : planValid(document);
+const validForItsVersion = (document: unknown) => {
+  const version = (document as { version?: unknown } | null)?.version;
+  return version === 1 || version === 2 ? planSchema(version)(document) : planValid(document);
+};
 
 /** The commands that only undo others: the reducer applies them, the format leaves them out. */
 const INVERSE_ONLY = new Set([
   "image.restoreLayers",
   "image.setLayerOrder",
+  "image.restoreStrokes",
   "image.restoreRedactions",
   "image.setRedactionOrder",
 ]);
@@ -117,10 +119,11 @@ describe("the format schemas agree with the readers", () => {
     }
   });
 
-  it("keep version 1's commands valid in version 2, unchanged", () => {
+  it("keep each version's commands valid in the next, unchanged", () => {
     for (const testCase of readConformance(COMMANDS).cases) {
       const { command: cmd } = testCase.input as { command: unknown };
-      if (commandValidV1(cmd)) expect(commandValid(cmd), testCase.name).toBe(true);
+      if (commandValidV1(cmd)) expect(commandValidV2(cmd), testCase.name).toBe(true);
+      if (commandValidV2(cmd)) expect(commandValid(cmd), testCase.name).toBe(true);
     }
   });
 

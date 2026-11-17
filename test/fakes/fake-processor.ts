@@ -36,6 +36,9 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
       checkPlanSupport(plan, ["layers", "redactions"]);
       for (const layer of plan.layers) {
         const plain =
+          // A drawing or an arrow never reaches here: `checkPlanSupport` refuses it.
+          layer.kind !== "drawing" &&
+          layer.kind !== "arrow" &&
           layer.rotation === 0 &&
           !layer.flipX &&
           (layer.opacity === 100 || !layer.visible) &&
@@ -81,7 +84,7 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
       const hex = (colour: string) =>
         [1, 3, 5].map((at) => Number.parseInt(colour.slice(at, at + 2), 16));
       for (const layer of plan.layers) {
-        if (!layer.visible) continue;
+        if (!layer.visible || layer.kind === "drawing" || layer.kind === "arrow") continue;
         const from = layer.kind === "image" ? engine.sources.get(layer.source) : undefined;
         if (layer.kind === "image" && from === undefined) {
           throw new TypeError(`Unknown source "${layer.source}".`);

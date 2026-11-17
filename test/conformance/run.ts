@@ -10,6 +10,13 @@ import {
   nudgeCropOnScreen,
 } from "../../src/core/model/crop.js";
 import {
+  arrowBounds,
+  arrowOutline,
+  drawingBounds,
+  drawingPoints,
+  simplifyStroke,
+} from "../../src/core/model/drawing-geometry.js";
+import {
   compositionSize,
   compositionToSource,
   orientedSize,
@@ -97,7 +104,15 @@ type GeometryArgument =
   | "ascent"
   | "align"
   | "rightToLeft"
-  | "text";
+  | "text"
+  | "points"
+  | "tolerance"
+  | "from"
+  | "to"
+  | "width"
+  | "drawing"
+  | "arrow"
+  | "layers";
 type GeometryArguments = { readonly [Name in GeometryArgument]: never };
 
 /** The geometry functions a port implements, by the name a case gives. */
@@ -140,6 +155,11 @@ const GEOMETRY: Readonly<Record<string, (input: GeometryArguments) => unknown>> 
   fitTextLines: ({ lines, lineHeight, ascent, size, align, rightToLeft }) =>
     fitTextLines(lines, lineHeight, ascent, size, align, rightToLeft),
   isRightToLeft: ({ text }) => isRightToLeft(text),
+  simplifyStroke: ({ points, tolerance }) => simplifyStroke(points, tolerance),
+  arrowOutline: ({ from, to, width }) => arrowOutline(from, to, width),
+  drawingBounds: ({ drawing }) => drawingBounds(drawing),
+  arrowBounds: ({ arrow }) => arrowBounds(arrow),
+  drawingPoints: ({ layers }) => drawingPoints({ layers }),
 };
 
 /** The names of the geometry operations, in the order the vectors list them. */
@@ -167,4 +187,6 @@ export const GEOMETRY_TOLERANCES: Readonly<Record<string, number>> = {
   layerToOutput: 1e-9,
   sceneToLayerSource: 1e-9,
   fitTextLines: 1e-9,
+  // It divides by the arrow's length (docs/adr/0014).
+  arrowOutline: 1e-9,
 };

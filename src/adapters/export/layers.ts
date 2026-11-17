@@ -1,3 +1,4 @@
+import { ImageError } from "../../core/errors/image-error.js";
 import { cropRect } from "../../core/model/geometry.js";
 import { fitTextLines, isRightToLeft, layerToOutput } from "../../core/model/layer-geometry.js";
 import type {
@@ -147,6 +148,13 @@ export async function drawLayers(
   const crop = cropRect(plan.base.crop, base);
   let scratch: Context | undefined;
   for (const layer of plan.layers) {
+    // A drawing or an arrow is refused before anything is drawn
+    // (`checkPlanSupport`): never skipped, even here (ADR 0009).
+    if (layer.kind === "drawing" || layer.kind === "arrow") {
+      throw new ImageError("UNSUPPORTED_PLAN", "This renderer can't draw the plan's drawings.", {
+        details: { reason: "drawings" },
+      });
+    }
     if (!layer.visible || layer.opacity === 0) continue;
     await checkpoint(signal);
     let target = context;

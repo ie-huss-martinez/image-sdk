@@ -74,6 +74,9 @@ export const imageEditorMessages: {
     readonly "actions.image.moveLayers": "layer order";
     readonly "actions.image.setLayerOrder": "layer order";
     readonly "actions.image.updateLayers": "layer change";
+    readonly "actions.image.addStrokes": "stroke";
+    readonly "actions.image.removeStrokes": "stroke";
+    readonly "actions.image.restoreStrokes": "stroke";
     readonly "actions.image.insertRedactions": "redaction";
     readonly "actions.image.removeRedactions": "redaction";
     readonly "actions.image.restoreRedactions": "redaction";
@@ -189,6 +192,8 @@ export const imageEditorMessages: {
     readonly "layers.kinds.rectangle": "Rectangle";
     readonly "layers.kinds.ellipse": "Ellipse";
     readonly "layers.kinds.image": "Image";
+    readonly "layers.kinds.drawing": "Drawing";
+    readonly "layers.kinds.arrow": "Arrow";
     readonly "layers.visible": "Show {name}";
     readonly "layers.selected": "Selected layer";
     readonly "layers.moveUp": "Move up";
@@ -338,6 +343,7 @@ export const imageEditorMessages: {
         readonly one: "An image can have {maximum} layer. Merge or delete layers, and try again.";
         readonly other: "An image can have up to {maximum, number} layers. Merge or delete layers, and try again.";
     };
+    readonly "errors.TOO_MANY_POINTS": "This image's drawings would have {actual, number} points, which is over the limit of {maximum, number}. Remove some strokes, and try again.";
     readonly "warnings.maxImagePixels": "This image is large, and may be slow to edit on some devices.";
     readonly "warnings.maxImageDimension": "This image is very wide or tall, and may be slow to edit.";
     readonly "warnings.maxFrames": {
@@ -353,6 +359,7 @@ export const imageEditorMessages: {
         readonly one: "This image has {actual} layer.";
         readonly other: "This image has {actual, number} layers, and may be slow to edit and export.";
     };
+    readonly "warnings.maxDrawingPoints": "This image has a lot of drawing, and may be slow to edit and export.";
     readonly "errors.UNKNOWN": "Something went wrong. Please try again.";
     readonly "errors.ABORTED": "The operation was cancelled.";
     readonly "errors.TIMEOUT": "The operation took too long and was stopped.";

@@ -23,6 +23,7 @@ import { ImageError } from "./image-error.js";
  * | `maxFrames` | `TOO_MANY_FRAMES` | 300 | 100 |
  * | `maxSessionSize` | `SESSION_TOO_LARGE` | 1 GB | 500 MB |
  * | `maxLayers` | `TOO_MANY_LAYERS` | 256 | none |
+ * | `maxDrawingPoints` | `TOO_MANY_POINTS` | 200,000 | 100,000 |
  *
  * Sizes are decimal: 1 MB is 1,000,000 bytes. Decoded sizes count 4 bytes
  * per pixel. `maxImagePixels` is the same limit, with the same name, code
@@ -48,6 +49,12 @@ export const imageLimitDefinitions = {
     warning: 500_000_000,
   },
   maxLayers: { code: "TOO_MANY_LAYERS", unit: "count", default: 256 },
+  maxDrawingPoints: {
+    code: "TOO_MANY_POINTS",
+    unit: "count",
+    default: 200_000,
+    warning: 100_000,
+  },
 } as const;
 
 /**

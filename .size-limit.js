@@ -14,29 +14,33 @@ export default [
     name: "Server-safe core (.), with the shared code it loads",
     // The core never loads the React editor's chunks, nor the interface's
     // text, which the React entry holds (docs/adr/0012). Measured at
-    // 20.3 kB with the plan's format version 2: the keyed-list reducer; the
-    // layer model, its checks, commands and geometry, with text fitting;
-    // redaction's commands and geometry; the migration; the session's
-    // layer sources, with `insertImage`; and the text of errors and warnings.
+    // 23.6 kB with the plan's format version 3: the keyed-list reducer; the
+    // layer model, its checks, commands and geometry, with text fitting and
+    // new layers' placement; drawings, strokes and arrows, with the exact
+    // stroke simplifier, the arrow's outline and their bounds
+    // (docs/adr/0014); redaction's commands and geometry; the migrations;
+    // the session's layer sources and its limits on drawn points; and the
+    // text of errors and warnings.
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
-    limit: "21 kB",
+    limit: "24 kB",
   },
   {
-    // Measured at 40.4 kB with the editor's tools up to layers (docs/adr/0013):
+    // The core's 23.6 kB and the editor. Measured at 43.5 kB with the
+    // editor's tools up to layers (docs/adr/0013):
     // crop, redact, the layers' list and frames, the tools that add text,
     // shapes and images with their fields, and the interface's text.
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "41 kB",
+    limit: "44 kB",
   },
   {
-    // The React entry and the element's own mount: measured at 41.4 kB.
+    // The React entry and the element's own mount: measured at 44.5 kB.
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "42 kB",
+    limit: "45 kB",
   },
   {
     name: "Stylesheet (./styles.css)",

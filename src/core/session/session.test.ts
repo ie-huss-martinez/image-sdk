@@ -306,6 +306,100 @@ describe("the image session (ADR 0003)", () => {
     expect(session.getSnapshot().plan?.redactions).toHaveLength(2);
   });
 
+  it("limits the points a plan's drawings hold, warns near the limit, and follows undo", async () => {
+    const { session } = setup({ filePolicy: { maxDrawingPoints: { maximum: 10, warning: 6 } } });
+    await session.open(await file());
+    const stroke = (points: number) => ({
+      colour: "#000000",
+      width: 1,
+      runs: [Array.from({ length: points }, (_, i) => [i, 0]).flat()],
+    });
+    const drawing = (key: string, points: number) => ({
+      key,
+      kind: "drawing" as const,
+      name: "",
+      visible: true,
+      opacity: 100,
+      x: 0,
+      y: 0,
+      strokes: [stroke(points)],
+    });
+    const warnings = () => session.getSnapshot().warnings;
+    session.execute({ type: "image.insertLayers", at: 0, layers: [drawing("d", 5)] });
+    expect(warnings()).not.toContain("maxDrawingPoints");
+    // Six points: at the warning.
+    session.execute({ type: "image.addStrokes", key: "d", strokes: [stroke(1)] });
+    expect(warnings()).toContain("maxDrawingPoints");
+    // Eleven would be over: refused with the limit's own code, and nothing changes.
+    const before = session.getSnapshot().plan;
+    const over = await rejection(
+      (async () => session.execute({ type: "image.addStrokes", key: "d", strokes: [stroke(5)] }))(),
+    );
+    expect(isImageError(over, "TOO_MANY_POINTS")).toBe(true);
+    expect((over as { details?: unknown }).details).toMatchObject({
+      limit: "maxDrawingPoints",
+      maximum: 10,
+      actual: 11,
+    });
+    expect(session.getSnapshot().plan).toBe(before);
+    // A second drawing counts with the first.
+    const another = await rejection(
+      (async () =>
+        session.execute({ type: "image.insertLayers", at: 0, layers: [drawing("e", 5)] }))(),
+    );
+    expect(isImageError(another, "TOO_MANY_POINTS")).toBe(true);
+    // Removing a stroke, and undoing the addition, end the warning; redo brings it back.
+    session.undo();
+    expect(warnings()).not.toContain("maxDrawingPoints");
+    session.redo();
+    expect(warnings()).toContain("maxDrawingPoints");
+    session.execute({ type: "image.removeStrokes", key: "d", indexes: [1] });
+    expect(warnings()).not.toContain("maxDrawingPoints");
+    // A step that adds no points is never checked: other edits still work at the limit.
+    session.execute({ type: "image.addStrokes", key: "d", strokes: [stroke(5)] });
+    session.execute({ type: "image.updateLayers", updates: [{ key: "d", props: { x: 3 } }] });
+    expect(session.getSnapshot().plan?.layers[0]).toMatchObject({ x: 3 });
+  });
+
+  it("bounds the drawn points its history holds, dropping the oldest steps", async () => {
+    const { session } = setup();
+    await session.open(await file());
+    // 76 runs of 2,000 points are two strokes of 38: 152,000 points, under the plan's 200,000.
+    const run = Array.from({ length: 2_000 }, (_, i) => [i % 30, i % 20]).flat();
+    const stroke = { colour: "#000000", width: 1, runs: Array.from({ length: 38 }, () => run) };
+    const drawing = (key: string) => ({
+      key,
+      kind: "drawing" as const,
+      name: "",
+      visible: true,
+      opacity: 100,
+      x: 0,
+      y: 0,
+      strokes: [stroke, stroke],
+    });
+    // Each step holds the drawing's 152,000 points: in its command, or in what undoes it.
+    session.execute({
+      type: "image.setOrientation",
+      orientation: { rotate: 90, flipX: false, flipY: false },
+    });
+    for (let round = 0; round < 3; round += 1) {
+      session.execute({ type: "image.insertLayers", at: 0, layers: [drawing(`d${round}`)] });
+      session.execute({ type: "image.removeLayers", keys: [`d${round}`] });
+    }
+    // Six steps of 152,000 are 912,000: under a million, and nothing is dropped.
+    expect(session.getSnapshot().historyTrimmed).toBe(false);
+    session.execute({ type: "image.insertLayers", at: 0, layers: [drawing("last")] });
+    // The seventh takes it over: the oldest steps go, the newest stays.
+    expect(session.getSnapshot().historyTrimmed).toBe(true);
+    expect(session.getSnapshot().plan?.layers).toHaveLength(1);
+    let undone = 0;
+    while (session.undo()) undone += 1;
+    // What's left holds at most a million points: six steps of 152,000.
+    expect(undone).toBe(6);
+    // The first edit, which held no points, went with the oldest.
+    expect(session.getSnapshot().plan?.base.orientation.rotate).toBe(90);
+  });
+
   it("applies layers as undoable steps, counts them with redactions, and refuses to export what nothing draws", async () => {
     const { session, events } = setup({ filePolicy: { maxLayers: 2 } });
     await session.open(await file());

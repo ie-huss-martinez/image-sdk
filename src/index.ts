@@ -53,6 +53,13 @@ export {
   moveCrop,
   nudgeCropOnScreen,
 } from "./core/model/crop.js";
+export {
+  arrowBounds,
+  arrowOutline,
+  drawingBounds,
+  drawingPoints,
+  simplifyStroke,
+} from "./core/model/drawing-geometry.js";
 export type { ImagePoint } from "./core/model/geometry.js";
 export {
   compositionSize,
@@ -75,9 +82,12 @@ export {
   sceneToOutput,
 } from "./core/model/layer-geometry.js";
 export type {
+  ImageArrowLayer,
   ImageBase,
+  ImageBoxedLayer,
   ImageCrop,
   ImageDevelop,
+  ImageDrawingLayer,
   ImageFilter,
   ImageFilterPreset,
   ImageImageLayer,
@@ -92,7 +102,9 @@ export type {
   ImageRedactionMode,
   ImageRedactionRegion,
   ImageRotation,
+  ImageScenePoint,
   ImageShapeLayer,
+  ImageStroke,
   ImageTextLayer,
 } from "./core/model/plan.js";
 export {
@@ -104,11 +116,14 @@ export {
   LAYER_FONTS,
   LAYER_KINDS,
   LAYER_SHAPES,
+  MAX_DRAWING_STROKES,
   MAX_KEY_LENGTH,
   MAX_LAYER_NAME_LENGTH,
   MAX_LAYER_TEXT_LENGTH,
   MAX_PLAN_ITEMS,
+  MAX_RUN_POINTS,
   MAX_SCENE_COORDINATE,
+  MAX_STROKE_RUNS,
   MAX_STROKE_WIDTH,
   NEUTRAL_DEVELOP,
   REDACTION_MODES,
@@ -136,6 +151,7 @@ export type {
 } from "./core/model/source.js";
 export { EMPTY_KEEPABLE_METADATA, MAX_METADATA_LENGTH, NO_METADATA } from "./core/model/source.js";
 export type {
+  AddStrokesCommand,
   ImageCommand,
   ImageCommandRejection,
   ImageInverseCommand,
@@ -145,8 +161,10 @@ export type {
   MoveRedactionsCommand,
   RemoveLayersCommand,
   RemoveRedactionsCommand,
+  RemoveStrokesCommand,
   RestoreLayersCommand,
   RestoreRedactionsCommand,
+  RestoreStrokesCommand,
   SetCropCommand,
   SetDevelopCommand,
   SetFilterCommand,
