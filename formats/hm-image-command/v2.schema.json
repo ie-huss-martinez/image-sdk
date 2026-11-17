@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-command/v2.schema.json",
   "title": "hm-image-command, version 2",
-  "description": "One user-level edit to an hm-image-plan (docs/formats/hm-image-plan.md, sdk-core ADR 0045). Version 1's commands are unchanged; this version adds the redaction commands. Beyond this schema, the reducer checks a crop against the plan's source, and keys and indexes against the plan's redactions.",
+  "description": "One user-level edit to an hm-image-plan (docs/formats/hm-image-plan.md, sdk-core ADR 0045). Version 1's commands are unchanged; this version adds the layer and redaction commands. Beyond this schema, the reducer checks a crop against the plan's source, keys and indexes against the plan's lists, and each layer and redaction that results.",
   "oneOf": [
     {
       "description": "Sets the crop, or removes it with null.",
@@ -95,6 +95,88 @@
         },
         "filter": {
           "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v2.schema.json#/$defs/filter"
+        }
+      }
+    },
+    {
+      "description": "Inserts layers at an index: 0 is under every layer.",
+      "type": "object",
+      "required": ["type", "at", "layers"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.insertLayers"
+        },
+        "at": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v2.schema.json#/$defs/layer"
+          }
+        }
+      }
+    },
+    {
+      "description": "Removes layers, by key.",
+      "type": "object",
+      "required": ["type", "keys"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.removeLayers"
+        },
+        "keys": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v2.schema.json#/$defs/keys"
+        }
+      }
+    },
+    {
+      "description": "Moves layers to an index of the list without them, keeping their order.",
+      "type": "object",
+      "required": ["type", "keys", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.moveLayers"
+        },
+        "keys": {
+          "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v2.schema.json#/$defs/keys"
+        },
+        "to": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "description": "Sets some fields of some layers.",
+      "type": "object",
+      "required": ["type", "updates"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "image.updateLayers"
+        },
+        "updates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["key", "props"],
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v2.schema.json#/$defs/key"
+              },
+              "props": {
+                "$ref": "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v2.schema.json#/$defs/layerProps"
+              }
+            }
+          }
         }
       }
     },

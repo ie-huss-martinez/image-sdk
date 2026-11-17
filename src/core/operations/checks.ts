@@ -3,6 +3,9 @@
  * the format's schemas refuse (sdk-core ADR 0045).
  */
 
+import { type ImageCrop, isValidCrop } from "../model/plan.js";
+import type { ImageSize } from "../model/source.js";
+
 /**
  * A refusal while checking a command or a document, which the reducer and
  * the plan reader turn into their own codes.
@@ -53,3 +56,26 @@ export const isWhole = (
   max = Number.MAX_SAFE_INTEGER,
 ): value is number =>
   Number.isSafeInteger(value) && (value as number) >= min && (value as number) <= max;
+
+/**
+ * A crop's shape: whole pixels from 0, at least 1 × 1. Whether it fits its
+ * source depends on the source, which a schema can't see.
+ *
+ * @internal
+ */
+export function checkCrop(value: unknown): ImageCrop {
+  if (!isRecord<ImageCrop>(value)) invalid("malformed-command", "a crop is an object");
+  allFields(value, ["x", "y", "width", "height"], "a crop");
+  const { x, y, width, height } = value;
+  if (!isWhole(x, 0) || !isWhole(y, 0) || !isWhole(width, 1) || !isWhole(height, 1)) {
+    invalid("malformed-command", "a crop is whole pixels from 0, at least 1 × 1");
+  }
+  return { x, y, width, height };
+}
+
+/** @internal */
+export function checkCropInSource(crop: ImageCrop, source: ImageSize): void {
+  if (!isValidCrop(crop, source)) {
+    invalid("crop-outside-source", "a crop must fit inside its source");
+  }
+}

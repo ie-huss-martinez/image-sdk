@@ -1,5 +1,6 @@
 import type { Reducer } from "@hussmartinez/sdk-core";
 import { ImageError } from "../errors/image-error.js";
+import type { ImageLayer } from "../model/plan.js";
 import {
   DEVELOP_ADJUSTMENTS,
   FILTER_PRESETS,
@@ -10,7 +11,6 @@ import {
   type ImageOutput,
   type ImagePlan,
   type ImageRedaction,
-  isValidCrop,
   MAX_PLAN_ITEMS,
 } from "../model/plan.js";
 import {
@@ -19,7 +19,15 @@ import {
   longerThan,
   MAX_METADATA_LENGTH,
 } from "../model/source.js";
-import { allFields, Invalid, invalid, isRecord, isWhole } from "./checks.js";
+import {
+  allFields,
+  checkCrop,
+  checkCropInSource,
+  Invalid,
+  invalid,
+  isRecord,
+  isWhole,
+} from "./checks.js";
 import {
   insertItems,
   type KeyedEntry,
@@ -29,6 +37,7 @@ import {
   restoreItems,
   updateItems,
 } from "./keyed-list.js";
+import { checkLayer, LAYER_NAMES, patchLayer } from "./layers.js";
 import {
   checkRedaction,
   type ImageRedactionProps,
@@ -36,7 +45,7 @@ import {
   REDACTION_NAMES,
 } from "./redactions.js";
 
-export { Invalid, invalid, isRecord, onlyFields } from "./checks.js";
+export { checkCrop, checkCropInSource, Invalid, invalid, isRecord, onlyFields } from "./checks.js";
 
 /**
  * Sets or removes the base's crop, in whole pixels of the oriented source.
@@ -98,6 +107,80 @@ export interface SetDevelopCommand {
 export interface SetFilterCommand {
   readonly type: "image.setFilter";
   readonly filter: ImageFilter | null;
+}
+
+/**
+ * Inserts layers at an index of the plan's layers, which are drawn bottom
+ * to top (ADR 0009). Each needs a key no layer or redaction of the plan has.
+ *
+ * @public
+ */
+export interface InsertLayersCommand {
+  readonly type: "image.insertLayers";
+  /** From 0, under every layer, to the number of layers, over them all. */
+  readonly at: number;
+  readonly layers: readonly ImageLayer[];
+}
+
+/**
+ * Removes layers, by key.
+ *
+ * @public
+ */
+export interface RemoveLayersCommand {
+  readonly type: "image.removeLayers";
+  readonly keys: readonly string[];
+}
+
+/**
+ * Moves layers to an index of the list without them, keeping the order they
+ * had: up or down the stack.
+ *
+ * @public
+ */
+export interface MoveLayersCommand {
+  readonly type: "image.moveLayers";
+  readonly keys: readonly string[];
+  readonly to: number;
+}
+
+/**
+ * Sets some fields of some layers: their boxes after a move, their opacity,
+ * a text layer's text. `props` may hold any field of the layer's kind except
+ * `key` and `kind`.
+ *
+ * @public
+ */
+export interface UpdateLayersCommand {
+  readonly type: "image.updateLayers";
+  readonly updates: readonly {
+    readonly key: string;
+    readonly props: Readonly<Record<string, unknown>>;
+  }[];
+}
+
+/**
+ * Puts removed layers back, each at its index, by rising index. It's what
+ * undoes {@link RemoveLayersCommand}: the reducer applies it, but it isn't
+ * part of the portable command format (ADR 0009).
+ *
+ * @public
+ */
+export interface RestoreLayersCommand {
+  readonly type: "image.restoreLayers";
+  readonly entries: readonly { readonly at: number; readonly layer: ImageLayer }[];
+}
+
+/**
+ * Sets the whole order of the layers: every key, once. It's what undoes
+ * {@link MoveLayersCommand}: the reducer applies it, but it isn't part of
+ * the portable command format (ADR 0009).
+ *
+ * @public
+ */
+export interface SetLayerOrderCommand {
+  readonly type: "image.setLayerOrder";
+  readonly keys: readonly string[];
 }
 
 /**
@@ -177,7 +260,11 @@ export interface SetRedactionOrderCommand {
  *
  * @public
  */
-export type ImageInverseCommand = RestoreRedactionsCommand | SetRedactionOrderCommand;
+export type ImageInverseCommand =
+  | RestoreLayersCommand
+  | SetLayerOrderCommand
+  | RestoreRedactionsCommand
+  | SetRedactionOrderCommand;
 
 /**
  * Every edit to an {@link ImagePlan}: plain, structured-cloneable data
@@ -192,6 +279,10 @@ export type ImageCommand =
   | SetMetadataCommand
   | SetDevelopCommand
   | SetFilterCommand
+  | InsertLayersCommand
+  | RemoveLayersCommand
+  | MoveLayersCommand
+  | UpdateLayersCommand
   | InsertRedactionsCommand
   | RemoveRedactionsCommand
   | MoveRedactionsCommand
@@ -206,7 +297,8 @@ export type ImageCommand =
  *   such as a missing field, a field of the wrong type, an unknown field, or
  *   a crop that isn't whole pixels of at least 1 × 1.
  * - `unknown-command`: a `type` the reducer doesn't know.
- * - `unknown-source`: a crop for a plan whose source isn't registered.
+ * - `unknown-source`: a crop for a plan whose source isn't registered, or
+ *   an image layer whose source isn't.
  * - `crop-outside-source`: a crop that doesn't fit inside its source.
  * - `invalid-orientation`: a rotation other than 0, 90, 180 or 270.
  * - `invalid-output`: a scale outside (0, 1], or a box under 1 pixel.
@@ -222,6 +314,18 @@ export type ImageCommand =
  *   new items or two updates with the same key.
  * - `invalid-index`: an index past the end of the list.
  * - `invalid-order`: an order that doesn't list every key.
+ * - `unknown-layer`: a key no layer has.
+ * - `unknown-layer-kind`: a kind other than `text`, `shape` and `image`.
+ * - `invalid-box`: a layer's box under 1 × 1 pixel, further than
+ *   `MAX_SCENE_COORDINATE` from the scene's origin, or turned by other than
+ *   0 to 3599 tenths of a degree.
+ * - `invalid-opacity`: an opacity that isn't from 0 to 100.
+ * - `invalid-text`: text or a name with a control character other than a
+ *   line feed, or a bidirectional embedding, override or isolate control.
+ * - `text-too-long`: text over `MAX_LAYER_TEXT_LENGTH` code points, or a
+ *   name over `MAX_LAYER_NAME_LENGTH`.
+ * - `empty-shape`: a shape with neither a fill nor a stroke.
+ * - `wrong-kind`: an update that sets a field another kind of layer has.
  * - `unknown-redaction`: a key no redaction has.
  * - `unknown-redaction-mode`: a mode other than `solid` and `pixelate`.
  * - `invalid-region`: a redaction under 1 × 1 pixel, or further than
@@ -254,6 +358,14 @@ export type ImageCommandRejection =
   | "duplicate-key"
   | "invalid-index"
   | "invalid-order"
+  | "unknown-layer"
+  | "unknown-layer-kind"
+  | "invalid-box"
+  | "invalid-opacity"
+  | "invalid-text"
+  | "text-too-long"
+  | "empty-shape"
+  | "wrong-kind"
   | "unknown-redaction"
   | "unknown-redaction-mode"
   | "invalid-region"
@@ -261,29 +373,6 @@ export type ImageCommandRejection =
   | "unexpected-colour"
   | "missing-colour"
   | "too-many-layers";
-
-/**
- * A crop's shape: whole pixels from 0, at least 1 × 1. Whether it fits its
- * source depends on the source, which a schema can't see.
- *
- * @internal
- */
-export function checkCrop(value: unknown): ImageCrop {
-  if (!isRecord<ImageCrop>(value)) invalid("malformed-command", "a crop is an object");
-  allFields(value, ["x", "y", "width", "height"], "a crop");
-  const { x, y, width, height } = value;
-  if (!isWhole(x, 0) || !isWhole(y, 0) || !isWhole(width, 1) || !isWhole(height, 1)) {
-    invalid("malformed-command", "a crop is whole pixels from 0, at least 1 × 1");
-  }
-  return { x, y, width, height };
-}
-
-/** @internal */
-export function checkCropInSource(crop: ImageCrop, source: ImageSize): void {
-  if (!isValidCrop(crop, source)) {
-    invalid("crop-outside-source", "a crop must fit inside its source");
-  }
-}
 
 /** @internal */
 export function checkOrientation(value: unknown): ImageOrientation {
@@ -406,6 +495,12 @@ const COMMAND_FIELDS: Readonly<Record<ImageCommand["type"], readonly string[]>> 
   "image.setMetadata": ["type", "field", "value"],
   "image.setDevelop": ["type", "values"],
   "image.setFilter": ["type", "filter"],
+  "image.insertLayers": ["type", "at", "layers"],
+  "image.removeLayers": ["type", "keys"],
+  "image.moveLayers": ["type", "keys", "to"],
+  "image.updateLayers": ["type", "updates"],
+  "image.restoreLayers": ["type", "entries"],
+  "image.setLayerOrder": ["type", "keys"],
   "image.insertRedactions": ["type", "at", "redactions"],
   "image.removeRedactions": ["type", "keys"],
   "image.moveRedactions": ["type", "keys", "to"],
@@ -427,6 +522,28 @@ function checkRoom(plan: ImagePlan, added: number): void {
       `a plan holds at most ${MAX_PLAN_ITEMS} layers and redactions together`,
     );
   }
+}
+
+type SourceSize = (id: string) => ImageSize | undefined;
+
+/** A list of at least one layer. */
+function checkLayers(value: unknown, sourceSize: SourceSize): ImageLayer[] {
+  if (!Array.isArray(value)) invalid("malformed-command", "layers is a list");
+  if (value.length === 0) invalid("malformed-command", "layers has at least one item");
+  return value.map((layer) => checkLayer(layer, sourceSize));
+}
+
+/** The entries of `image.restoreLayers`. */
+function checkLayerEntries(value: unknown, sourceSize: SourceSize): KeyedEntry<ImageLayer>[] {
+  if (!Array.isArray(value)) invalid("malformed-command", "entries is a list");
+  if (value.length === 0) invalid("malformed-command", "entries has at least one item");
+  return value.map((entry) => {
+    if (!isRecord<{ at: unknown; layer: unknown }>(entry)) {
+      invalid("malformed-command", "an entry is an object");
+    }
+    allFields(entry, ["at", "layer"], "an entry");
+    return { at: entry.at as number, item: checkLayer(entry.layer, sourceSize) };
+  });
 }
 
 /** A list of at least one redaction. */
@@ -517,6 +634,54 @@ function apply(
       return {
         state: { ...plan, base: { ...plan.base, filter } },
         inverse: { type: "image.setFilter", filter: plan.base.filter },
+      };
+    }
+    case "image.insertLayers": {
+      const layers = checkLayers(command.layers, sourceSize);
+      const { list, keys } = insertItems(plan.layers, command.at, layers, planKeys(plan));
+      checkRoom(plan, layers.length);
+      return { state: { ...plan, layers: list }, inverse: { type: "image.removeLayers", keys } };
+    }
+    case "image.removeLayers": {
+      const { list, entries } = removeItems(plan.layers, command.keys, LAYER_NAMES);
+      return {
+        state: { ...plan, layers: list },
+        inverse: {
+          type: "image.restoreLayers",
+          entries: entries.map(({ at, item }) => ({ at, layer: item })),
+        },
+      };
+    }
+    case "image.restoreLayers": {
+      const entries = checkLayerEntries(command.entries, sourceSize);
+      const { list, keys } = restoreItems(plan.layers, entries, planKeys(plan));
+      checkRoom(plan, entries.length);
+      return { state: { ...plan, layers: list }, inverse: { type: "image.removeLayers", keys } };
+    }
+    case "image.moveLayers": {
+      const { list, order } = moveItems(plan.layers, command.keys, command.to, LAYER_NAMES);
+      return {
+        state: { ...plan, layers: list },
+        inverse: { type: "image.setLayerOrder", keys: order },
+      };
+    }
+    case "image.setLayerOrder": {
+      const { list, order } = orderItems(plan.layers, command.keys, LAYER_NAMES);
+      return {
+        state: { ...plan, layers: list },
+        inverse: { type: "image.setLayerOrder", keys: order },
+      };
+    }
+    case "image.updateLayers": {
+      const { list, previous } = updateItems(
+        plan.layers,
+        command.updates,
+        LAYER_NAMES,
+        (item, props) => patchLayer(item, props, sourceSize),
+      );
+      return {
+        state: { ...plan, layers: list },
+        inverse: { type: "image.updateLayers", updates: previous },
       };
     }
     case "image.insertRedactions": {

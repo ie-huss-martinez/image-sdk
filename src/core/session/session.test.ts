@@ -306,6 +306,83 @@ describe("the image session (ADR 0003)", () => {
     expect(session.getSnapshot().plan?.redactions).toHaveLength(2);
   });
 
+  it("applies layers as undoable steps, counts them with redactions, and refuses to export what nothing draws", async () => {
+    const { session, events } = setup({ filePolicy: { maxLayers: 2 } });
+    await session.open(await file());
+    const start = session.getSnapshot().plan;
+    const source = session.getSnapshot().source;
+    if (!start || !source) throw new Error("no plan");
+    const box = {
+      name: "",
+      visible: true,
+      opacity: 100,
+      x: 0,
+      y: 0,
+      width: 4,
+      height: 4,
+      rotation: 0,
+    };
+    const caption = {
+      ...box,
+      key: "caption",
+      kind: "text",
+      text: "Hi",
+      font: "serif",
+      bold: false,
+      colour: "#000000",
+      align: "start",
+    } as const;
+    // An image layer may draw the open image itself: its source is registered.
+    const inset = { ...box, key: "inset", kind: "image", source: source.id, crop: null } as const;
+    session.execute({ type: "image.insertLayers", at: 0, layers: [caption] });
+    session.execute({
+      type: "image.insertRedactions",
+      at: 0,
+      redactions: [{ key: "r", mode: "pixelate", x: 0, y: 0, width: 2, height: 2 }],
+    });
+    // Two items is the limit here, whichever lists they're in.
+    let error: unknown;
+    try {
+      session.execute({ type: "image.insertLayers", at: 1, layers: [inset] });
+    } catch (reason) {
+      error = reason;
+    }
+    expect(isImageError(error, "TOO_MANY_LAYERS")).toBe(true);
+    expect(session.getSnapshot().plan?.layers).toEqual([caption]);
+
+    // A host's plan replaces the list as one step.
+    session.applyPlan({ ...start, layers: [inset] });
+    expect(events.at(-1)?.commands).toEqual([
+      "image.removeLayers",
+      "image.insertLayers",
+      "image.removeRedactions",
+    ]);
+    expect(session.getSnapshot().plan?.layers).toEqual([inset]);
+    expect(session.undo()).toBe(true);
+    expect(session.getSnapshot().plan?.layers).toEqual([caption]);
+    expect(session.getSnapshot().plan?.redactions).toHaveLength(1);
+
+    // An image layer of a source the session doesn't hold is refused.
+    expect(() =>
+      session.execute({
+        type: "image.updateLayers",
+        updates: [{ key: "caption", props: { text: "\u202E" } }],
+      }),
+    ).toThrow();
+    expect(() =>
+      session.execute({
+        type: "image.insertLayers",
+        at: 0,
+        layers: [{ ...inset, key: "other", source: "another-file" }],
+      }),
+    ).toThrow();
+
+    // Until a renderer draws layers, nothing is exported without them (ADR 0009).
+    const failure = await session.export({ type: "png" }).catch((reason: unknown) => reason);
+    expect(isImageError(failure, "UNSUPPORTED_PLAN")).toBe(true);
+    expect((failure as { details?: unknown }).details).toEqual({ reason: "layers" });
+  });
+
   it("exports a plan with redactions", async () => {
     const { session } = setup();
     await session.open(await file());
