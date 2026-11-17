@@ -147,7 +147,9 @@ export interface ImageSession {
    * Makes the document's plan equal to `plan`, as one undoable step of the
    * commands that reach it, checked as `execute` checks them (ADR 0003). A
    * plan equal to the current one changes nothing. A plan over another
-   * source is `INVALID_COMMAND`. For editors whose host holds the plan.
+   * source is `INVALID_COMMAND`, and so is one without `layers`,
+   * `redactions` and `animation`, such as a plan stored before format
+   * version 2. For editors whose host holds the plan.
    */
   applyPlan(plan: ImagePlan): void;
   /**
@@ -203,6 +205,18 @@ export function commandsBetween(from: ImagePlan, to: ImagePlan): ImageCommand[] 
   for (const field of Object.keys(to.metadata) as (keyof ImageKeepableMetadata)[]) {
     if (from.metadata[field] !== to.metadata[field]) {
       commands.push({ type: "image.setMetadata", field, value: to.metadata[field] });
+    }
+  }
+  if (!same(from.redactions, to.redactions)) {
+    // The whole list is replaced: one step, whatever changed in it.
+    if (from.redactions.length > 0) {
+      commands.push({
+        type: "image.removeRedactions",
+        keys: from.redactions.map((redaction) => redaction.key),
+      });
+    }
+    if (to.redactions.length > 0) {
+      commands.push({ type: "image.insertRedactions", at: 0, redactions: to.redactions });
     }
   }
   return commands;
@@ -304,6 +318,10 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     if (source) {
       checkOutputLimits(policy, outputSize(state.output, compositionSize(state, source)));
     }
+    // Only a step that adds items is checked, so a plan already over a
+    // lowered limit can still be edited and emptied (ADR 0004).
+    const items = state.layers.length + state.redactions.length;
+    if (items > from.layers.length + from.redactions.length) policy.check("maxLayers", items);
     const step: HistoryStep<ImageCommand> = { commands: [...commands], inverses: [...inverses] };
     return { state, step };
   };
@@ -418,8 +436,20 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
 
     applyPlan(next) {
       assertAlive();
-      if (plan === null || next.base.source !== plan.base.source) {
-        const failure = new ImageError("INVALID_COMMAND", "The plan isn't for the open image.");
+      // A plan from before format version 2 has no lists: it's read with
+      // `readImagePlanDocument`, which migrates it, not applied as it is.
+      const shaped =
+        Array.isArray(next.redactions) &&
+        Array.isArray(next.layers) &&
+        next.layers.length === 0 &&
+        next.animation === null;
+      if (plan === null || !shaped || next.base.source !== plan.base.source) {
+        const failure = new ImageError(
+          "INVALID_COMMAND",
+          shaped
+            ? "The plan isn't for the open image."
+            : "The plan needs layers, redactions and animation, as createPlan gives them.",
+        );
         error = failure;
         publish();
         throw failure;

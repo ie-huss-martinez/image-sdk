@@ -3,6 +3,7 @@ import { ImageError } from "../../core/errors/image-error.js";
 import { checkFileLimits, checkOutputLimits, imageLimits } from "../../core/errors/image-limits.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { backingSize } from "../../core/ports/image-renderer.js";
+import { checkPlanSupport, type ImagePlanPart } from "../../core/ports/plan-support.js";
 import { decodeUpright } from "../decode/decode.js";
 import { encodePlan } from "../export/encode.js";
 import { drawPreview } from "../export/preview.js";
@@ -23,6 +24,13 @@ function sameDecode(a: ImageProbe, b: ImageProbe): boolean {
     a.oriented.height === b.oriented.height
   );
 }
+
+/**
+ * The parts of a plan this worker draws, beyond the base. A plan with any
+ * other is refused before anything is drawn (docs/adr/0009): redactions
+ * join this list with their renderer, never before it.
+ */
+const DRAWS: readonly ImagePlanPart[] = [];
 
 /**
  * Answers the render worker's contract (docs/adr/0002). It does nothing on
@@ -65,6 +73,7 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         });
       },
       async export({ plan, format, limits }, { signal }) {
+        checkPlanSupport(plan, DRAWS);
         const source = sources.get(plan.base.source);
         if (!source) throw new TypeError(`There's no source with the id "${plan.base.source}".`);
         // The output canvas is checked before it's allocated (docs/adr/0004).
@@ -80,6 +89,7 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         return undefined;
       },
       async render({ id, plan, view, limits }, { signal }) {
+        checkPlanSupport(plan, DRAWS);
         // Before the canvas is resized, whatever the page checked (docs/adr/0004).
         checkOutputLimits(imageLimits.resolve(limits), backingSize(view));
         const context = canvases.get(id);

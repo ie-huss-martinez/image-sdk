@@ -33,6 +33,9 @@ export function checkOutputLimits(policy: ImageFilePolicy, size: {
 }): void;
 
 // @public
+export function checkPlanSupport(plan: ImagePlan, supported: readonly ImagePlanPart[]): void;
+
+// @public
 export function compositionDeltaToSource(dx: number, dy: number, orientation: ImageOrientation_2, source: ImageSize): {
     readonly dx: number;
     readonly dy: number;
@@ -102,7 +105,7 @@ export function handleInSource(handle: CropHandle, orientation: ImageOrientation
 export const IMAGE_PLAN_FORMAT = "hm-image-plan";
 
 // @public
-export const IMAGE_PLAN_VERSION = 1;
+export const IMAGE_PLAN_VERSION = 2;
 
 // @public
 export type ImageAspect = "free" | "original" | readonly [number, number];
@@ -131,10 +134,10 @@ export interface ImageCallOptions {
 }
 
 // @public
-export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand;
+export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand | InsertRedactionsCommand | RemoveRedactionsCommand | MoveRedactionsCommand | UpdateRedactionsCommand | ImageInverseCommand;
 
 // @public
-export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength";
+export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "invalid-key" | "duplicate-key" | "invalid-index" | "invalid-order" | "unknown-redaction" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unexpected-colour" | "missing-colour" | "too-many-layers";
 
 // @public
 export interface ImageCrop {
@@ -165,7 +168,7 @@ export interface ImageDevelop {
 }
 
 // @public
-export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength";
+export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "duplicate-key" | "invalid-key" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour";
 
 // @public
 export interface ImageEngine {
@@ -187,7 +190,7 @@ export class ImageError extends SdkError<ImageErrorCode> {
 }
 
 // @public
-export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "INVALID_DOCUMENT" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS";
+export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "INVALID_DOCUMENT" | "UNSUPPORTED_PLAN" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS";
 
 // @public
 export type ImageExportFormat = {
@@ -232,6 +235,9 @@ export type ImageFilterPreset = (typeof FILTER_PRESETS)[number];
 
 // @public
 export type ImageFormat = "png" | "jpeg" | "webp" | "gif" | "avif" | "heif" | "bmp";
+
+// @public
+export type ImageInverseCommand = RestoreRedactionsCommand | SetRedactionOrderCommand;
 
 // @public
 export interface ImageKeepableMetadata {
@@ -319,6 +325,7 @@ export const imageMessages: {
     readonly "errors.DECODE_FAILED": "This browser can't open this kind of image. Try another browser, or convert the file to PNG or JPEG.";
     readonly "errors.INVALID_COMMAND": "This edit couldn't be made. Please try again.";
     readonly "errors.INVALID_DOCUMENT": "This project is damaged, or it isn't an image project.";
+    readonly "errors.UNSUPPORTED_PLAN": "This image has edits this version can't show. Update the application and try again.";
     readonly "errors.IMAGE_TOO_LARGE": "This image has more pixels than the editor can handle. Try a smaller version of it.";
     readonly "errors.IMAGE_DIMENSION_TOO_LARGE": "This image is {actual, number} pixels across, which is over the {maximum, number}-pixel limit.";
     readonly "errors.TOO_MANY_FRAMES": {
@@ -365,6 +372,12 @@ export const imageMessages: {
     readonly "actions.image.setMetadata": "metadata";
     readonly "actions.image.setDevelop": "adjustment";
     readonly "actions.image.setFilter": "filter";
+    readonly "actions.image.insertRedactions": "redaction";
+    readonly "actions.image.removeRedactions": "redaction";
+    readonly "actions.image.restoreRedactions": "redaction";
+    readonly "actions.image.moveRedactions": "redaction order";
+    readonly "actions.image.setRedactionOrder": "redaction order";
+    readonly "actions.image.updateRedactions": "redaction change";
     readonly "toolbar.label": "Image tools";
     readonly "toolbar.groups.file": "File";
     readonly "toolbar.groups.history": "History";
@@ -581,11 +594,14 @@ export type ImageOutput = {
 
 // @public
 export interface ImagePlan {
+    readonly animation: null;
     // (undocumented)
     readonly base: ImageBase;
+    readonly layers: readonly [];
     readonly metadata: ImageKeepableMetadata;
     // (undocumented)
     readonly output: ImageOutput;
+    readonly redactions: readonly ImageRedaction[];
 }
 
 // @public
@@ -603,6 +619,9 @@ export interface ImagePlanDocumentSource extends ImageSize {
     // (undocumented)
     readonly asset?: ImageAssetReference;
 }
+
+// @public
+export type ImagePlanPart = "layers" | "redactions" | "animation";
 
 // @public
 export interface ImagePoint {
@@ -637,6 +656,42 @@ export interface ImageProcessor {
 // @public
 export interface ImageProgressOptions extends ImageCallOptions {
     readonly onProgress?: (fraction: number) => void;
+}
+
+// @public
+export type ImageRedaction = (ImageRedactionRegion & {
+    readonly mode: "solid";
+    readonly colour: string;
+}) | (ImageRedactionRegion & {
+    readonly mode: "pixelate";
+});
+
+// @public
+export type ImageRedactionMode = "solid" | "pixelate";
+
+// @public
+export interface ImageRedactionProps {
+    // (undocumented)
+    readonly colour?: string;
+    // (undocumented)
+    readonly height?: number;
+    // (undocumented)
+    readonly mode?: ImageRedaction["mode"];
+    // (undocumented)
+    readonly width?: number;
+    // (undocumented)
+    readonly x?: number;
+    // (undocumented)
+    readonly y?: number;
+}
+
+// @public
+export interface ImageRedactionRegion {
+    readonly height: number;
+    readonly key: string;
+    readonly width: number;
+    readonly x: number;
+    readonly y: number;
 }
 
 // @public
@@ -786,9 +841,21 @@ export interface ImageView {
 }
 
 // @public
+export interface InsertRedactionsCommand {
+    readonly at: number;
+    // (undocumented)
+    readonly redactions: readonly ImageRedaction[];
+    // (undocumented)
+    readonly type: "image.insertRedactions";
+}
+
+// @public
 export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value: unknown, code?: Code): value is ImageError & {
     readonly code: Code;
 };
+
+// @public
+export const MAX_KEY_LENGTH = 64;
 
 // @public
 export const MAX_METADATA_LENGTH = 2000;
@@ -797,7 +864,23 @@ export const MAX_METADATA_LENGTH = 2000;
 export const MAX_PIXEL_RATIO = 4;
 
 // @public
+export const MAX_PLAN_ITEMS = 1024;
+
+// @public
+export const MAX_SCENE_COORDINATE = 65536;
+
+// @public
 export function moveCrop(crop: ImageCrop, dx: number, dy: number, source: ImageSize): ImageCrop;
+
+// @public
+export interface MoveRedactionsCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly to: number;
+    // (undocumented)
+    readonly type: "image.moveRedactions";
+}
 
 // @public
 export const NEUTRAL_DEVELOP: ImageDevelop;
@@ -837,6 +920,28 @@ export function readImagePlanDocument(value: unknown): {
     readonly plan: ImagePlan;
     readonly sources: Readonly<Record<string, ImagePlanDocumentSource>>;
 };
+
+// @public
+export const REDACTION_MODES: readonly ["solid", "pixelate"];
+
+// @public
+export interface RemoveRedactionsCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly type: "image.removeRedactions";
+}
+
+// @public
+export interface RestoreRedactionsCommand {
+    // (undocumented)
+    readonly entries: readonly {
+        readonly at: number;
+        readonly redaction: ImageRedaction;
+    }[];
+    // (undocumented)
+    readonly type: "image.restoreRedactions";
+}
 
 // @public
 export interface SetCropCommand {
@@ -889,10 +994,29 @@ export interface SetOutputCommand {
 }
 
 // @public
+export interface SetRedactionOrderCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly type: "image.setRedactionOrder";
+}
+
+// @public
 export function sourceToComposition(point: ImagePoint, crop: ImageCrop, orientation: ImageOrientation_2): ImagePoint;
 
 // @public
 export function toImagePlanDocument(plan: ImagePlan, sources: Readonly<Record<string, ImagePlanDocumentSource>>): ImagePlanDocument;
+
+// @public
+export interface UpdateRedactionsCommand {
+    // (undocumented)
+    readonly type: "image.updateRedactions";
+    // (undocumented)
+    readonly updates: readonly {
+        readonly key: string;
+        readonly props: ImageRedactionProps;
+    }[];
+}
 
 // @public
 export const UPRIGHT: ImageOrientation_2;

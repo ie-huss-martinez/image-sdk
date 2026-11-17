@@ -1,17 +1,19 @@
-import { applyCommands } from "@hussmartinez/sdk-core";
 import fc from "fast-check";
 import {
   createPlan,
   DEVELOP_ADJUSTMENTS,
   FILTER_PRESETS,
   type ImagePlan,
+  type ImageRedaction,
 } from "../../src/core/model/plan.js";
 import { createImageReducer, type ImageCommand } from "../../src/core/operations/commands.js";
 
 /**
  * The plan reducer's property-test generators, shared by its tests and the
  * conformance vectors' generator (sdk-core ADR 0045): valid commands, and
- * plans reached by applying them to a new plan of source `s`.
+ * plans reached by applying them to a new plan of source `s`. Commands on
+ * the plan's lists depend on what the plan holds, so those are generated
+ * for a plan.
  */
 
 /** The oriented size of source `s`. */
@@ -68,7 +70,7 @@ const filter = fc.option(
   { nil: null },
 );
 
-/** Any valid command. */
+/** Any valid command that applies to every plan: the edits to the base, the output and metadata. */
 export const command: fc.Arbitrary<ImageCommand> = fc.oneof(
   developValues.map((values) => ({ type: "image.setDevelop" as const, values })),
   filter.map((value) => ({ type: "image.setFilter" as const, filter: value })),
@@ -80,10 +82,129 @@ export const command: fc.Arbitrary<ImageCommand> = fc.oneof(
     .map(({ field, value }) => ({ type: "image.setMetadata" as const, field, value })),
 );
 
+/** Keys as data: short text, and the names of `Object.prototype`'s properties. */
+const key = fc.oneof(
+  { weight: 4, arbitrary: fc.string({ minLength: 1, maxLength: 6 }) },
+  { weight: 1, arbitrary: fc.constantFrom("__proto__", "constructor", "toString") },
+);
+const position = fc.integer({ min: -20, max: 60 });
+const length = fc.integer({ min: 1, max: 50 });
+const colour = fc
+  .integer({ min: 0, max: 0xffffff })
+  .map((value) => `#${value.toString(16).padStart(6, "0")}`);
+const region = { x: position, y: position, width: length, height: length };
+
+/** A redaction with the given key. */
+const redactionWith = (itemKey: string): fc.Arbitrary<ImageRedaction> =>
+  fc.oneof(
+    fc.record({
+      key: fc.constant(itemKey),
+      mode: fc.constant("solid" as const),
+      ...region,
+      colour,
+    }),
+    fc.record({ key: fc.constant(itemKey), mode: fc.constant("pixelate" as const), ...region }),
+  );
+
+/** Some fields that apply to a redaction, whatever they set its mode to. */
+const propsFor = (item: ImageRedaction) => {
+  const some = fc.record(region, { requiredKeys: [] });
+  const withMode =
+    item.mode === "solid"
+      ? some.map((props) => ({ ...props, mode: "pixelate" as const }))
+      : fc.tuple(some, colour).map(([props, fill]) => ({
+          ...props,
+          mode: "solid" as const,
+          colour: fill,
+        }));
+  const sameMode =
+    item.mode === "solid"
+      ? fc
+          .tuple(some, fc.option(colour, { nil: undefined }))
+          .map(([props, fill]) => (fill === undefined ? props : { ...props, colour: fill }))
+      : some;
+  return fc.oneof(sameMode, withMode);
+};
+
+/** Some of the keys, at least one, in any order. */
+const someOf = (keys: readonly string[]) => fc.shuffledSubarray([...keys], { minLength: 1 });
+
+/** Any valid command for this plan, including those on its redactions. */
+export function commandOn(state: ImagePlan): fc.Arbitrary<ImageCommand> {
+  const keys = state.redactions.map((redaction) => redaction.key);
+  const insert = fc
+    .uniqueArray(
+      key.filter((value) => !keys.includes(value)),
+      { minLength: 1, maxLength: 3 },
+    )
+    .chain((fresh) =>
+      fc.record({
+        type: fc.constant("image.insertRedactions" as const),
+        at: fc.nat(keys.length),
+        redactions: fc.tuple(...fresh.map(redactionWith)),
+      }),
+    );
+  if (keys.length === 0) return fc.oneof(command, insert);
+  const remove = someOf(keys).map((chosen) => ({
+    type: "image.removeRedactions" as const,
+    keys: chosen,
+  }));
+  const move = someOf(keys).chain((chosen) =>
+    fc.record({
+      type: fc.constant("image.moveRedactions" as const),
+      keys: fc.constant(chosen),
+      to: fc.nat(keys.length - chosen.length),
+    }),
+  );
+  const update = someOf(keys).chain((chosen) =>
+    fc.record({
+      type: fc.constant("image.updateRedactions" as const),
+      updates: fc.tuple(
+        ...chosen.map((itemKey) =>
+          fc.record({
+            key: fc.constant(itemKey),
+            props: propsFor(
+              state.redactions.find((redaction) => redaction.key === itemKey) as ImageRedaction,
+            ),
+          }),
+        ),
+      ),
+    }),
+  );
+  return fc.oneof(command, insert, remove, move, update);
+}
+
+/** A plan and a sequence of commands, each valid on the plan the one before it gives. */
+function sequenceFrom(
+  state: ImagePlan,
+  count: number,
+): fc.Arbitrary<{ readonly state: ImagePlan; readonly commands: readonly ImageCommand[] }> {
+  if (count === 0) return fc.constant({ state, commands: [] });
+  return commandOn(state).chain((next) =>
+    sequenceFrom(reducer(state, next).state, count - 1).map((rest) => ({
+      state: rest.state,
+      commands: [next, ...rest.commands],
+    })),
+  );
+}
+
 /** A plan reached by applying valid commands to a new one. */
 export const plan: fc.Arbitrary<ImagePlan> = fc
-  .array(command, { maxLength: 6 })
-  .map((commands) => applyCommands(reducer, createPlan("s"), commands).state);
+  .nat(6)
+  .chain((count) => sequenceFrom(createPlan("s"), count))
+  .map(({ state }) => state);
+
+/** A plan, and a command that's valid for it. */
+export const planAndCommand: fc.Arbitrary<readonly [ImagePlan, ImageCommand]> = plan.chain(
+  (state) => commandOn(state).map((next) => [state, next] as const),
+);
+
+/** A plan, and up to eight commands that are valid for it in turn. */
+export const planAndCommands: fc.Arbitrary<readonly [ImagePlan, readonly ImageCommand[]]> = fc
+  .tuple(plan, fc.nat(8))
+  .chain(([state, count]) =>
+    sequenceFrom(state, count).map(({ commands }) => [state, commands] as const),
+  );
 
 /**
  * A value with one field replaced by any JSON value, or one added, as an own
@@ -97,7 +218,9 @@ export const mutated = <T extends object>(value: fc.Arbitrary<T>) =>
     .map(([original, index, name, replacement, add]) => {
       const copy: Record<string, unknown> = JSON.parse(JSON.stringify(original));
       const fields = Object.keys(copy);
-      const field = add || fields.length === 0 ? name : (fields[index % fields.length] as string);
+      const chosen = add || fields.length === 0 ? name : (fields[index % fields.length] as string);
+      // A list's `length` isn't a field: defining it would resize the list, or throw.
+      const field = Array.isArray(copy) && chosen === "length" ? "size" : chosen;
       Object.defineProperty(copy, field, {
         value: replacement,
         enumerable: true,

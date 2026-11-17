@@ -4,7 +4,7 @@ import type {
 } from "@hussmartinez/sdk-config/testing/conformance";
 import fc from "fast-check";
 import { type ImagePlan, NEUTRAL_DEVELOP, toImagePlanDocument } from "../../src/index.js";
-import { command, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
+import { commandOn, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
 import { applyToDocument, GEOMETRY_OPERATIONS, geometry, readAndWrite } from "./run.js";
 
 /**
@@ -29,7 +29,10 @@ const sources = { s: { ...SIZE }, t: { width: 4_000, height: 3_000 } };
 /** The value as JSON carries it: what a port reads from the file. */
 const asJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-/** A plan with every part set: a crop, a turn and a flip, develop, a filter, a size and a title. */
+/**
+ * A plan with every part set: a crop, a turn and a flip, develop, a filter,
+ * two redactions, a size and a title.
+ */
 const EDITED: ImagePlan = {
   base: {
     source: "s",
@@ -38,10 +41,20 @@ const EDITED: ImagePlan = {
     develop: { ...NEUTRAL_DEVELOP, exposure: 20, contrast: -15 },
     filter: { preset: "sepia", strength: 60 },
   },
+  layers: [],
+  redactions: [
+    { key: "face", mode: "solid", x: 4, y: 5, width: 12, height: 8, colour: "#000000" },
+    { key: "plate", mode: "pixelate", x: -3, y: 20, width: 30, height: 15 },
+  ],
+  animation: null,
   output: { kind: "scale", scale: 0.5 },
   metadata: { title: "Harbour at dusk", description: "", artist: "", copyright: "" },
 };
 const BASE = toImagePlanDocument(EDITED, sources);
+
+/** The same plan as version 1 had it: before redactions, so without them. */
+const { layers: _layers, redactions: _redactions, animation: _animation, ...V1_FIELDS } = BASE;
+const V1 = { ...V1_FIELDS, version: 1 };
 
 /**
  * A plan whose source ids are the names of `Object.prototype`'s properties,
@@ -98,17 +111,18 @@ function make(
 const applied: Outcome = { ok: true };
 const refused = (reason: string, code = "INVALID_COMMAND"): Outcome => ({ code, reason });
 
-/** Any command, with one field replaced or added, at its top or one level in. */
-const mutatedCommand = fc.oneof(
-  mutated(command),
-  command.chain((valid) => {
-    const [field, value] = Object.entries(valid)[1] ?? [];
-    if (field === undefined || typeof value !== "object" || value === null) {
-      return fc.constant(valid as unknown);
-    }
-    return mutated(fc.constant(value)).map((inner) => ({ ...valid, [field]: inner }));
-  }),
-);
+/** A command for the plan, with one field replaced or added, at its top or one level in. */
+const mutatedCommandOn = (state: ImagePlan) =>
+  fc.oneof(
+    mutated(commandOn(state)),
+    commandOn(state).chain((valid) => {
+      const [field, value] = Object.entries(valid)[1] ?? [];
+      if (field === undefined || typeof value !== "object" || value === null) {
+        return fc.constant(valid as unknown);
+      }
+      return mutated(fc.constant(value)).map((inner) => ({ ...valid, [field]: inner }));
+    }),
+  );
 
 /** `hm-image-commands`: a user-level command applied to a plan document. */
 export function commandCases(): ConformanceFile {
@@ -132,6 +146,41 @@ export function commandCases(): ConformanceFile {
   });
   // `__proto__` as an own key of a command's values, as JSON.parse makes it.
   const protoValues = JSON.parse('{"__proto__": 10}') as unknown;
+  const solid = (key: string, changes: Record<string, unknown> = {}) => ({
+    key,
+    mode: "solid",
+    x: 1,
+    y: 2,
+    width: 3,
+    height: 4,
+    colour: "#102030",
+    ...changes,
+  });
+  const pixelate = (key: string, changes: Record<string, unknown> = {}) => ({
+    key,
+    mode: "pixelate",
+    x: 1,
+    y: 2,
+    width: 3,
+    height: 4,
+    ...changes,
+  });
+  const insert = (at: unknown, ...redactions: unknown[]) => ({
+    type: "image.insertRedactions",
+    at,
+    redactions,
+  });
+  const remove = (...keys: unknown[]) => ({ type: "image.removeRedactions", keys });
+  const move = (to: unknown, ...keys: unknown[]) => ({ type: "image.moveRedactions", keys, to });
+  const update = (...updates: [unknown, unknown][]) => ({
+    type: "image.updateRedactions",
+    updates: updates.map(([key, props]) => ({ key, props })),
+  });
+  // A plan with as many redactions as the format holds.
+  const full = {
+    ...BASE,
+    redactions: Array.from({ length: 1_024 }, (_, index) => pixelate(`r${index}`)),
+  };
 
   const handWritten: [string, unknown, Outcome][] = [
     ["sets a crop", on(crop(0, 0, 40, 30)), applied],
@@ -155,6 +204,166 @@ export function commandCases(): ConformanceFile {
       "refuses a crop past the size of the source keyed __proto__",
       onNamed(crop(0, 0, 11, 8)),
       refused("crop-outside-source"),
+    ],
+    ["inserts a solid redaction between two", on(insert(1, solid("new"))), applied],
+    ["inserts two redactions at the end", on(insert(2, solid("a"), pixelate("b"))), applied],
+    [
+      "inserts a redaction outside the scene, at the furthest position",
+      on(insert(0, pixelate("far", { x: -65_536, y: 65_536, width: 65_536, height: 1 }))),
+      applied,
+    ],
+    [
+      "inserts redactions keyed __proto__, constructor and toString",
+      on(insert(0, solid("__proto__"), pixelate("constructor"), solid("toString"))),
+      applied,
+    ],
+    [
+      "inserts a redaction with a key of 64 code points",
+      on(insert(0, solid("𝄞".repeat(64)))),
+      applied,
+    ],
+    ["removes a redaction", on(remove("face")), applied],
+    ["removes every redaction, listed in any order", on(remove("plate", "face")), applied],
+    ["moves a redaction to the end", on(move(1, "face")), applied],
+    ["moves both redactions, which keep their order", on(move(0, "plate", "face")), applied],
+    ["moves a redaction's region", on(update(["face", { x: 10, y: -2 }])), applied],
+    [
+      "updates two redactions at once",
+      on(update(["face", { colour: "#ffffff" }], ["plate", { width: 1 }])),
+      applied,
+    ],
+    [
+      "sets a solid redaction to pixelate, which drops its colour",
+      on(update(["face", { mode: "pixelate" }])),
+      applied,
+    ],
+    [
+      "sets a pixelated redaction to solid, with a colour",
+      on(update(["plate", { mode: "solid", colour: "#00ff00" }])),
+      applied,
+    ],
+    ["updates nothing with empty props", on(update(["face", {}])), applied],
+    [
+      "refuses a redaction whose key the plan already uses",
+      on(insert(0, solid("plate"))),
+      refused("duplicate-key"),
+    ],
+    [
+      "refuses two new redactions with one key",
+      on(insert(0, solid("a"), pixelate("a"))),
+      refused("duplicate-key"),
+    ],
+    ["refuses an index past the end", on(insert(3, solid("a"))), refused("invalid-index")],
+    ["refuses a negative index", on(insert(-1, solid("a"))), refused("malformed-command")],
+    ["refuses no redactions", on(insert(0)), refused("malformed-command")],
+    ["refuses an empty key", on(insert(0, solid(""))), refused("invalid-key")],
+    [
+      "refuses a key of 65 code points",
+      on(insert(0, solid("𝄞".repeat(65)))),
+      refused("invalid-key"),
+    ],
+    [
+      "refuses a key that isn't text",
+      on(insert(0, solid(7 as never))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a blurred redaction",
+      on(insert(0, pixelate("a", { mode: "blur" }))),
+      refused("unknown-redaction-mode"),
+    ],
+    [
+      "refuses a region under one pixel",
+      on(insert(0, solid("a", { width: 0 }))),
+      refused("invalid-region"),
+    ],
+    [
+      "refuses a region further than 65,536 pixels from the origin",
+      on(insert(0, solid("a", { x: 65_537 }))),
+      refused("invalid-region"),
+    ],
+    [
+      "refuses a fractional region",
+      on(insert(0, solid("a", { y: 0.5 }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a colour in capitals",
+      on(insert(0, solid("a", { colour: "#FFFFFF" }))),
+      refused("invalid-colour"),
+    ],
+    [
+      "refuses a colour with an alpha",
+      on(insert(0, solid("a", { colour: "#00000080" }))),
+      refused("invalid-colour"),
+    ],
+    [
+      "refuses a solid redaction without a colour",
+      on(insert(0, { ...pixelate("a"), mode: "solid" })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a pixelated redaction with a colour",
+      on(insert(0, { ...solid("a"), mode: "pixelate" })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a redaction with an opacity",
+      on(insert(0, solid("a", { opacity: 50 }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses one redaction more than the format holds",
+      { plan: full, command: insert(0, pixelate("one-more")) },
+      refused("too-many-layers"),
+    ],
+    [
+      "refuses to remove a redaction the plan doesn't have",
+      on(remove("nose")),
+      refused("unknown-redaction"),
+    ],
+    [
+      "refuses to remove a key only Object.prototype has",
+      on(remove("toString")),
+      refused("unknown-redaction"),
+    ],
+    ["refuses a key listed twice", on(remove("face", "face")), refused("malformed-command")],
+    ["refuses to remove nothing", on(remove()), refused("malformed-command")],
+    ["refuses to move past the end of the rest", on(move(2, "face")), refused("invalid-index")],
+    [
+      "refuses to update a redaction the plan doesn't have",
+      on(update(["nose", { x: 1 }])),
+      refused("unknown-redaction"),
+    ],
+    [
+      "refuses two updates of one redaction",
+      on(update(["face", { x: 1 }], ["face", { y: 1 }])),
+      refused("duplicate-key"),
+    ],
+    [
+      "refuses to change a key",
+      on(update(["face", { key: "nose" }])),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a colour on a pixelated redaction",
+      on(update(["plate", { colour: "#000000" }])),
+      refused("unexpected-colour"),
+    ],
+    [
+      "refuses a colour with a change to pixelate",
+      on(update(["face", { mode: "pixelate", colour: "#000000" }])),
+      refused("unexpected-colour"),
+    ],
+    [
+      "refuses a change to solid without a colour",
+      on(update(["plate", { mode: "solid" }])),
+      refused("missing-colour"),
+    ],
+    [
+      "refuses an update that leaves a region under one pixel",
+      on(update(["face", { height: 0 }])),
+      refused("invalid-region"),
     ],
     ["refuses a command that isn't an object", on(null), refused("malformed-command")],
     ["refuses a list", on([crop(0, 0, 1, 1)]), refused("malformed-command")],
@@ -258,7 +467,12 @@ export function commandCases(): ConformanceFile {
   const refusals = new Map<string, number>();
   let applies = 0;
   const samples = fc.sample(
-    fc.tuple(planArb, fc.oneof(command as fc.Arbitrary<unknown>, mutatedCommand)),
+    planArb.chain((state) =>
+      fc.tuple(
+        fc.constant(state),
+        fc.oneof(commandOn(state) as fc.Arbitrary<unknown>, mutatedCommandOn(state)),
+      ),
+    ),
     { seed: SEED, numRuns: 4_000 },
   );
   for (const [state, cmd] of samples) {
@@ -311,6 +525,73 @@ export function planCases(): ConformanceFile {
   });
   const handWritten: [string, unknown, Outcome][] = [
     ["reads a document unchanged", BASE, applied],
+    ["reads version 1 as a plan with no layers, redactions or animation", V1, applied],
+    [
+      "refuses a version 1 document with version 2's fields",
+      { ...V1, redactions: [] },
+      invalidDocument("malformed-document"),
+    ],
+    ["reads a plan with no redactions", document({ redactions: [] }), applied],
+    [
+      "reads redactions keyed __proto__, constructor and toString",
+      document({
+        redactions: ["__proto__", "constructor", "toString"].map((key) => ({
+          ...BASE.redactions[1],
+          key,
+        })),
+      }),
+      applied,
+    ],
+    [
+      "refuses two redactions with one key",
+      document({ redactions: [BASE.redactions[0], { ...BASE.redactions[1], key: "face" }] }),
+      invalidDocument("duplicate-key"),
+    ],
+    [
+      "refuses more redactions than the format holds",
+      document({
+        redactions: Array.from({ length: 1_025 }, (_, index) => ({
+          ...BASE.redactions[1],
+          key: `r${index}`,
+        })),
+      }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a redaction with a visibility",
+      document({ redactions: [{ ...BASE.redactions[0], visible: false }] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a blurred redaction",
+      document({ redactions: [{ ...BASE.redactions[1], mode: "blur" }] }),
+      invalidDocument("unknown-redaction-mode"),
+    ],
+    [
+      "refuses a redaction of no pixels",
+      document({ redactions: [{ ...BASE.redactions[1], width: 0 }] }),
+      invalidDocument("invalid-region"),
+    ],
+    [
+      "refuses a colour that isn't #rrggbb",
+      document({ redactions: [{ ...BASE.redactions[0], colour: "black" }] }),
+      invalidDocument("invalid-colour"),
+    ],
+    [
+      "refuses an empty key",
+      document({ redactions: [{ ...BASE.redactions[1], key: "" }] }),
+      invalidDocument("invalid-key"),
+    ],
+    [
+      "refuses a layer, which arrives in a later version",
+      document({ layers: [{ key: "t", kind: "text" }] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses an animation, which arrives in a later version",
+      document({ animation: { loop: 0, frames: [] } }),
+      invalidDocument("malformed-document"),
+    ],
     [
       "reads a new plan: no crop, upright, neutral, unfiltered, full size",
       withBase({
@@ -352,16 +633,16 @@ export function planCases(): ConformanceFile {
     ],
     [
       "refuses a later version",
-      document({ version: 2 }),
+      document({ version: 3 }),
       refused("unknown-format-version", "UNSUPPORTED_FORMAT"),
     ],
     ["refuses a list", [BASE], invalidDocument("malformed-document")],
     [
       "refuses a version that isn't a number",
-      document({ version: "1" }),
+      document({ version: "2" }),
       invalidDocument("malformed-document"),
     ],
-    ["refuses an unknown field", document({ layers: [] }), invalidDocument("malformed-document")],
+    ["refuses an unknown field", document({ canvas: null }), invalidDocument("malformed-document")],
     [
       "refuses a missing field",
       { ...BASE, output: undefined },

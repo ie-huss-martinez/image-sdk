@@ -6,7 +6,12 @@ import {
   cropRect,
   outputSize,
 } from "../../src/core/model/geometry.js";
-import { checkOutputLimits, type ImageProcessor, imageLimits } from "../../src/index.js";
+import {
+  checkOutputLimits,
+  checkPlanSupport,
+  type ImageProcessor,
+  imageLimits,
+} from "../../src/index.js";
 import type { FakeEngine } from "./fake-engine.js";
 import { encodeJson, type FakeExportFile } from "./fake-image.js";
 
@@ -22,6 +27,8 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
         throw new Error("The processor was destroyed.");
       }
       throwIfAborted(options?.signal);
+      // It draws the base only, so it refuses anything else (ADR 0009).
+      checkPlanSupport(plan, []);
       const source = engine.sources.get(plan.base.source);
       if (source === undefined) {
         throw new TypeError(`Unknown source "${plan.base.source}".`);

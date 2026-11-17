@@ -4,6 +4,7 @@ import { createFakeEngine, type FakeEngine } from "../../../test/fakes/fake-engi
 import { createFakeProcessor } from "../../../test/fakes/fake-processor.js";
 import { fakeEngineHarness } from "../../../test/fakes/harness.js";
 import { isImageError } from "../errors/image-error.js";
+import type { ImagePlan } from "../model/plan.js";
 import type { ImageEngine } from "../ports/image-engine.js";
 import type { ImageProcessor } from "../ports/image-processor.js";
 import { createImageSession, type ImageSessionEvent, type ImageSessionOptions } from "./session.js";
@@ -247,6 +248,74 @@ describe("the image session (ADR 0003)", () => {
         base: { ...target.base, develop: { ...target.base.develop, tint: 500 } },
       }),
     ).toThrow();
+  });
+
+  it("applies a host's redactions as one step, and refuses a plan from before they existed", async () => {
+    const { session, events } = setup();
+    await session.open(await file());
+    const start = session.getSnapshot().plan;
+    if (!start) throw new Error("no plan");
+    const first = {
+      key: "a",
+      mode: "solid",
+      x: 0,
+      y: 0,
+      width: 4,
+      height: 4,
+      colour: "#000000",
+    } as const;
+    const second = { key: "b", mode: "pixelate", x: 2, y: 2, width: 4, height: 4 } as const;
+    session.applyPlan({ ...start, redactions: [first] });
+    expect(events.at(-1)?.commands).toEqual(["image.insertRedactions"]);
+    session.applyPlan({ ...start, redactions: [second, first] });
+    expect(events.at(-1)?.commands).toEqual(["image.removeRedactions", "image.insertRedactions"]);
+    expect(session.getSnapshot().plan?.redactions).toEqual([second, first]);
+    expect(session.undo()).toBe(true);
+    expect(session.getSnapshot().plan?.redactions).toEqual([first]);
+    session.applyPlan(start);
+    expect(session.getSnapshot().plan?.redactions).toEqual([]);
+
+    // A plan stored before format version 2 has no lists. It isn't read as
+    // a plan without redactions: the host migrates it with the reader.
+    const { layers: _layers, redactions: _redactions, animation: _animation, ...old } = start;
+    const before = session.getSnapshot().plan;
+    expect(() => session.applyPlan(old as ImagePlan)).toThrow(/createPlan/);
+    expect(session.getSnapshot().plan).toBe(before);
+  });
+
+  it("checks maxLayers when a step adds redactions, and never when it removes them", async () => {
+    const { session } = setup({ filePolicy: { maxLayers: 2 } });
+    await session.open(await file());
+    const redaction = (key: string) =>
+      ({ key, mode: "pixelate", x: 0, y: 0, width: 2, height: 2 }) as const;
+    session.execute({
+      type: "image.insertRedactions",
+      at: 0,
+      redactions: [redaction("a"), redaction("b")],
+    });
+    let error: unknown;
+    try {
+      session.execute({ type: "image.insertRedactions", at: 0, redactions: [redaction("c")] });
+    } catch (reason) {
+      error = reason;
+    }
+    expect(isImageError(error, "TOO_MANY_LAYERS")).toBe(true);
+    expect(session.getSnapshot().plan?.redactions).toHaveLength(2);
+    session.execute({ type: "image.removeRedactions", keys: ["a"] });
+    expect(session.undo()).toBe(true);
+    expect(session.getSnapshot().plan?.redactions).toHaveLength(2);
+  });
+
+  it("refuses to export a plan with redactions until a processor draws them", async () => {
+    const { session } = setup();
+    await session.open(await file());
+    session.execute({
+      type: "image.insertRedactions",
+      at: 0,
+      redactions: [{ key: "a", mode: "solid", x: 0, y: 0, width: 2, height: 2, colour: "#000000" }],
+    });
+    const error = await session.export({ type: "png" }).catch((reason: unknown) => reason);
+    expect(isImageError(error, "UNSUPPORTED_PLAN")).toBe(true);
   });
 
   it("rejects an invalid command and changes nothing", async () => {

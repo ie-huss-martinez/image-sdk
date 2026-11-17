@@ -4,6 +4,7 @@ import {
   createPlan,
   type ExifOrientation,
   type ImageEngine,
+  type ImageError,
   type ImagePlan,
   type ImageProcessor,
   imageLimits,
@@ -242,6 +243,33 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
       );
       expect(progress.at(-1)).toBe(1);
       expect(progress).toEqual([...progress].sort((a, b) => a - b));
+      await processor.destroy();
+      await engine.destroy();
+    });
+
+    it("refuses a plan with a part it can't draw, and exports nothing without it", async () => {
+      const { engine, processor, plan } = await open(harness, { width: 4, height: 4 });
+      // Until the redaction renderer lands, a redaction is such a part: an
+      // export without it would show what it's meant to hide (ADR 0009).
+      const redacted: ImagePlan = {
+        ...plan,
+        redactions: [
+          { key: "r", mode: "solid", x: 0, y: 0, width: 2, height: 2, colour: "#000000" },
+        ],
+      };
+      const animated = { ...plan, animation: { loop: 0, frames: [] } } as unknown as ImagePlan;
+      const layered = { ...plan, layers: [{ key: "t", kind: "text" }] } as unknown as ImagePlan;
+      for (const [unsupported, part] of [
+        [redacted, "redactions"],
+        [animated, "animation"],
+        [layered, "layers"],
+      ] as const) {
+        const error = await rejection(
+          processor.export({ plan: unsupported, format: { type: "png" } }),
+        );
+        expect(isImageError(error, "UNSUPPORTED_PLAN"), part).toBe(true);
+        expect((error as ImageError).details).toEqual({ reason: part });
+      }
       await processor.destroy();
       await engine.destroy();
     });

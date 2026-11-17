@@ -28,6 +28,7 @@ const ALL_CODES: Record<ImageErrorCode, true> = {
   DECODE_FAILED: true,
   INVALID_COMMAND: true,
   INVALID_DOCUMENT: true,
+  UNSUPPORTED_PLAN: true,
   IMAGE_TOO_LARGE: true,
   IMAGE_DIMENSION_TOO_LARGE: true,
   TOO_MANY_FRAMES: true,
