@@ -7,8 +7,8 @@ import {
 import { Ajv2020 } from "ajv/dist/2020.js";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { toImagePlanDocument } from "../../src/index.js";
-import { command, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
+import { type ImagePlan, toImagePlanDocument } from "../../src/index.js";
+import { commandOn, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
 import { commandCases, geometryCases, planCases } from "./generate.js";
 import { applyToDocument, geometry, readAndWrite } from "./run.js";
 
@@ -42,11 +42,23 @@ describeConformance(GEOMETRY, geometry);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 const schema = (path: string) =>
   JSON.parse(readFileSync(new URL(`../../formats/${path}`, import.meta.url), "utf8")) as object;
-ajv.addSchema(schema("hm-image-plan/v1.schema.json"));
-const planValid = ajv.getSchema(
-  "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats/hm-image-plan/v1.schema.json",
-) as (value: unknown) => boolean;
-const commandValid = ajv.compile(schema("hm-image-command/v1.schema.json"));
+const FORMATS = "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats";
+// Every version's schemas: a reader reads them all, and writes the latest.
+for (const version of [1, 2]) ajv.addSchema(schema(`hm-image-plan/v${version}.schema.json`));
+const planSchema = (version: number) =>
+  ajv.getSchema(`${FORMATS}/hm-image-plan/v${version}.schema.json`) as (value: unknown) => boolean;
+const planValid = planSchema(2);
+const commandValid = ajv.compile(schema("hm-image-command/v2.schema.json"));
+const commandValidV1 = ajv.compile(schema("hm-image-command/v1.schema.json"));
+
+/** The schema of the version a document names, or the latest for one that names none. */
+const validForItsVersion = (document: unknown) =>
+  (document as { version?: unknown } | null)?.version === 1
+    ? planSchema(1)(document)
+    : planValid(document);
+
+/** The commands that only undo others: the reducer applies them, the format leaves them out. */
+const INVERSE_ONLY = new Set(["image.restoreRedactions", "image.setRedactionOrder"]);
 
 /**
  * Refusals the schemas express themselves. The others, a crop outside its
@@ -67,6 +79,10 @@ const STRUCTURAL = new Set([
   "invalid-level",
   "unknown-preset",
   "invalid-strength",
+  "invalid-key",
+  "unknown-redaction-mode",
+  "invalid-region",
+  "invalid-colour",
 ]);
 
 const refusal = ({ expected }: ConformanceCase) =>
@@ -77,7 +93,7 @@ describe("the format schemas agree with the readers", () => {
     for (const testCase of readConformance(PLANS).cases) {
       const reason = refusal(testCase);
       const structural = reason !== undefined && STRUCTURAL.has(reason);
-      expect(planValid(testCase.input), testCase.name).toBe(!structural);
+      expect(validForItsVersion(testCase.input), testCase.name).toBe(!structural);
     }
   });
 
@@ -91,18 +107,31 @@ describe("the format schemas agree with the readers", () => {
     }
   });
 
+  it("keep version 1's commands valid in version 2, unchanged", () => {
+    for (const testCase of readConformance(COMMANDS).cases) {
+      const { command: cmd } = testCase.input as { command: unknown };
+      if (commandValidV1(cmd)) expect(commandValid(cmd), testCase.name).toBe(true);
+    }
+  });
+
   const sources = { s: { ...SIZE } };
 
-  it("never let the reducer apply a command the schema refuses", () => {
-    const inner = command.chain((valid) => {
-      const [field, value] = Object.entries(valid)[1] ?? [];
-      if (field === undefined || typeof value !== "object" || value === null) {
-        return fc.constant(valid as unknown);
-      }
-      return mutated(fc.constant(value)).map((changed) => ({ ...valid, [field]: changed }));
-    });
+  it("never let the reducer apply a user command the schema refuses", () => {
+    const inner = (state: ImagePlan) =>
+      commandOn(state).chain((valid) => {
+        const [field, value] = Object.entries(valid)[1] ?? [];
+        if (field === undefined || typeof value !== "object" || value === null) {
+          return fc.constant(valid as unknown);
+        }
+        return mutated(fc.constant(value)).map((changed) => ({ ...valid, [field]: changed }));
+      });
+    const cases = planArb.chain((state) =>
+      fc.tuple(fc.constant(state), fc.oneof(mutated(commandOn(state)), inner(state))),
+    );
     fc.assert(
-      fc.property(planArb, fc.oneof(mutated(command), inner), (state, cmd) => {
+      fc.property(cases, ([state, cmd]) => {
+        // An inverse is the reducer's own, and isn't in the format.
+        if (INVERSE_ONLY.has((cmd as { type?: unknown }).type as string)) return;
         const plan = toImagePlanDocument(state, sources);
         let applied = true;
         try {
@@ -126,8 +155,19 @@ describe("the format schemas agree with the readers", () => {
         })),
       ),
     );
+    // One redaction with a field replaced or added, where the document has any.
+    const redacted = document.chain((value) =>
+      value.redactions.length === 0
+        ? fc.constant(value as unknown)
+        : fc.nat(value.redactions.length - 1).chain((index) =>
+            mutated(fc.constant(value.redactions[index] as object)).map((changed) => ({
+              ...value,
+              redactions: value.redactions.map((item, at) => (at === index ? changed : item)),
+            })),
+          ),
+    );
     fc.assert(
-      fc.property(fc.oneof(mutated(document), nested), (value) => {
+      fc.property(fc.oneof(mutated(document), nested, redacted), (value) => {
         let accepted = true;
         try {
           readAndWrite(value);

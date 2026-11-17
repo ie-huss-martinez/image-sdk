@@ -36,6 +36,8 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
     "This browser can't open this kind of image. Try another browser, or convert the file to PNG or JPEG.",
   "errors.INVALID_COMMAND": "This edit couldn't be made. Please try again.",
   "errors.INVALID_DOCUMENT": "This project is damaged, or it isn't an image project.",
+  "errors.UNSUPPORTED_PLAN":
+    "This image has edits this version can't show. Update the application and try again.",
   "errors.IMAGE_TOO_LARGE":
     "This image has more pixels than the editor can handle. Try a smaller version of it.",
   "errors.IMAGE_DIMENSION_TOO_LARGE":
@@ -80,6 +82,12 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
   "actions.image.setMetadata": "metadata",
   "actions.image.setDevelop": "adjustment",
   "actions.image.setFilter": "filter",
+  "actions.image.insertRedactions": "redaction",
+  "actions.image.removeRedactions": "redaction",
+  "actions.image.restoreRedactions": "redaction",
+  "actions.image.moveRedactions": "redaction order",
+  "actions.image.setRedactionOrder": "redaction order",
+  "actions.image.updateRedactions": "redaction change",
   "toolbar.label": "Image tools",
   "toolbar.groups.file": "File",
   "toolbar.groups.history": "History",

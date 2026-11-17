@@ -71,6 +71,9 @@ export type {
   ImageOrientation,
   ImageOutput,
   ImagePlan,
+  ImageRedaction,
+  ImageRedactionMode,
+  ImageRedactionRegion,
   ImageRotation,
 } from "./core/model/plan.js";
 export {
@@ -78,7 +81,11 @@ export {
   DEVELOP_ADJUSTMENTS,
   FILTER_PRESETS,
   FULL_SIZE,
+  MAX_KEY_LENGTH,
+  MAX_PLAN_ITEMS,
+  MAX_SCENE_COORDINATE,
   NEUTRAL_DEVELOP,
+  REDACTION_MODES,
   UPRIGHT,
 } from "./core/model/plan.js";
 export type {
@@ -95,14 +102,22 @@ export { EMPTY_KEEPABLE_METADATA, MAX_METADATA_LENGTH, NO_METADATA } from "./cor
 export type {
   ImageCommand,
   ImageCommandRejection,
+  ImageInverseCommand,
+  InsertRedactionsCommand,
+  MoveRedactionsCommand,
+  RemoveRedactionsCommand,
+  RestoreRedactionsCommand,
   SetCropCommand,
   SetDevelopCommand,
   SetFilterCommand,
   SetMetadataCommand,
   SetOrientationCommand,
   SetOutputCommand,
+  SetRedactionOrderCommand,
+  UpdateRedactionsCommand,
 } from "./core/operations/commands.js";
 export { createImageReducer } from "./core/operations/commands.js";
+export type { ImageRedactionProps } from "./core/operations/redactions.js";
 export type { ImageEngine } from "./core/ports/image-engine.js";
 export type {
   ImageExportFormat,
@@ -127,6 +142,8 @@ export type {
   ImageProgressOptions,
   ImageRegisterOptions,
 } from "./core/ports/options.js";
+export type { ImagePlanPart } from "./core/ports/plan-support.js";
+export { checkPlanSupport } from "./core/ports/plan-support.js";
 export type {
   ImageSession,
   ImageSessionEvent,

@@ -9,7 +9,9 @@ import {
   type ImageOrientation,
   type ImageOutput,
   type ImagePlan,
+  type ImageRedaction,
   isValidCrop,
+  MAX_PLAN_ITEMS,
 } from "../model/plan.js";
 import {
   type ImageKeepableMetadata,
@@ -17,6 +19,24 @@ import {
   longerThan,
   MAX_METADATA_LENGTH,
 } from "../model/source.js";
+import { allFields, Invalid, invalid, isRecord, isWhole } from "./checks.js";
+import {
+  insertItems,
+  type KeyedEntry,
+  moveItems,
+  orderItems,
+  removeItems,
+  restoreItems,
+  updateItems,
+} from "./keyed-list.js";
+import {
+  checkRedaction,
+  type ImageRedactionProps,
+  patchRedaction,
+  REDACTION_NAMES,
+} from "./redactions.js";
+
+export { Invalid, invalid, isRecord, onlyFields } from "./checks.js";
 
 /**
  * Sets or removes the base's crop, in whole pixels of the oriented source.
@@ -81,8 +101,87 @@ export interface SetFilterCommand {
 }
 
 /**
+ * Inserts redactions at an index of the plan's redactions (ADR 0010). Each
+ * needs a key no layer or redaction of the plan has.
+ *
+ * @public
+ */
+export interface InsertRedactionsCommand {
+  readonly type: "image.insertRedactions";
+  /** From 0 to the number of redactions. */
+  readonly at: number;
+  readonly redactions: readonly ImageRedaction[];
+}
+
+/**
+ * Removes redactions, by key.
+ *
+ * @public
+ */
+export interface RemoveRedactionsCommand {
+  readonly type: "image.removeRedactions";
+  readonly keys: readonly string[];
+}
+
+/**
+ * Moves redactions to an index of the list without them, keeping the order
+ * they had. The order only decides how overlapping redactions look.
+ *
+ * @public
+ */
+export interface MoveRedactionsCommand {
+  readonly type: "image.moveRedactions";
+  readonly keys: readonly string[];
+  readonly to: number;
+}
+
+/**
+ * Sets some fields of some redactions, such as their regions after a move.
+ *
+ * @public
+ */
+export interface UpdateRedactionsCommand {
+  readonly type: "image.updateRedactions";
+  readonly updates: readonly { readonly key: string; readonly props: ImageRedactionProps }[];
+}
+
+/**
+ * Puts removed redactions back, each at its index, by rising index. It's
+ * what undoes {@link RemoveRedactionsCommand}: the reducer applies it, but
+ * it isn't part of the portable command format (ADR 0009).
+ *
+ * @public
+ */
+export interface RestoreRedactionsCommand {
+  readonly type: "image.restoreRedactions";
+  readonly entries: readonly { readonly at: number; readonly redaction: ImageRedaction }[];
+}
+
+/**
+ * Sets the whole order of the redactions: every key, once. It's what undoes
+ * {@link MoveRedactionsCommand}: the reducer applies it, but it isn't part
+ * of the portable command format (ADR 0009).
+ *
+ * @public
+ */
+export interface SetRedactionOrderCommand {
+  readonly type: "image.setRedactionOrder";
+  readonly keys: readonly string[];
+}
+
+/**
+ * The commands that exist only to undo others. The reducer applies them, and
+ * they're plain data like every command, but the `hm-image-command` format
+ * doesn't include them: an inverse's shape may change between releases
+ * (sdk-core ADR 0045).
+ *
+ * @public
+ */
+export type ImageInverseCommand = RestoreRedactionsCommand | SetRedactionOrderCommand;
+
+/**
  * Every edit to an {@link ImagePlan}: plain, structured-cloneable data
- * (ADR 0003). Feature pull requests add their own commands to this union.
+ * (ADR 0003, ADR 0009).
  *
  * @public
  */
@@ -92,7 +191,12 @@ export type ImageCommand =
   | SetOutputCommand
   | SetMetadataCommand
   | SetDevelopCommand
-  | SetFilterCommand;
+  | SetFilterCommand
+  | InsertRedactionsCommand
+  | RemoveRedactionsCommand
+  | MoveRedactionsCommand
+  | UpdateRedactionsCommand
+  | ImageInverseCommand;
 
 /**
  * Why a command was refused, as a stable token: `details.reason` on the
@@ -113,6 +217,23 @@ export type ImageCommand =
  * - `invalid-level`: a develop value that isn't a whole number from -100 to 100.
  * - `unknown-preset`: a filter that isn't one of `FILTER_PRESETS`.
  * - `invalid-strength`: a filter strength that isn't a whole number from 0 to 100.
+ * - `invalid-key`: a key that's empty or over `MAX_KEY_LENGTH` code points.
+ * - `duplicate-key`: a new item with a key the plan already uses, or two
+ *   new items or two updates with the same key.
+ * - `invalid-index`: an index past the end of the list.
+ * - `invalid-order`: an order that doesn't list every key.
+ * - `unknown-redaction`: a key no redaction has.
+ * - `unknown-redaction-mode`: a mode other than `solid` and `pixelate`.
+ * - `invalid-region`: a redaction under 1 × 1 pixel, or further than
+ *   `MAX_SCENE_COORDINATE` from the scene's origin.
+ * - `invalid-colour`: a colour that isn't `#rrggbb` in lower case.
+ * - `unexpected-colour`: an update that sets a colour on a pixelated
+ *   redaction, which has none.
+ * - `missing-colour`: an update that sets a redaction to solid without a
+ *   colour.
+ * - `too-many-layers`: more layers and redactions than `MAX_PLAN_ITEMS`,
+ *   the format's ceiling. The file policy's `maxLayers` is checked by the
+ *   session, with its own error code.
  *
  * @public
  */
@@ -128,53 +249,18 @@ export type ImageCommandRejection =
   | "unknown-adjustment"
   | "invalid-level"
   | "unknown-preset"
-  | "invalid-strength";
-
-/**
- * A refusal while checking a command or a document, which the reducer and
- * the plan reader turn into their own codes.
- *
- * @internal
- */
-export class Invalid extends Error {
-  readonly reason: string;
-  constructor(reason: string, message: string) {
-    super(message);
-    this.reason = reason;
-  }
-}
-
-/** @internal */
-export function invalid(reason: string, message: string): never {
-  throw new Invalid(reason, message);
-}
-
-/** Whether a value is a plain object: not `null`, and not a list. @internal */
-export const isRecord = <T>(value: unknown): value is T =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-/**
- * Refuses a field the object's type doesn't have, as the schemas do with
- * `additionalProperties: false`, rather than dropping it.
- *
- * @internal
- */
-export function onlyFields(value: object, fields: readonly string[], what: string): void {
-  for (const name of Object.keys(value)) {
-    if (!fields.includes(name)) invalid("malformed-command", `${what} has no field "${name}"`);
-  }
-}
-
-/** Requires every field, as the schemas' `required` does. */
-function allFields(value: object, fields: readonly string[], what: string): void {
-  onlyFields(value, fields, what);
-  for (const name of fields) {
-    if (!Object.hasOwn(value, name)) invalid("malformed-command", `${what} needs "${name}"`);
-  }
-}
-
-const isWhole = (value: unknown, min: number, max = Number.MAX_SAFE_INTEGER): value is number =>
-  Number.isSafeInteger(value) && (value as number) >= min && (value as number) <= max;
+  | "invalid-strength"
+  | "invalid-key"
+  | "duplicate-key"
+  | "invalid-index"
+  | "invalid-order"
+  | "unknown-redaction"
+  | "unknown-redaction-mode"
+  | "invalid-region"
+  | "invalid-colour"
+  | "unexpected-colour"
+  | "missing-colour"
+  | "too-many-layers";
 
 /**
  * A crop's shape: whole pixels from 0, at least 1 × 1. Whether it fits its
@@ -320,7 +406,48 @@ const COMMAND_FIELDS: Readonly<Record<ImageCommand["type"], readonly string[]>> 
   "image.setMetadata": ["type", "field", "value"],
   "image.setDevelop": ["type", "values"],
   "image.setFilter": ["type", "filter"],
+  "image.insertRedactions": ["type", "at", "redactions"],
+  "image.removeRedactions": ["type", "keys"],
+  "image.moveRedactions": ["type", "keys", "to"],
+  "image.updateRedactions": ["type", "updates"],
+  "image.restoreRedactions": ["type", "entries"],
+  "image.setRedactionOrder": ["type", "keys"],
 };
+
+/** Every key the plan uses: a new item needs one that isn't among them. */
+function planKeys(plan: ImagePlan): Set<string> {
+  return new Set([...plan.layers, ...plan.redactions].map((item: { key: string }) => item.key));
+}
+
+/** Refuses more layers and redactions than the format holds. */
+function checkRoom(plan: ImagePlan, added: number): void {
+  if (plan.layers.length + plan.redactions.length + added > MAX_PLAN_ITEMS) {
+    invalid(
+      "too-many-layers",
+      `a plan holds at most ${MAX_PLAN_ITEMS} layers and redactions together`,
+    );
+  }
+}
+
+/** A list of at least one redaction. */
+function checkRedactions(value: unknown): ImageRedaction[] {
+  if (!Array.isArray(value)) invalid("malformed-command", "redactions is a list");
+  if (value.length === 0) invalid("malformed-command", "redactions has at least one item");
+  return value.map(checkRedaction);
+}
+
+/** The entries of `image.restoreRedactions`. */
+function checkRedactionEntries(value: unknown): KeyedEntry<ImageRedaction>[] {
+  if (!Array.isArray(value)) invalid("malformed-command", "entries is a list");
+  if (value.length === 0) invalid("malformed-command", "entries has at least one item");
+  return value.map((entry) => {
+    if (!isRecord<{ at: unknown; redaction: unknown }>(entry)) {
+      invalid("malformed-command", "an entry is an object");
+    }
+    allFields(entry, ["at", "redaction"], "an entry");
+    return { at: entry.at as number, item: checkRedaction(entry.redaction) };
+  });
+}
 
 function apply(
   plan: ImagePlan,
@@ -390,6 +517,60 @@ function apply(
       return {
         state: { ...plan, base: { ...plan.base, filter } },
         inverse: { type: "image.setFilter", filter: plan.base.filter },
+      };
+    }
+    case "image.insertRedactions": {
+      const redactions = checkRedactions(command.redactions);
+      const { list, keys } = insertItems(plan.redactions, command.at, redactions, planKeys(plan));
+      checkRoom(plan, redactions.length);
+      return {
+        state: { ...plan, redactions: list },
+        inverse: { type: "image.removeRedactions", keys },
+      };
+    }
+    case "image.removeRedactions": {
+      const { list, entries } = removeItems(plan.redactions, command.keys, REDACTION_NAMES);
+      return {
+        state: { ...plan, redactions: list },
+        inverse: {
+          type: "image.restoreRedactions",
+          entries: entries.map(({ at, item }) => ({ at, redaction: item })),
+        },
+      };
+    }
+    case "image.restoreRedactions": {
+      const entries = checkRedactionEntries(command.entries);
+      const { list, keys } = restoreItems(plan.redactions, entries, planKeys(plan));
+      checkRoom(plan, entries.length);
+      return {
+        state: { ...plan, redactions: list },
+        inverse: { type: "image.removeRedactions", keys },
+      };
+    }
+    case "image.moveRedactions": {
+      const { list, order } = moveItems(plan.redactions, command.keys, command.to, REDACTION_NAMES);
+      return {
+        state: { ...plan, redactions: list },
+        inverse: { type: "image.setRedactionOrder", keys: order },
+      };
+    }
+    case "image.setRedactionOrder": {
+      const { list, order } = orderItems(plan.redactions, command.keys, REDACTION_NAMES);
+      return {
+        state: { ...plan, redactions: list },
+        inverse: { type: "image.setRedactionOrder", keys: order },
+      };
+    }
+    case "image.updateRedactions": {
+      const { list, previous } = updateItems(
+        plan.redactions,
+        command.updates,
+        REDACTION_NAMES,
+        patchRedaction,
+      );
+      return {
+        state: { ...plan, redactions: list },
+        inverse: { type: "image.updateRedactions", updates: previous },
       };
     }
   }

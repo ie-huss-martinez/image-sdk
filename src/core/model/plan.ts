@@ -141,13 +141,106 @@ export type ImageOutput =
   | { readonly kind: "fit"; readonly width: number; readonly height: number };
 
 /**
+ * The most layers and redactions a plan holds, together: the format's
+ * ceiling, which the file policy's `maxLayers` applies below (ADR 0009).
+ *
+ * @public
+ */
+export const MAX_PLAN_ITEMS = 1_024;
+
+/**
+ * The most Unicode code points in a key.
+ *
+ * @public
+ */
+export const MAX_KEY_LENGTH = 64;
+
+/**
+ * How far from the scene's origin a position may be, in pixels, either way:
+ * four times the longest side `maxImageDimension` allows by default (ADR
+ * 0009).
+ *
+ * @public
+ */
+export const MAX_SCENE_COORDINATE = 65_536;
+
+/**
+ * How a redaction replaces what it covers (ADR 0010): `solid` fills the
+ * region with one colour, and `pixelate` with coarse blocks of the average
+ * colour beneath each. Only `solid` destroys what was there.
+ *
+ * @public
+ */
+export type ImageRedactionMode = "solid" | "pixelate";
+
+/**
+ * The redaction modes. Names are part of the document format.
+ *
+ * @public
+ */
+export const REDACTION_MODES = [
+  "solid",
+  "pixelate",
+] as const satisfies readonly ImageRedactionMode[];
+
+/**
+ * What every redaction has, whatever its mode: its identity and its region.
+ *
+ * @public
+ */
+export interface ImageRedactionRegion {
+  /**
+   * Its identity: 1 to {@link MAX_KEY_LENGTH} code points, unique among the
+   * plan's layers and redactions.
+   */
+  readonly key: string;
+  /** The region's left edge, in whole pixels of the scene. May be negative. */
+  readonly x: number;
+  /** The region's top edge, in whole pixels of the scene. May be negative. */
+  readonly y: number;
+  /** At least 1. */
+  readonly width: number;
+  /** At least 1. */
+  readonly height: number;
+}
+
+/**
+ * A region of the image that an export doesn't show (ADR 0010): a rectangle
+ * in whole pixels of the scene, the base's oriented source, so it stays on
+ * the pixels it covers when the image is cropped or turned (ADR 0009).
+ *
+ * A redaction has no opacity, visibility or rotation, and is drawn over
+ * every layer. Only exports are redacted: the plan describes the redaction,
+ * and the source is unchanged.
+ *
+ * @public
+ */
+export type ImageRedaction =
+  | (ImageRedactionRegion & {
+      readonly mode: "solid";
+      /** The fill, as `#rrggbb` in lower case. */
+      readonly colour: string;
+    })
+  | (ImageRedactionRegion & { readonly mode: "pixelate" });
+
+/**
  * The session's document: a description of the edits over an immutable
- * source, rendered to pixels only for display and export (ADR 0003).
+ * source, rendered to pixels only for display and export (ADR 0003, ADR
+ * 0009).
  *
  * @public
  */
 export interface ImagePlan {
   readonly base: ImageBase;
+  /**
+   * The layers over the base, bottom to top, placed in the scene (ADR 0009).
+   * Always empty for now: the layer kinds arrive with the layer model.
+   */
+  readonly layers: readonly [];
+  /** The redactions, applied over every layer (ADR 0010). */
+  readonly redactions: readonly ImageRedaction[];
+  /** The animation (ADR 0011). Always `null` until format version 4. */
+  readonly animation: null;
   readonly output: ImageOutput;
   /** The fields the user chose to keep on export. Never a location (ADR 0005). */
   readonly metadata: ImageKeepableMetadata;
@@ -169,13 +262,17 @@ export const FULL_SIZE: ImageOutput = Object.freeze({ kind: "scale", scale: 1 })
 
 /**
  * The plan for a newly opened source: the whole image, upright, undeveloped
- * and unfiltered, at full size, keeping no metadata.
+ * and unfiltered, with no layers or redactions, at full size, keeping no
+ * metadata.
  *
  * @public
  */
 export function createPlan(source: string): ImagePlan {
   return {
     base: { source, crop: null, orientation: UPRIGHT, develop: NEUTRAL_DEVELOP, filter: null },
+    layers: [],
+    redactions: [],
+    animation: null,
     output: FULL_SIZE,
     metadata: { title: "", description: "", artist: "", copyright: "" },
   };

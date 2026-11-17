@@ -20,6 +20,10 @@ import { isSdkError, type SdkCoreErrorCode, SdkError } from "@hussmartinez/sdk-c
  *   valid in its format. `details.reason` says why (`ImageDocumentRejection`).
  *   A document of another format, or a later version, is `UNSUPPORTED_FORMAT`
  *   instead, with `details.reason` `unknown-format` or `unknown-format-version`.
+ * - `UNSUPPORTED_PLAN`: a plan holds something the renderer or processor
+ *   can't draw, such as a layer kind from a later release. Nothing is drawn
+ *   or exported without it (ADR 0009). `details.reason` names the part:
+ *   `layers`, `redactions` or `animation`.
  * - `IMAGE_TOO_LARGE`: an image, a frame, the canvas or the export exceeds
  *   the `maxImagePixels` limit.
  * - `IMAGE_DIMENSION_TOO_LARGE`: a width or height exceeds the
@@ -42,6 +46,7 @@ export type ImageErrorCode =
   | "DECODE_FAILED"
   | "INVALID_COMMAND"
   | "INVALID_DOCUMENT"
+  | "UNSUPPORTED_PLAN"
   | "IMAGE_TOO_LARGE"
   | "IMAGE_DIMENSION_TOO_LARGE"
   | "TOO_MANY_FRAMES"

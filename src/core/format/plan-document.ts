@@ -1,5 +1,11 @@
 import { ImageError } from "../errors/image-error.js";
-import type { ImageBase, ImageDevelop, ImagePlan } from "../model/plan.js";
+import {
+  type ImageBase,
+  type ImageDevelop,
+  type ImagePlan,
+  type ImageRedaction,
+  MAX_PLAN_ITEMS,
+} from "../model/plan.js";
 import type { ImageSize } from "../model/source.js";
 import {
   checkCrop,
@@ -14,6 +20,7 @@ import {
   isRecord,
   onlyFields,
 } from "../operations/commands.js";
+import { checkRedaction } from "../operations/redactions.js";
 
 /**
  * The name of the plan's portable format (sdk-core ADR 0045).
@@ -28,7 +35,7 @@ export const IMAGE_PLAN_FORMAT = "hm-image-plan";
  *
  * @public
  */
-export const IMAGE_PLAN_VERSION = 1;
+export const IMAGE_PLAN_VERSION = 2;
 
 /**
  * A content-addressed reference to binary data, such as a source's file
@@ -57,8 +64,8 @@ export interface ImagePlanDocumentSource extends ImageSize {
 }
 
 /**
- * The plan as portable JSON: `hm-image-plan` version 1, which
- * `formats/hm-image-plan/v1.schema.json` describes
+ * The plan as portable JSON: `hm-image-plan` version 2, which
+ * `formats/hm-image-plan/v2.schema.json` describes
  * (docs/formats/hm-image-plan.md). Positions are whole pixels of the
  * oriented source, and the base names its source by an id the document
  * lists.
@@ -80,10 +87,11 @@ export interface ImagePlanDocument extends ImagePlan {
  *   reads.
  * - With `INVALID_DOCUMENT`: `malformed-document`, a document that isn't
  *   shaped as the schema says; `unknown-source`, a base whose source the
- *   document doesn't list; and, as for commands, `crop-outside-source`,
- *   `invalid-orientation`, `invalid-output`, `metadata-too-long`,
- *   `unknown-adjustment`, `invalid-level`, `unknown-preset` and
- *   `invalid-strength`.
+ *   document doesn't list; `duplicate-key`, a key two items share; and, as
+ *   for commands, `crop-outside-source`, `invalid-orientation`,
+ *   `invalid-output`, `metadata-too-long`, `unknown-adjustment`,
+ *   `invalid-level`, `unknown-preset`, `invalid-strength`, `invalid-key`,
+ *   `unknown-redaction-mode`, `invalid-region` and `invalid-colour`.
  *
  * @public
  */
@@ -99,9 +107,26 @@ export type ImageDocumentRejection =
   | "unknown-adjustment"
   | "invalid-level"
   | "unknown-preset"
-  | "invalid-strength";
+  | "invalid-strength"
+  | "duplicate-key"
+  | "invalid-key"
+  | "unknown-redaction-mode"
+  | "invalid-region"
+  | "invalid-colour";
 
-const DOCUMENT_FIELDS = ["format", "version", "sources", "base", "output", "metadata"];
+/** Version 1's fields: the plan before layers, redactions and animation. */
+const V1_FIELDS = ["format", "version", "sources", "base", "output", "metadata"];
+const DOCUMENT_FIELDS = [
+  "format",
+  "version",
+  "sources",
+  "base",
+  "layers",
+  "redactions",
+  "animation",
+  "output",
+  "metadata",
+];
 const BASE_FIELDS = ["source", "crop", "orientation", "develop", "filter"];
 const SOURCE_FIELDS = ["width", "height", "asset"];
 const ASSET_FIELDS = ["asset", "mediaType", "size"];
@@ -177,11 +202,38 @@ function readBase(value: unknown, sources: Record<string, ImagePlanDocumentSourc
   };
 }
 
+/** A document's fields, before any is checked. */
+type RawDocument = { readonly [Field in keyof ImagePlanDocument]?: unknown };
+
+/**
+ * Version 1 as version 2: a plan with no layers, no redactions and no
+ * animation (ADR 0009). It's checked as version 1 first, so a version 1
+ * document with a later version's field is refused, not migrated.
+ */
+function migrateFromV1(value: RawDocument): RawDocument {
+  required(value, V1_FIELDS, "a document");
+  return { ...value, version: 2, layers: [], redactions: [], animation: null };
+}
+
+function readRedactions(value: unknown): ImageRedaction[] {
+  if (!Array.isArray(value)) malformed("redactions is a list");
+  if (value.length > MAX_PLAN_ITEMS) {
+    malformed(`a document holds at most ${MAX_PLAN_ITEMS} redactions`);
+  }
+  const redactions = value.map(checkRedaction);
+  const keys = new Set<string>();
+  for (const { key } of redactions) {
+    if (keys.has(key)) invalid("duplicate-key", `two items have the key "${key}"`);
+    keys.add(key);
+  }
+  return redactions;
+}
+
 function read(value: unknown): {
   plan: ImagePlan;
   sources: Record<string, ImagePlanDocumentSource>;
 } {
-  if (!isRecord<ImagePlanDocument>(value)) malformed("a document is an object");
+  if (!isRecord<RawDocument>(value)) malformed("a document is an object");
   const { format, version } = value;
   if (typeof format !== "string") malformed("format is text");
   if (format !== IMAGE_PLAN_FORMAT) {
@@ -196,14 +248,22 @@ function read(value: unknown): {
       { details: { format: IMAGE_PLAN_FORMAT, reason: "unknown-format-version" } },
     );
   }
-  if (version !== IMAGE_PLAN_VERSION) malformed("version is 1");
-  required(value, DOCUMENT_FIELDS, "a document");
-  const sources = readSources(value.sources);
+  if (version !== 1 && version !== IMAGE_PLAN_VERSION) malformed("version is 1 or 2");
+  const document = version === 1 ? migrateFromV1(value) : value;
+  required(document, DOCUMENT_FIELDS, "a document");
+  const { layers, redactions, animation } = document;
+  const sources = readSources(document.sources);
+  // The layer kinds and the animation arrive with their models (ADR 0009).
+  if (!Array.isArray(layers) || layers.length > 0) malformed("layers is an empty list");
+  if (animation !== null) malformed("animation is null");
   return {
     plan: {
-      base: readBase(value.base, sources),
-      output: checkOutput(value.output),
-      metadata: checkMetadata(value.metadata),
+      base: readBase(document.base, sources),
+      layers: [],
+      redactions: readRedactions(redactions),
+      animation: null,
+      output: checkOutput(document.output),
+      metadata: checkMetadata(document.metadata),
     },
     sources,
   };
@@ -212,8 +272,11 @@ function read(value: unknown): {
 /**
  * Reads a plan document, such as one parsed from JSON, checking it as
  * {@link ImagePlanDocument}'s schema does and more: the base's source must
- * be one the document lists, and its crop must fit inside it. Unknown fields
- * are refused, never dropped.
+ * be one the document lists, its crop must fit inside it, and no two items
+ * share a key. Unknown fields are refused, never dropped.
+ *
+ * A document of an earlier version is migrated, so every version stays
+ * readable: version 1 reads as a plan with no layers or redactions.
  *
  * @param value - The parsed JSON.
  * @returns The plan, and its sources by id.
@@ -272,6 +335,9 @@ export function toImagePlanDocument(
       develop: { ...base.develop },
       filter: base.filter === null ? null : { ...base.filter },
     },
+    layers: [],
+    redactions: plan.redactions.map((redaction) => ({ ...redaction })),
+    animation: null,
     output: { ...output },
     metadata: {
       title: metadata.title,
