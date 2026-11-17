@@ -1,5 +1,70 @@
 # @hussmartinez/image-sdk
 
+## 0.5.0
+
+### Minor Changes
+
+- [#83](https://github.com/ie-huss-martinez/image-sdk/pull/83) [`92d17b7`](https://github.com/ie-huss-martinez/image-sdk/commit/92d17b75bac87c292ea938cc6604171664cb4e87) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add the Draw tool and the arrow tool to the editor ([ADR 0015](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0015-drawing-in-the-editor.md)).
+  
+  - **Draw.** `image.draw`, in the default toolbar before Layers, with the `D` shortcut. Drag across the image to draw a stroke: it shows as it's drawn, and is one undo step when the pointer lifts. A press without a drag is a dot. `Escape` ends a stroke in progress with nothing added.
+  - **Pen and highlighter.** The panel chooses between them, and sets the colour and the width. A highlighter draws wide, see-through strokes that don't darken where they cross. "Remove last stroke" takes the last stroke back.
+  - **One drawing, many strokes.** Strokes go into one drawing layer, so a signature is one row in the layers list. Starting Draw with a drawing selected in the layers adds to it.
+  - **Arrows.** `image.add-arrow`, in the "Add" group, adds an arrow across the middle of the image, pointing right. In the layers its frame has a handle on each end; the arrow keys move it, and `Shift` with an arrow moves its tip. The panel has fields for both ends, its colour and its width.
+  - **Drawings in the layers.** A drawing has a frame around its strokes: drag it or use the arrow keys to move it.
+  - **Drawing needs a pointer:** a mouse, a pen or a finger. The panel says so. The arrow tool is the keyboard's way to point at something.
+  - **Building blocks and API:** `ImageDrawPanel`; and `draw` on `ImageEditorState`, with `"draw"` as a value of its `tool`.
+  
+  If you pass your own `toolbar` groups, add `"image.draw"` and `"image.add-arrow"` to show the tools. If you render the building blocks yourself, render `ImageDrawPanel` with the others: `ImageStage` takes the strokes whenever the tool is active.
+
+- [#79](https://github.com/ie-huss-martinez/image-sdk/pull/79) [`031453f`](https://github.com/ie-huss-martinez/image-sdk/commit/031453f2d05c24a5f8fa550eedc983fe4937a417) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add drawings and arrows to the plan: format version 3 ([ADR 0009](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0009-scene-space-layers-and-plan-versions.md), [ADR 0014](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0014-drawing-strokes-and-arrows.md)).
+  
+  - **Two new kinds of layer.** `ImageDrawingLayer` holds freehand strokes at an origin; `ImageArrowLayer` points from one place to another. Neither has a box. `ImageBoxedLayer` names the three kinds that do.
+  - **A stroke is what one gesture drew:** a colour, a width, and `runs` of points. It has more than one run only when it's long.
+  - **Stroke commands.** `image.addStrokes` appends strokes to a drawing and `image.removeStrokes` removes them by index, each with an exact inverse. A drawing keeps at least one stroke. `image.updateLayers` moves a drawing by its origin and re-aims an arrow.
+  - **Geometry, pure and in the vectors:** `simplifyStroke` turns a pointer's samples into a stroke's runs, the same in every browser; `arrowOutline` gives the polygon an arrow is drawn as; `drawingBounds` and `arrowBounds` give what a layer covers; `drawingPoints` counts a plan's points.
+  - **A new limit, `maxDrawingPoints`:** 200,000 points across a plan's drawings, with a warning at 100,000, and the `TOO_MANY_POINTS` error code. The session also bounds the points its undo history holds, and trims the oldest steps beyond a million.
+  - **`checkPlanSupport` has a `drawings` part,** for a renderer or processor that draws the other layers and not these.
+  
+  **Format version 3**
+  
+  - `toImagePlanDocument` writes version 3, and `readImagePlanDocument` reads versions 1, 2 and 3. A version 2 document reads to the same plan.
+  - A reader from 0.4 refuses a version 3 document with `UNSUPPORTED_FORMAT` and `unknown-format-version`, which an application can show as "update the application". Keep documents at the version their readers have until every reader is updated.
+  - The schemas are `formats/hm-image-plan/v3.schema.json` and `formats/hm-image-command/v3.schema.json`; version 2's stay.
+  
+  **If you handle layers yourself**
+  
+  - `ImageLayer` is a wider union: code that reads `x`, `width` or `rotation` from any layer needs to check its `kind` first, or take an `ImageBoxedLayer`.
+  - A custom renderer or processor should pass `drawings` to `checkPlanSupport` only once it draws them.
+
+- [#81](https://github.com/ie-huss-martinez/image-sdk/pull/81) [`4451f68`](https://github.com/ie-huss-martinez/image-sdk/commit/4451f68402ff46be2b7479fb8f42a58bffca776e) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Draw drawings and arrows, in the preview and in every export ([ADR 0014](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0014-drawing-strokes-and-arrows.md)).
+  
+  - **Strokes** are drawn as lines through their points, at their width, with round joins and round ends; a single point is a dot. No curve is fitted, so a drawn corner stays a corner.
+  - **A long stroke is one line.** A stroke that `simplifyStroke` cut into runs is drawn joined where it was cut, the same pixels as if it hadn't been.
+  - **A drawing is composited as one,** at its layer's opacity, so strokes that cross don't darken each other. A highlighter is a wide stroke in a drawing with a low opacity.
+  - **An arrow** is drawn as `arrowOutline`'s polygon, filled, with its tip exactly on the point it aims at and nothing past it.
+  - **Like every layer,** they aren't developed with the base, they stay on the pixels they were drawn on when the image is cropped, turned or mirrored, and redactions cover them.
+  
+  The built-in renderer and processor now take the `drawings` part of a plan. A custom processor that doesn't draw them still refuses such a plan through `checkPlanSupport`.
+
+### Patch Changes
+
+- [#82](https://github.com/ie-huss-martinez/image-sdk/pull/82) [`d4b4264`](https://github.com/ie-huss-martinez/image-sdk/commit/d4b42645dabc4b81f2412ce47dddd712b83d1fe8) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Export no longer greys out while Redact or Layers is open ([ADR 0007](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0007-editor-shell.md)).
+  
+  - **While redacting or arranging layers,** the toolbar's Export works: it ends the tool and opens the export dialog. A gesture still running, such as text being typed, is included in the export.
+  - **While a crop is unapplied,** Export still waits, and now says why: the button stays reachable with the keyboard and is described by "Apply or cancel the crop before exporting.", in a tooltip.
+  - **`ImageTool` gains an optional `unavailable(state)`,** which returns a message key while a tool can't run for a reason the user can act on. `ImageToolbar` keeps such a button focusable and describes it with the text. Your own tools can use it; the new string is `tools.exportWhileCropping`.
+
+- [#84](https://github.com/ie-huss-martinez/image-sdk/pull/84) [`4d36ed4`](https://github.com/ie-huss-martinez/image-sdk/commit/4d36ed42655de13dce770daeb108ed66c65b31b1) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The layers list is one tab stop ([ADR 0013](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0013-layers-in-the-editor.md)).
+  
+  - **The list is `@hussmartinez/ui`'s `ReorderableList`,** in place of a list of buttons with two tab stops for each layer. Tab reaches the list once; the Up and Down arrows move between layers and select, and Left and Right move between a layer's name and its show-or-hide button.
+  - **The same keys as before** move and remove: `Alt` (`Option` on macOS) with Up or Down moves the focused layer, and `Delete` or `Backspace` removes it.
+  - **After a delete,** the layer now in its place in the list is selected: the one that was under it. Before, it was the one over it.
+  - **For assistive technology** the list is a grid of rows, each selected or not, where it was a list of pressed and unpressed buttons.
+  
+  If you style the list, its rows are now ui's (`.hm-reorderable-list-row`); `.hm-image-layer-select` is still on each layer's name, and `.hm-image-layer-visibility` on its button.
+  
+  This release needs `@hussmartinez/ui` 0.10.0 or later.
+
 ## 0.4.0
 
 ### Minor Changes
