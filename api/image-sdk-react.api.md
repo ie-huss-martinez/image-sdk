@@ -210,6 +210,7 @@ export const imageEditorMessages: {
     readonly "layers.selected": "Selected layer";
     readonly "layers.moveUp": "Move up";
     readonly "layers.moveDown": "Move down";
+    readonly "layers.mirror": "Mirror";
     readonly "layers.duplicate": "Duplicate";
     readonly "layers.remove": "Delete";
     readonly "layers.name": "Name";

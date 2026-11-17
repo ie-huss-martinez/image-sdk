@@ -296,6 +296,7 @@ describe("the image reducer", () => {
       width: 10,
       height: 5,
       rotation: 0,
+      flipX: false,
     };
     const text = {
       ...common,
@@ -365,7 +366,7 @@ describe("the image reducer", () => {
       const { state, inverse } = reducer(start, {
         type: "image.updateLayers",
         updates: [
-          { key: "t", props: { text: "Bye", x: 7, rotation: 900 } },
+          { key: "t", props: { text: "Bye", x: 7, rotation: 900, flipX: false } },
           { key: "s", props: { stroke: null, fill: "#00ff00" } },
         ],
       } as ImageCommand);
@@ -375,7 +376,7 @@ describe("the image reducer", () => {
       expect(inverse).toEqual({
         type: "image.updateLayers",
         updates: [
-          { key: "t", props: { text: "Hello", x: 1, rotation: 0 } },
+          { key: "t", props: { text: "Hello", x: 1, rotation: 0, flipX: false } },
           { key: "s", props: { stroke: { colour: "#ff0000", width: 2 }, fill: null } },
         ],
       });

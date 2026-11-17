@@ -19,6 +19,7 @@ const box = fc.record({
   width: fc.integer({ min: 1, max: 300 }),
   height: fc.integer({ min: 1, max: 300 }),
   rotation: fc.integer({ min: 0, max: 3_599 }),
+  flipX: fc.boolean(),
 });
 const crop = fc.record({ x: fc.nat(59), y: fc.nat(39) }).chain(({ x, y }) =>
   fc.record({
@@ -42,13 +43,45 @@ const close = (a: { x: number; y: number }, b: { x: number; y: number }, by = 1e
 
 describe("layer geometry (ADR 0009)", () => {
   it("puts an unturned box's own pixels at its place in the scene, exactly", () => {
-    const placed = { x: 12, y: -7, width: 40, height: 20, rotation: 0 };
+    const placed = { x: 12, y: -7, width: 40, height: 20, rotation: 0, flipX: false };
     expect(layerToScene(placed)).toEqual([1, 0, 0, 1, 12, -7]);
     expect(applyMatrix(layerToScene(placed), { x: 40, y: 20 })).toEqual({ x: 52, y: 13 });
   });
 
+  it("mirrors a box left to right about its own centre, before it's turned, exactly", () => {
+    const placed = { x: 12, y: -7, width: 40, height: 20, rotation: 0, flipX: true };
+    // The box's own left edge is at the scene's right edge of it.
+    expect(layerToScene(placed)).toEqual([-1, 0, 0, 1, 52, -7]);
+    expect(applyMatrix(layerToScene(placed), { x: 0, y: 0 })).toEqual({ x: 52, y: -7 });
+    expect(applyMatrix(layerToScene(placed), { x: 40, y: 20 })).toEqual({ x: 12, y: 13 });
+    // Then a quarter turn clockwise: its own left edge is at the bottom.
+    const turned = { x: 10, y: 20, width: 40, height: 20, rotation: 900, flipX: true };
+    expect(layerToScene(turned)).toEqual([0, -1, -1, 0, 40, 50]);
+    expect(applyMatrix(layerToScene(turned), { x: 20, y: 10 })).toEqual({ x: 30, y: 30 });
+    // With a half turn, it's a mirror top to bottom.
+    expect(layerToScene({ ...placed, rotation: 1_800 })).toEqual([1, 0, 0, -1, 12, 13]);
+    // Never a negative zero, which JSON can't carry.
+    for (const rotation of [0, 900, 1_800, 2_700]) {
+      for (const flipX of [false, true]) {
+        for (const entry of layerToScene({ ...placed, rotation, flipX })) {
+          expect(Object.is(entry, -0)).toBe(false);
+        }
+      }
+    }
+    fc.assert(
+      fc.property(box, (any) => {
+        // The centre stays where it is, mirrored or not, and the mirror reverses the box's sense.
+        const centre = applyMatrix(layerToScene(any), { x: any.width / 2, y: any.height / 2 });
+        expect(centre.x).toBeCloseTo(any.x + any.width / 2, 6);
+        expect(centre.y).toBeCloseTo(any.y + any.height / 2, 6);
+        const [a, b, c, d] = layerToScene(any);
+        expect(a * d - b * c).toBeCloseTo(any.flipX ? -1 : 1, 9);
+      }),
+    );
+  });
+
   it("turns a box about its centre, clockwise, with exact quarter turns", () => {
-    const placed = { x: 10, y: 20, width: 40, height: 20, rotation: 900 };
+    const placed = { x: 10, y: 20, width: 40, height: 20, rotation: 900, flipX: false };
     // The centre stays at 30, 30; the top-left corner goes to the top right.
     expect(applyMatrix(layerToScene(placed), { x: 20, y: 10 })).toEqual({ x: 30, y: 30 });
     expect(applyMatrix(layerToScene(placed), { x: 0, y: 0 })).toEqual({ x: 40, y: 10 });

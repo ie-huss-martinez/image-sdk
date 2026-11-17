@@ -113,6 +113,7 @@ const EDITOR: Readonly<Record<string, State>> = {
               width: 18,
               height: 10,
               rotation: 0,
+              flipX: false,
             },
             {
               ...shape,
@@ -125,6 +126,7 @@ const EDITOR: Readonly<Record<string, State>> = {
               width: 20,
               height: 14,
               rotation: 200,
+              flipX: false,
             },
           ],
         },

@@ -189,6 +189,7 @@ describe("adding layers (docs/adr/0013)", () => {
       width: 15,
       height: 10,
       rotation: 0,
+      flipX: false,
       fill: null,
       stroke: { colour: "#e02020", width: 2 },
     });
@@ -394,6 +395,7 @@ describe("adding layers (docs/adr/0013)", () => {
       width: 30,
       height: 8,
       rotation: 0,
+      flipX: false,
       crop: null,
     });
     expect(layers().at(-1)?.kind).toBe("image");
@@ -454,6 +456,49 @@ describe("adding layers (docs/adr/0013)", () => {
     await click(tool("add-text"));
     expect(layers()).toHaveLength(1);
     expect(alert()).not.toBeNull();
+  });
+
+  it("adds a layer that reads as it should on an image that's mirrored", async () => {
+    const { handle, session, only, layers } = await opened();
+    await act(async () =>
+      session().execute({
+        type: "image.setOrientation",
+        orientation: { rotate: 0, flipX: true, flipY: false },
+      }),
+    );
+    await click(tool("add-text"));
+    // Mirrored back, so the image's mirror doesn't make it read backwards.
+    expect(only("text")).toMatchObject({ flipX: true, rotation: 0, x: 15, y: 16 });
+    // Turned as well: mirrored back and turned back.
+    await act(async () =>
+      session().execute({
+        type: "image.setOrientation",
+        orientation: { rotate: 90, flipX: true, flipY: false },
+      }),
+    );
+    await click(tool("add-rectangle"));
+    const shape = only("shape");
+    expect(shape.flipX).toBe(true);
+    expect([900, 2_700]).toContain(shape.rotation);
+    // On the image as it is, nothing is mirrored.
+    await act(async () =>
+      session().execute({
+        type: "image.setOrientation",
+        orientation: { rotate: 0, flipX: false, flipY: false },
+      }),
+    );
+    await click(tool("add-ellipse"));
+    expect(layers().at(-1)).toMatchObject({ flipX: false, rotation: 0 });
+    // An image from the handle is placed the same way.
+    await act(async () =>
+      session().execute({
+        type: "image.setOrientation",
+        orientation: { rotate: 0, flipX: false, flipY: true },
+      }),
+    );
+    await act(async () => handle.current?.insertImage(await photo(6, 4, "#ffffff")));
+    // Mirrored top to bottom is a mirror left to right and a half turn.
+    expect(only("image")).toMatchObject({ flipX: true, rotation: 1_800, width: 6, height: 4 });
   });
 
   it("adds a layer the right way up on an image that's turned", async () => {

@@ -60,12 +60,12 @@ In Node without a bundler, `createRequire(import.meta.url).resolve("@hussmartine
   "layers": [
     {
       "key": "caption", "kind": "text", "name": "", "visible": true, "opacity": 100,
-      "x": 2, "y": 20, "width": 30, "height": 8, "rotation": 0,
+      "x": 2, "y": 20, "width": 30, "height": 8, "rotation": 0, "flipX": false,
       "text": "Harbour\nat dusk", "font": "sans-serif", "bold": true, "colour": "#ffffff", "align": "center"
     },
     {
       "key": "ring", "kind": "shape", "name": "Ring", "visible": true, "opacity": 60,
-      "x": -5, "y": 3, "width": 20, "height": 20, "rotation": 450,
+      "x": -5, "y": 3, "width": 20, "height": 20, "rotation": 450, "flipX": false,
       "shape": "ellipse", "fill": null, "stroke": { "colour": "#ff0000", "width": 2 }
     }
   ],
@@ -81,7 +81,7 @@ In Node without a bundler, `createRequire(import.meta.url).resolve("@hussmartine
 
 - **Numbers:** crops and sizes are whole pixels of the oriented source, the image as its EXIF orientation shows it ([ADR 0005](../adr/0005-colour-orientation-and-metadata.md)). Develop levels and filter strengths are whole numbers. An output `scale` is the one float. It's copied, never computed, so it compares exactly (ADR 0045, section 3).
 - **The scene** is the base's oriented source, in whole pixels: the grid the crop uses. Redactions are placed in it, so they stay on the pixels they cover when the image is cropped or turned ([ADR 0009](../adr/0009-scene-space-layers-and-plan-versions.md)). A position may be outside the source, from −65,536 to 65,536.
-- **Layers** are drawn over the base, bottom to top, in the list's order ([ADR 0009](../adr/0009-scene-space-layers-and-plan-versions.md)). Every layer has a `key`; a `kind`; a `name` of up to 100 code points, empty for the editor's own label; `visible`; an `opacity` from 0 to 100; and a box in the scene: `x` and `y` from −65,536 to 65,536, `width` and `height` of at least 1, and `rotation` in tenths of a degree clockwise about the box's centre, from 0 to 3599. Then, by kind:
+- **Layers** are drawn over the base, bottom to top, in the list's order ([ADR 0009](../adr/0009-scene-space-layers-and-plan-versions.md)). Every layer has a `key`; a `kind`; a `name` of up to 100 code points, empty for the editor's own label; `visible`; an `opacity` from 0 to 100; and a box in the scene: `x` and `y` from −65,536 to 65,536, `width` and `height` of at least 1, `rotation` in tenths of a degree clockwise about the box's centre, from 0 to 3599, and `flipX`, whether the layer is mirrored left to right about the box's own vertical axis before it's turned. Then, by kind:
 
   | Kind | Fields |
   |---|---|
@@ -195,7 +195,7 @@ The TypeScript tests also check that the schemas agree with the readers. Every d
 | `redactionBlocksInOutput` | A pixelated region's blocks in the output, which tile exactly those pixels |
 | `sceneRectToComposition`, `compositionRectToScene` | A rectangle of the scene as the composition shows it, without clipping, and back: where an editor places a region's frame, and what a rectangle dragged on screen covers |
 | `fitRedactionRegion` | A rectangle as a region: whole pixels, rounded outward, at least 1 × 1, within 65,536 pixels of the origin |
-| `layerToScene` | The transform from a layer's own box to the scene: its top-left corner the origin, turned about its centre by its rotation |
+| `layerToScene` | The transform from a layer's own box to the scene: its top-left corner the origin, mirrored about its own vertical axis when it's flipped, then turned about its centre by its rotation |
 | `sceneToOutput`, `layerToOutput` | The transform from the scene, or from a layer's box, to an output of a given size, through the crop, the rotation and the flips |
 | `sceneToLayerSource` | The transform from the scene to the pixels of an image layer's source, which a renderer uses to replace what a redaction covers |
 | `fitTextLines` | Where a text layer's lines go: the scale that fits the block in the box, and each line's left edge and baseline |

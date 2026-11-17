@@ -15,8 +15,9 @@ import {
   type ImageLimitName,
   imageLimits,
 } from "../errors/image-limits.js";
-import { compositionSize, cropRect, outputSize } from "../model/geometry.js";
+import { compositionSize, outputSize } from "../model/geometry.js";
 import { createImageKey } from "../model/keys.js";
+import { fittedImageSize, newLayerBox } from "../model/layer-placement.js";
 import { createPlan, type ImageImageLayer, type ImagePlan } from "../model/plan.js";
 import type {
   ImageKeepableMetadata,
@@ -162,7 +163,8 @@ export interface ImageSession {
    *   `SESSION_TOO_LARGE`.
    * - **Placement:** by default the image is centred on what's shown, at
    *   its own size or half the composition's, whichever is smaller, over
-   *   every layer. `place` returns other commands; they must refer to the
+   *   every layer, and turned and mirrored back against the plan's
+   *   rotation and flips, so it's seen as the file is. `place` returns other commands; they must refer to the
    *   source, or it's released.
    * - **Lifetime:** the session holds the source while the plan, an undo
    *   or redo step, or an export in progress refers to it, and releases it
@@ -255,17 +257,14 @@ const sourcesOf = (plan: ImagePlan) =>
 /**
  * The default layer for an inserted image: centred on what's shown, at its
  * own size or half the composition's, whichever is smaller, keeping its
- * shape.
+ * shape, and neither turned nor mirrored as it's seen, whatever the plan's
+ * rotation and flips.
  */
 function defaultLayer(
   source: ImageSourceInfo,
   plan: ImagePlan,
   base: ImageSourceInfo,
 ): ImageImageLayer {
-  const shown = cropRect(plan.base.crop, base);
-  const scale = Math.min(1, shown.width / 2 / source.width, shown.height / 2 / source.height);
-  const width = Math.max(1, Math.round(source.width * scale));
-  const height = Math.max(1, Math.round(source.height * scale));
   const used = new Set([...plan.layers, ...plan.redactions].map((item) => item.key));
   return {
     key: createImageKey(used),
@@ -273,11 +272,9 @@ function defaultLayer(
     name: "",
     visible: true,
     opacity: 100,
-    x: shown.x + Math.round((shown.width - width) / 2),
-    y: shown.y + Math.round((shown.height - height) / 2),
-    width,
-    height,
-    rotation: 0,
+    // Turned and mirrored back against the plan's orientation, so it's seen
+    // as the file is, in the preview and in every export.
+    ...newLayerBox(plan, base, fittedImageSize(plan, base, source)),
     source: source.id,
     crop: null,
   };

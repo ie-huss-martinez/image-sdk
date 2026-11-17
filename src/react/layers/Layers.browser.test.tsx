@@ -18,7 +18,7 @@ async function photo(): Promise<Blob> {
   return canvas.convertToBlob();
 }
 
-const common = { name: "", visible: true, opacity: 100, rotation: 0 };
+const common = { name: "", visible: true, opacity: 100, rotation: 0, flipX: false };
 /** Three layers, bottom to top: a rectangle, two lines of text, and a named ellipse. */
 const LAYERS: readonly ImageLayer[] = [
   {
@@ -272,7 +272,7 @@ describe("the layers (docs/adr/0013)", () => {
     expect(frames()).toHaveLength(0);
     expect(fields()).toHaveLength(7);
     expect(fields().every((input) => input.disabled)).toBe(true);
-    for (const label of ["Move up", "Move down", "Duplicate", "Delete"]) {
+    for (const label of ["Move up", "Move down", "Mirror", "Duplicate", "Delete"]) {
       // Disabled, and still in the keyboard's order.
       expect(named(label)?.getAttribute("aria-disabled"), label).toBe("true");
       expect(named(label)?.disabled, label).toBe(false);
@@ -321,7 +321,7 @@ describe("the layers (docs/adr/0013)", () => {
     await act(async () =>
       session().execute({
         type: "image.updateLayers",
-        updates: [{ key: "under", props: { rotation: 900 } }],
+        updates: [{ key: "under", props: { rotation: 900, flipX: false } }],
       }),
     );
     // A quarter turn of 20 × 10 about its centre, (20, 13): 10 × 20 from (15, 3).
@@ -334,7 +334,7 @@ describe("the layers (docs/adr/0013)", () => {
     await act(async () =>
       session().execute({
         type: "image.updateLayers",
-        updates: [{ key: "under", props: { rotation: 450 } }],
+        updates: [{ key: "under", props: { rotation: 450, flipX: false } }],
       }),
     );
     // An eighth: the frame's bounds are a square of (20 + 10) / √2, about the same centre.
@@ -506,6 +506,45 @@ describe("the layers (docs/adr/0013)", () => {
     // The layer in its place is selected, and the button still has focus.
     expect(select("middle")?.getAttribute("aria-pressed")).toBe("true");
     expect(document.activeElement).toBe(named("Delete"));
+  });
+
+  it("mirrors the selected layer with the panel's button, as one step, and resizes it as it's seen", async () => {
+    const { layer, session } = await opened();
+    await layering();
+    await click(select("under"));
+    expect(named("Mirror")?.getAttribute("aria-pressed")).toBe("false");
+    const before = frame("under")?.getBoundingClientRect();
+    await act(async () => named("Mirror")?.focus());
+    await click(named("Mirror"));
+    expect(layer("under")).toMatchObject({ flipX: true, x: 10, y: 8, width: 20, height: 10 });
+    expect(named("Mirror")?.getAttribute("aria-pressed")).toBe("true");
+    expect(document.activeElement).toBe(named("Mirror"));
+    // Mirrored about its own centre: the frame is where it was.
+    const mirrored = frame("under")?.getBoundingClientRect();
+    expect(mirrored?.left).toBeCloseTo(before?.left ?? 0, 1);
+    expect(mirrored?.width).toBeCloseTo(before?.width ?? 0, 1);
+    // Shift with Right still grows what's seen to the right: the box's own left, now.
+    await act(async () => frame("under")?.focus());
+    await key(frame("under"), { key: "ArrowRight", shiftKey: true });
+    await key(frame("under"), { key: "ArrowRight", shiftKey: true });
+    await afterKeys();
+    expect(layer("under")).toMatchObject({ flipX: true, x: 10, width: 22 });
+    await until(
+      () => (frame("under")?.getBoundingClientRect().width ?? 0) > (mirrored?.width ?? 0) + 1,
+      "the frame to grow",
+    );
+    const grown = frame("under")?.getBoundingClientRect();
+    expect(grown?.left).toBeCloseTo(mirrored?.left ?? 0, 1);
+    // And the arrows move it the way they point.
+    await key(frame("under"), { key: "ArrowLeft" });
+    await afterKeys();
+    expect(layer("under")).toMatchObject({ x: 9 });
+    // Each was one step; the button mirrors it back.
+    expect(session().undo()).toBe(true);
+    expect(session().undo()).toBe(true);
+    expect(layer("under")).toMatchObject({ flipX: true, x: 10, width: 20 });
+    await click(named("Mirror"));
+    expect(layer("under")?.flipX).toBe(false);
   });
 
   it("says why when the session refuses a copy, and changes nothing", async () => {
@@ -699,7 +738,7 @@ describe("the layers (docs/adr/0013)", () => {
     await act(async () =>
       session().execute({
         type: "image.updateLayers",
-        updates: [{ key: "under", props: { rotation: 900 } }],
+        updates: [{ key: "under", props: { rotation: 900, flipX: false } }],
       }),
     );
     await layering();
@@ -741,6 +780,7 @@ describe("the layers (docs/adr/0013)", () => {
       width: 40,
       height: 9,
       rotation: 125,
+      flipX: false,
       opacity: 40,
     });
     // A name loses what text can't hold, and its ends' spaces; the list shows it.

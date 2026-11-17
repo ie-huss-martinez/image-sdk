@@ -59,6 +59,7 @@ const EDITED: ImagePlan = {
       width: 30,
       height: 8,
       rotation: 0,
+      flipX: false,
       text: "Harbour\nat dusk 📷",
       font: "sans-serif",
       bold: true,
@@ -76,6 +77,7 @@ const EDITED: ImagePlan = {
       width: 20,
       height: 20,
       rotation: 450,
+      flipX: false,
       shape: "ellipse",
       fill: null,
       stroke: { colour: "#ff0000", width: 2 },
@@ -91,6 +93,7 @@ const EDITED: ImagePlan = {
       width: 12,
       height: 9,
       rotation: 3599,
+      flipX: true,
       source: "t",
       crop: { x: 100, y: 100, width: 1_200, height: 900 },
     },
@@ -215,6 +218,7 @@ export function commandCases(): ConformanceFile {
     width: 10,
     height: 5,
     rotation: 0,
+    flipX: false,
   });
   const textLayer = (key: string, changes: Record<string, unknown> = {}) => ({
     ...layerCommon(key),
@@ -360,6 +364,12 @@ export function commandCases(): ConformanceFile {
       on(updateLayers(["ring", { x: 10, y: -4, rotation: 900 }])),
       applied,
     ],
+    ["mirrors a layer", on(updateLayers(["ring", { flipX: true }])), applied],
+    [
+      "mirrors a layer that's mirrored back, and turns it",
+      on(updateLayers(["inset", { flipX: false, rotation: 1_800 }])),
+      applied,
+    ],
     [
       "hides a layer and fades another, at once",
       on(updateLayers(["caption", { visible: false }], ["ring", { opacity: 0 }])),
@@ -456,6 +466,21 @@ export function commandCases(): ConformanceFile {
       "refuses a box of no width",
       on(insertLayers(0, textLayer("t", { width: 0 }))),
       refused("invalid-box"),
+    ],
+    [
+      "refuses a layer without flipX",
+      on(insertLayers(0, { ...textLayer("t"), flipX: undefined })),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a flipX that isn't a boolean",
+      on(insertLayers(0, textLayer("t", { flipX: 1 }))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses to set a flipX that isn't a boolean",
+      on(updateLayers(["ring", { flipX: "yes" }])),
+      refused("malformed-command"),
     ],
     [
       "refuses a rotation of 3600",
@@ -1006,8 +1031,23 @@ export function planCases(): ConformanceFile {
       invalidDocument("invalid-opacity"),
     ],
     [
+      "refuses a layer without flipX",
+      document({ layers: [{ ...BASE.layers[1], flipX: undefined }] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a layer whose flipX isn't a boolean",
+      document({ layers: [{ ...BASE.layers[1], flipX: 0 }] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "reads a document whose layers are all mirrored",
+      document({ layers: BASE.layers.map((layer) => ({ ...layer, flipX: true })) }),
+      applied,
+    ],
+    [
       "refuses a box turned by 3600",
-      document({ layers: [{ ...BASE.layers[1], rotation: 3_600 }] }),
+      document({ layers: [{ ...BASE.layers[1], rotation: 3_600, flipX: false }] }),
       invalidDocument("invalid-box"),
     ],
     [
@@ -1503,15 +1543,55 @@ export function geometryCases(): ConformanceFile {
     ],
     [
       "places an unturned layer's box in the scene",
-      op("layerToScene", { box: { x: 12, y: -7, width: 40, height: 20, rotation: 0 } }),
+      op("layerToScene", {
+        box: { x: 12, y: -7, width: 40, height: 20, rotation: 0, flipX: false },
+      }),
     ],
     [
       "turns a layer a quarter clockwise about its centre, exactly",
-      op("layerToScene", { box: { x: 10, y: 20, width: 40, height: 20, rotation: 900 } }),
+      op("layerToScene", {
+        box: { x: 10, y: 20, width: 40, height: 20, rotation: 900, flipX: false },
+      }),
+    ],
+    [
+      "mirrors a layer about its box's own vertical axis",
+      op("layerToScene", {
+        box: { x: 12, y: -7, width: 40, height: 20, rotation: 0, flipX: true },
+      }),
+    ],
+    [
+      "mirrors a layer, then turns it a quarter, exactly",
+      op("layerToScene", {
+        box: { x: 10, y: 20, width: 40, height: 20, rotation: 900, flipX: true },
+      }),
+    ],
+    [
+      "mirrors a layer, then turns it by 33.3 degrees",
+      op("layerToScene", {
+        box: { x: 10, y: 20, width: 40, height: 20, rotation: 333, flipX: true },
+      }),
+    ],
+    [
+      "maps a mirrored layer's box to a mirrored output, where it reads as it was drawn",
+      op("layerToOutput", {
+        box: { x: 60, y: 40, width: 80, height: 30, rotation: 0, flipX: true },
+        crop: whole,
+        orientation: { rotate: 0, flipX: true, flipY: false },
+        size: source,
+      }),
+    ],
+    [
+      "maps the scene to the pixels of a mirrored layer's cropped source",
+      op("sceneToLayerSource", {
+        box: { x: 60, y: 40, width: 80, height: 60, rotation: 300, flipX: true },
+        crop: { x: 4, y: 3, width: 30, height: 24 },
+      }),
     ],
     [
       "turns a layer by 33.3 degrees",
-      op("layerToScene", { box: { x: 10, y: 20, width: 40, height: 20, rotation: 333 } }),
+      op("layerToScene", {
+        box: { x: 10, y: 20, width: 40, height: 20, rotation: 333, flipX: false },
+      }),
     ],
     [
       "maps the scene to an output at the composition's own size",
@@ -1524,7 +1604,7 @@ export function geometryCases(): ConformanceFile {
     [
       "maps a turned layer's box to a turned, cropped output",
       op("layerToOutput", {
-        box: { x: 60, y: 40, width: 80, height: 30, rotation: 450 },
+        box: { x: 60, y: 40, width: 80, height: 30, rotation: 450, flipX: false },
         crop,
         orientation: turned,
         size: { width: 100, height: 200 },
@@ -1533,7 +1613,7 @@ export function geometryCases(): ConformanceFile {
     [
       "maps the scene to the pixels of a layer's cropped source",
       op("sceneToLayerSource", {
-        box: { x: 60, y: 40, width: 80, height: 60, rotation: 300 },
+        box: { x: 60, y: 40, width: 80, height: 60, rotation: 300, flipX: false },
         crop: { x: 4, y: 3, width: 30, height: 24 },
       }),
     ],

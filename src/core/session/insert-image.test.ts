@@ -4,6 +4,8 @@ import { createFakeEngine } from "../../../test/fakes/fake-engine.js";
 import { createFakeProcessor } from "../../../test/fakes/fake-processor.js";
 import { fakeEngineHarness } from "../../../test/fakes/harness.js";
 import { isImageError } from "../errors/image-error.js";
+import { compositionSize, cropRect } from "../model/geometry.js";
+import { applyMatrix, layerToOutput } from "../model/layer-geometry.js";
 import type { ImageImageLayer, ImagePlan } from "../model/plan.js";
 import type { ImageProcessor } from "../ports/image-processor.js";
 import { createImageSession, type ImageSessionEvent, type ImageSessionOptions } from "./session.js";
@@ -65,6 +67,7 @@ describe("session.insertImage (ADR 0003, ADR 0004)", () => {
         width: 10,
         height: 6,
         rotation: 0,
+        flipX: false,
         source: added.id,
         crop: null,
       },
@@ -81,6 +84,46 @@ describe("session.insertImage (ADR 0003, ADR 0004)", () => {
     // A second one goes over the first.
     const second = await session.insertImage(await file({ width: 4, height: 4 }));
     expect(layers().map((layer) => layer.source)).toEqual([added.id, second.id]);
+  });
+
+  it("places the image upright and unmirrored in the output, whatever the plan's rotation and flips", async () => {
+    for (const rotate of [0, 90, 180, 270] as const) {
+      for (const flipX of [false, true]) {
+        for (const flipY of [false, true]) {
+          const { session, layers, base } = await setup();
+          const orientation = { rotate, flipX, flipY };
+          session.execute({ type: "image.setOrientation", orientation });
+          await session.insertImage(await file({ width: 10, height: 6 }));
+          const [layer] = layers();
+          if (!layer) throw new Error("no layer");
+          const plan = session.getSnapshot().plan as ImagePlan;
+          const composition = compositionSize(plan, base);
+          const toOutput = layerToOutput(
+            layer,
+            cropRect(plan.base.crop, base),
+            orientation,
+            composition,
+          );
+          const what = JSON.stringify(orientation);
+          // Where the file's own corners are in the output: its top left at
+          // the top left, its right to the right, its bottom at the bottom.
+          const topLeft = applyMatrix(toOutput, { x: 0, y: 0 });
+          const topRight = applyMatrix(toOutput, { x: layer.width, y: 0 });
+          const bottomLeft = applyMatrix(toOutput, { x: 0, y: layer.height });
+          expect(topRight.x - topLeft.x, what).toBeCloseTo(10, 9);
+          expect(topRight.y - topLeft.y, what).toBeCloseTo(0, 9);
+          expect(bottomLeft.x - topLeft.x, what).toBeCloseTo(0, 9);
+          expect(bottomLeft.y - topLeft.y, what).toBeCloseTo(6, 9);
+          // Its own size, in the middle of what's shown, to the whole-pixel grid.
+          expect([layer.width, layer.height], what).toEqual([10, 6]);
+          expect(Math.abs(topLeft.x + 5 - composition.width / 2), what).toBeLessThanOrEqual(0.5);
+          expect(Math.abs(topLeft.y + 3 - composition.height / 2), what).toBeLessThanOrEqual(0.5);
+          // Mirrored exactly when the plan mirrors once, and turned back by its quarter turns.
+          expect(layer.flipX, what).toBe(flipX !== flipY);
+          expect(layer.rotation % 900, what).toBe(0);
+        }
+      }
+    }
   });
 
   it("fits a large image in half of what's shown, keeping its shape, inside the crop", async () => {
@@ -259,6 +302,7 @@ describe("session.insertImage (ADR 0003, ADR 0004)", () => {
               width: source.width * 2,
               height: source.height * 2,
               rotation: 900,
+              flipX: false,
               source: source.id,
               crop: { x: 1, y: 1, width: 8, height: 4 },
             },

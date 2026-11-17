@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Builds on:** [ADR 0007](0007-editor-shell.md) (the editor shell, gestures and the frames' keys) and [ADR 0009](0009-scene-space-layers-and-plan-versions.md) (layers and their commands); in sdk-core, [ADR 0009](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0009-features-as-tools.md) (features as tools), [ADR 0014](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0014-accessibility-and-translatable-text.md) (accessibility) and [ADR 0030](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0030-tools-and-keyboard-shortcuts.md) (tools and shortcuts)
+- **Amended:** 2026-11-17: a new layer is mirrored back on a mirrored image, and the panel has a Mirror button, now that a layer's box has `flipX` ([ADR 0009](0009-scene-space-layers-and-plan-versions.md))
 - **Amended:** 2026-11-17: the tools that add text, shapes and images, the fields of each kind, and where focus goes when a layer is added, under "Adding layers"
 - **Follows:** pdf-sdk's [ADR 0008](https://github.com/ie-huss-martinez/pdf-sdk/blob/main/docs/adr/0008-page-organisation-in-the-editor.md), for the keys that reorder a list
 
@@ -35,11 +36,11 @@ Three things need one answer across both:
 
 Four tools, in one toolbar group before Layers: `image.add-text` (shortcut `T`), `image.add-rectangle`, `image.add-ellipse` and `image.add-image`. Each adds one layer over every other, as one undoable step, and shows the layers with it selected.
 
-- **A new layer is in the middle of the image as it's shown, the right way up.** Layers live in the scene, which the plan's rotation turns with the image ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). So a new layer's box is turned back by the plan's quarter turns: its top is up on screen, and it has the size it's given as it's seen.
-- **On a mirrored image, a new layer is mirrored too.** A flip mirrors the whole scene, and a layer has no flip of its own to undo it. Text added to a mirrored image reads mirrored, as the image does. A per-layer flip would be a change to the format, and isn't decided here.
+- **A new layer is in the middle of the image as it's shown, the right way round.** Layers live in the scene, which the plan's rotation and flips turn and mirror with the image ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). So a new layer's box is turned back by the plan's quarter turns and mirrored back by its flips: on screen it's neither turned nor mirrored, and it has the size it's given as it's seen. Text added to a mirrored image reads as text.
+- **Flipping the image afterwards mirrors its layers with it.** That's what flipping the whole image means. Only a new layer is set against the orientation it's added under.
 - **Text starts empty,** half the image wide and a fifth of it tall, black, centred. There's no placeholder: sample text in the plan would be in the export of anyone who forgot it. Focus moves to the layer's text field, so typing is the next thing that happens.
 - **A shape starts as a red outline with no fill,** a quarter of the image each way: something to put around a detail. The outline is a hundredth of the image's shorter side, at least 2 pixels.
-- **An image is chosen in the tool's own file picker** and added with `session.insertImage`: at its own size, or fitted in half of what's shown if that's smaller. While it's read, the stage shows a spinner with a cancel button, as it does for an open. `insertImage(file)` on the editor's handle and on `<hm-image-editor>` does the same for a file the host has.
+- **An image is chosen in the tool's own file picker** and added with `session.insertImage`, which places it: at its own size, or fitted in half of what's shown if that's smaller, the right way round. The placement is the session's own default, in the core, so a headless host that calls `insertImage` gets the same layer the editor does, and there's one implementation. While it's read, the stage shows a spinner with a cancel button, as it does for an open. `insertImage(file)` on the editor's handle and on `<hm-image-editor>` does the same for a file the host has.
 - **A file's name is never used.** An image layer is unnamed, and goes by "Image".
 - **Focus stays where it was when a shape or an image is added:** on the tool's button, to add another or move on from. Only text moves it, to its field. A host calling `insertImage` never has focus taken from its page.
 - **What can't be added is said on the stage,** as a failed open is: a file that isn't an image, a layer over `maxLayers`. It's the error's text from the catalogue by its code, in `error` on the editor's state, until a layer is added or another image opens. Nothing changes.
@@ -73,7 +74,7 @@ Under the fields every layer has, the panel shows the selected layer's own:
 
 - **The list shows the top layer first,** as the image stacks them. Each row has a button that selects the layer, pressed when it's selected, and a button that shows or hides it, pressed while it's shown.
 - **A layer goes by its name.** Unnamed, a text layer goes by the start of its first line, and any other by its kind: "Rectangle", "Ellipse", "Image". Names and text come from a plan, so they're untrusted: they're shown as text nodes, never as HTML ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)).
-- **Under the list, four buttons act on the selected layer:** move up, move down, duplicate and delete. They're the path that always works: with a pointer, with the keyboard, and with a screen reader in browse mode. A button that can't act is `aria-disabled` and keeps focus, so pressing "Move up" until the layer reaches the top never drops focus.
+- **Under the list, five buttons act on the selected layer:** move up, move down, mirror, duplicate and delete. Mirror is pressed while the layer is mirrored; it flips the layer left to right about its own box, where it is. They're the path that always works: with a pointer, with the keyboard, and with a screen reader in browse mode. A button that can't act is `aria-disabled` and keeps focus, so pressing "Move up" until the layer reaches the top never drops focus.
 - **Then the selected layer's fields:** its name, its left, top, width and height in scene pixels, its turn in degrees and its opacity in percent. Each change is one undoable step. They do everything a drag on the frame does, without dragging (WCAG 2.5.7).
 - **The name's field takes what the plan takes:** it drops the characters text can't hold and anything past 100 code points before it builds the command, so the reducer never refuses it.
 - **A duplicate** is the layer with a new key, 8 pixels down and right so both can be seen, inserted over its original and selected.
@@ -152,7 +153,7 @@ One thing was measured here: from a text field, Chromium on Linux scrolls the pa
 
 ### Moving and resizing a turned layer
 
-A layer's box is whole scene pixels, turned about its centre by tenths of a degree, and the plan may be turned by quarters and mirrored ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). The geometry is in `src/react/layers/frame-geometry.ts`, pure, with property tests. It's the editor's, so it adds nothing to the server-safe entry.
+A layer's box is whole scene pixels, mirrored or not, turned about its centre by tenths of a degree, and the plan may be turned by quarters and mirrored ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). The geometry is in `src/react/layers/frame-geometry.ts`, pure, with property tests. It's the editor's, so it adds nothing to the server-safe entry.
 
 - **Moving is as seen on screen.** A distance on screen goes back through the plan's rotation and flips to the scene. The plan turns by quarters, so a whole pixel on screen is a whole pixel of the scene, whatever the layer's own turn.
 - **A handle resizes along the layer's own sides,** as the frame shows them, and what's opposite the handle stays where it is: the other edge, or the other corner.

@@ -172,6 +172,7 @@ describe("the format schemas agree with the readers", () => {
       width: 1,
       height: 1,
       rotation: 0,
+      flipX: false,
       text: value,
       font: "serif",
       bold: false,

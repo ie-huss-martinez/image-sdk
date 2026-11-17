@@ -26,7 +26,14 @@ const scene = (orientation: ImageOrientation) =>
   sceneToOutput(CROP, orientation, composition(orientation));
 const seen = (box: ImageLayerBox, orientation: ImageOrientation) =>
   layerToOutput(box, CROP, orientation, composition(orientation));
-const box = (rotation = 0): ImageLayerBox => ({ x: 20, y: 10, width: 60, height: 30, rotation });
+const box = (rotation = 0, flipX = false): ImageLayerBox => ({
+  x: 20,
+  y: 10,
+  width: 60,
+  height: 30,
+  rotation,
+  flipX,
+});
 
 /** The corners of a box on screen, as the smallest rectangle around them. */
 function bounds(layer: ImageLayerBox, orientation: ImageOrientation) {
@@ -58,6 +65,7 @@ const boxes = fc.record({
   width: fc.integer({ min: 1, max: 400 }),
   height: fc.integer({ min: 1, max: 400 }),
   rotation: fc.integer({ min: 0, max: 3_599 }),
+  flipX: fc.boolean(),
 });
 const handles = fc.constantFrom(...LAYER_HANDLES);
 
@@ -112,7 +120,7 @@ describe("resizing a layer's box (ADR 0013)", () => {
 
   it("never makes a box smaller than 1 × 1, and never a negative zero", () => {
     const tiny = resizeLayerBox({ ...box(), x: 0, y: 0 }, "se", -500, -500);
-    expect(tiny).toEqual({ x: 0, y: 0, width: 1, height: 1, rotation: 0 });
+    expect(tiny).toEqual({ x: 0, y: 0, width: 1, height: 1, rotation: 0, flipX: false });
     expect(Object.is(tiny.x, -0) || Object.is(tiny.y, -0)).toBe(false);
     expect(resizeLayerBox(box(), "nw", 500, 500)).toEqual({
       x: 79,
@@ -120,6 +128,7 @@ describe("resizing a layer's box (ADR 0013)", () => {
       width: 1,
       height: 1,
       rotation: 0,
+      flipX: false,
     });
   });
 
@@ -196,6 +205,7 @@ describe("the edge a key moves (ADR 0013)", () => {
         boxes.map((layer) => ({
           ...layer,
           rotation: 0,
+          flipX: false,
           width: layer.width + 1,
           height: layer.height + 1,
         })),

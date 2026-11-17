@@ -298,7 +298,8 @@ export interface ImageLayerCommon {
 
 /**
  * Where a positioned layer is: a box in whole pixels of the scene, the
- * base's oriented source, turned about its centre (ADR 0009). The box stays
+ * base's oriented source, mirrored or not, then turned about its centre
+ * (ADR 0009). The box stays
  * on the pixels it covers when the image is cropped or turned.
  *
  * @public
@@ -314,6 +315,12 @@ export interface ImageLayerBox {
   readonly height: number;
   /** Tenths of a degree, clockwise about the box's centre: 0 to 3599. */
   readonly rotation: number;
+  /**
+   * Whether the layer is mirrored left to right, about the box's own
+   * vertical axis, before it's turned. With a half turn, that's a mirror top
+   * to bottom, so one flip is all a box needs.
+   */
+  readonly flipX: boolean;
 }
 
 /**

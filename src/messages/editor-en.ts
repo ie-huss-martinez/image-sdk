@@ -150,6 +150,7 @@ export const imageEditorText = /* @__PURE__ */ defineMessages({
   "layers.selected": "Selected layer",
   "layers.moveUp": "Move up",
   "layers.moveDown": "Move down",
+  "layers.mirror": "Mirror",
   "layers.duplicate": "Duplicate",
   "layers.remove": "Delete",
   "layers.name": "Name",

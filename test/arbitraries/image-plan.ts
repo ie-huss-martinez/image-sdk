@@ -136,6 +136,7 @@ const box = {
   width: length,
   height: length,
   rotation: fc.integer({ min: 0, max: 3_599 }),
+  flipX: fc.boolean(),
 };
 const common = (itemKey: string) => ({
   key: fc.constant(itemKey),

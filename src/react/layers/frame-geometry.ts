@@ -27,12 +27,13 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const whole = (value: number) => Math.round(value) || 0;
 
 /** A layer's box, without its other fields. */
-export const boxOf = ({ x, y, width, height, rotation }: ImageLayerBox): ImageLayerBox => ({
+export const boxOf = ({ x, y, width, height, rotation, flipX }: ImageLayerBox): ImageLayerBox => ({
   x,
   y,
   width,
   height,
   rotation,
+  flipX,
 });
 
 /**
@@ -98,6 +99,7 @@ export function resizeLayerBox(
     width,
     height,
     rotation: box.rotation,
+    flipX: box.flipX,
   };
 }
 

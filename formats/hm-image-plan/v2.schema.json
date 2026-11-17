@@ -488,6 +488,10 @@
       "minimum": 0,
       "maximum": 3599
     },
+    "flipX": {
+      "description": "Whether the layer is mirrored left to right, about its box's own vertical axis, before it's turned.",
+      "type": "boolean"
+    },
     "font": {
       "enum": ["sans-serif", "serif", "monospace"]
     },
@@ -528,6 +532,7 @@
             "width",
             "height",
             "rotation",
+            "flipX",
             "text",
             "font",
             "bold",
@@ -571,6 +576,9 @@
             "rotation": {
               "$ref": "#/$defs/rotation"
             },
+            "flipX": {
+              "$ref": "#/$defs/flipX"
+            },
             "kind": {
               "const": "text"
             },
@@ -612,6 +620,7 @@
             "width",
             "height",
             "rotation",
+            "flipX",
             "shape",
             "fill",
             "stroke"
@@ -652,6 +661,9 @@
             },
             "rotation": {
               "$ref": "#/$defs/rotation"
+            },
+            "flipX": {
+              "$ref": "#/$defs/flipX"
             },
             "kind": {
               "const": "shape"
@@ -694,6 +706,7 @@
             "width",
             "height",
             "rotation",
+            "flipX",
             "source",
             "crop"
           ],
@@ -733,6 +746,9 @@
             },
             "rotation": {
               "$ref": "#/$defs/rotation"
+            },
+            "flipX": {
+              "$ref": "#/$defs/flipX"
             },
             "kind": {
               "const": "image"
@@ -791,6 +807,9 @@
         },
         "rotation": {
           "$ref": "#/$defs/rotation"
+        },
+        "flipX": {
+          "$ref": "#/$defs/flipX"
         },
         "text": {
           "allOf": [

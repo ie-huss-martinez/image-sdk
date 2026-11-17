@@ -132,9 +132,9 @@ The editor adds text, rectangles, ellipses and other images over an image as lay
 - **On the image:** each layer has a frame. Press one to select the top layer under the pointer, drag it to move the layer, and drag a handle of the selected one to resize it.
 - **With the keyboard:** on a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it and `Delete` removes it. In the list, `Alt` (`Option` on macOS) with the Up or Down arrow moves the focused layer up or down the stack, and `Delete` removes it.
 
-Text is drawn with the device's own fonts, in one of three generic families, so the same plan can look different on another device; the preview and the export of one session always agree ([ADR 0009](docs/adr/0009-scene-space-layers-and-plan-versions.md)). On a mirrored image a new layer is mirrored with it.
+Text is drawn with the device's own fonts, in one of three generic families, so the same plan can look different on another device; the preview and the export of one session always agree ([ADR 0009](docs/adr/0009-scene-space-layers-and-plan-versions.md)). A new layer is set against the image's rotation and flips, so text added to a turned or mirrored image reads as text; "Mirror" in the panel flips a layer about its own box.
 
-Headless, a layer is a command: `image.insertLayers`, or `session.insertImage(file)` for an image.
+Headless, a layer is a command: `image.insertLayers`, or `session.insertImage(file)` for an image, which places it the same way: centred, fitted, and neither turned nor mirrored in the output.
 
 ## Formats and browsers
 

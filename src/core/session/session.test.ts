@@ -321,6 +321,7 @@ describe("the image session (ADR 0003)", () => {
       width: 4,
       height: 4,
       rotation: 0,
+      flipX: false,
     };
     const caption = {
       ...box,
