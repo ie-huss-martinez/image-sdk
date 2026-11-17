@@ -1,13 +1,17 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { isImageError } from "../core/errors/image-error.js";
+import { arrowBounds, drawingBounds } from "../core/model/drawing-geometry.js";
 import { applyMatrix, invertMatrix, sceneToLayerSource } from "../core/model/layer-geometry.js";
 import {
   createPlan,
+  type ImageArrowLayer,
+  type ImageDrawingLayer,
   type ImageImageLayer,
   type ImageLayer,
   type ImagePlan,
   type ImageRedaction,
   type ImageShapeLayer,
+  type ImageStroke,
   type ImageTextLayer,
   NEUTRAL_DEVELOP,
 } from "../core/model/plan.js";
@@ -136,6 +140,43 @@ const shape = (changes: Partial<ImageShapeLayer> = {}): ImageShapeLayer => ({
   ...changes,
 });
 
+const pen = (runs: number[][], changes: Partial<ImageStroke> = {}): ImageStroke => ({
+  colour: "#000000",
+  width: 6,
+  runs,
+  ...changes,
+});
+const drawing = (
+  strokes: readonly ImageStroke[],
+  changes: Partial<ImageDrawingLayer> = {},
+): ImageDrawingLayer => ({
+  key: "d",
+  kind: "drawing",
+  name: "",
+  visible: true,
+  opacity: 100,
+  x: 0,
+  y: 0,
+  strokes,
+  ...changes,
+});
+const arrow = (
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  changes: Partial<ImageArrowLayer> = {},
+): ImageArrowLayer => ({
+  key: "a",
+  kind: "arrow",
+  name: "",
+  visible: true,
+  opacity: 100,
+  from,
+  to,
+  colour: "#000000",
+  width: 6,
+  ...changes,
+});
+
 /** The box around every pixel that isn't the background, or `null`. */
 function inkBox(pixels: Pixels, background = WHITE) {
   let left = Infinity;
@@ -187,6 +228,22 @@ describe("the preview is the export (docs/adr/0009)", () => {
       }),
       image,
       text("Hello\nשלום 📷", { bold: true, colour: "#101010", align: "start" }),
+      // A drawing of two strokes, one of two runs and one a dot, faded as a group; and an arrow.
+      drawing(
+        [
+          pen(
+            [
+              [0, 0, 30, 25, 60, 5],
+              [60, 5, 90, 40],
+            ],
+            { colour: "#7030c0", width: 7 },
+          ),
+          pen([[40, 50]], { colour: "#c07030", width: 13 }),
+        ],
+        { x: 70, y: 55, opacity: 70 },
+      ),
+      arrow({ x: 20, y: 100 }, { x: 95, y: 70 }, { colour: "#0060a0", width: 5 }),
+      arrow({ x: 180, y: 20 }, { x: 176, y: 23 }, { key: "short", width: 9, opacity: 60 }),
       text("fit", {
         key: "t2",
         x: 130,
@@ -613,48 +670,6 @@ describe("shape and image layers (docs/adr/0009)", () => {
     expect([half.at(70, 60), half.at(130, 60)]).toEqual([RED, GREEN]);
   });
 
-  it("refuses a plan with a drawing or an arrow, which it doesn't draw yet, in the export and the preview", async () => {
-    const { engine, processor } = await opened();
-    const renderer = createImageRenderer(engine);
-    renderers.push(renderer);
-    await renderer.attach(document.createElement("canvas"));
-    const shared = { name: "", visible: true, opacity: 100 };
-    const drawing: ImageLayer = {
-      ...shared,
-      key: "d",
-      kind: "drawing",
-      x: 10,
-      y: 10,
-      strokes: [{ colour: "#000000", width: 3, runs: [[0, 0, 40, 20]] }],
-    };
-    const arrow: ImageLayer = {
-      ...shared,
-      key: "a",
-      kind: "arrow",
-      from: { x: 10, y: 10 },
-      to: { x: 80, y: 40 },
-      colour: "#ff0000",
-      width: 4,
-    };
-    // Hidden ones too: nothing is drawn or exported without a part of its plan (ADR 0009).
-    for (const layer of [drawing, arrow, { ...drawing, visible: false }]) {
-      const plan = withLayers([shape(), layer]);
-      const refusals: unknown[] = [];
-      await processor.export({ plan, format: { type: "png" } }).catch((e) => refusals.push(e));
-      await renderer.render(plan, fittedView(WIDTH, HEIGHT)).catch((e) => refusals.push(e));
-      expect(refusals, layer.kind).toHaveLength(2);
-      for (const refusal of refusals) {
-        expect(isImageError(refusal, "UNSUPPORTED_PLAN"), layer.kind).toBe(true);
-        expect((refusal as { details?: unknown }).details).toMatchObject({ reason: "drawings" });
-      }
-    }
-    // The same plan without it is drawn.
-    const drawn = await decoded(
-      await processor.export({ plan: withLayers([shape()]), format: { type: "png" } }),
-    );
-    expect(inkBox(drawn)?.count ?? 0).toBeGreaterThan(100);
-  });
-
   it("fails on an image layer whose source isn't registered, with nothing exported", async () => {
     const { processor } = await opened();
     const layer: ImageImageLayer = {
@@ -667,6 +682,272 @@ describe("shape and image layers (docs/adr/0009)", () => {
     await expect(
       processor.export({ plan: withLayers([layer]), format: { type: "png" } }),
     ).rejects.toThrow();
+  });
+});
+
+describe("drawings and arrows (docs/adr/0014)", () => {
+  async function drawn(layers: readonly ImageLayer[], changes: Partial<ImagePlan> = {}) {
+    const { processor } = await opened();
+    return decoded(
+      await processor.export({ plan: withLayers(layers, changes), format: { type: "png" } }),
+    );
+  }
+  const BLACK = [0, 0, 0, 255];
+  /** How many pixels differ by more than `by` in some channel. */
+  const differing = (a: Pixels, b: Pixels, by: number) => {
+    let count = 0;
+    for (let i = 0; i < a.data.length; i += 4) {
+      for (let channel = 0; channel < 3; channel += 1) {
+        if (Math.abs((a.data[i + channel] ?? 0) - (b.data[i + channel] ?? 0)) > by) {
+          count += 1;
+          break;
+        }
+      }
+    }
+    return count;
+  };
+
+  it("draws a run as a line of its width, with round ends, from its drawing's origin", async () => {
+    // From 40 to 140 across, at 40 down, 10 wide.
+    const pixels = await drawn([
+      drawing([pen([[20, 0, 120, 0]], { width: 10, colour: "#2060c0" })], { x: 20, y: 40 }),
+    ]);
+    // Its ink: the line, and half its width past each end.
+    expect(inkBox(pixels)).toMatchObject({ left: 35, right: 144, top: 35, bottom: 44 });
+    // Exactly its colour, across its width.
+    for (const y of [36, 40, 43]) expect(pixels.at(90, y)).toEqual([0x20, 0x60, 0xc0, 255]);
+    expect(pixels.at(90, 33)).toEqual(WHITE);
+    expect(pixels.at(90, 46)).toEqual(WHITE);
+    // A round end: its middle is ink, its corners aren't.
+    expect(pixels.at(36, 40)).toEqual([0x20, 0x60, 0xc0, 255]);
+    expect(pixels.at(35, 35)).toEqual(WHITE);
+    expect(pixels.at(144, 44)).toEqual(WHITE);
+  });
+
+  it("draws a run of one point as a disc as wide as the stroke", async () => {
+    const pixels = await drawn([drawing([pen([[0, 0]], { width: 20 })], { x: 100, y: 60 })]);
+    const ink = inkBox(pixels);
+    expect(ink).toMatchObject({ left: 90, right: 109, top: 50, bottom: 69 });
+    expect(pixels.at(100, 60)).toEqual(BLACK);
+    // A disc, not a square: about π × 10² pixels, and nothing in the corners.
+    expect(Math.abs((ink?.count ?? 0) - Math.PI * 100)).toBeLessThan(30);
+    expect(pixels.at(91, 51)).toEqual(WHITE);
+  });
+
+  it("joins a line's segments round, and never fits a curve through its points", async () => {
+    // Right, then down: a corner at 100, 30.
+    const pixels = await drawn([drawing([pen([[40, 30, 100, 30, 100, 90]], { width: 12 })])]);
+    // The corner's own point is ink; the square corner beyond a round join isn't.
+    expect(pixels.at(100, 30)).toEqual(BLACK);
+    expect(pixels.at(105, 24)).toEqual(WHITE);
+    // The segments are straight: the middle of each is on its line, and the
+    // inside of the corner, where a fitted curve would cut across, is empty.
+    expect(pixels.at(70, 30)).toEqual(BLACK);
+    expect(pixels.at(100, 60)).toEqual(BLACK);
+    expect(pixels.at(85, 45)).toEqual(WHITE);
+  });
+
+  it("draws runs that meet at a point as one line through it, at any opacity", async () => {
+    const one = [pen([[40, 30, 100, 30, 100, 90]], { width: 12 })];
+    const two = [
+      pen(
+        [
+          [40, 30, 100, 30],
+          [100, 30, 100, 90],
+        ],
+        { width: 12 },
+      ),
+    ];
+    for (const opacity of [100, 50]) {
+      const whole = await drawn([drawing(one, { opacity })]);
+      const cut = await drawn([drawing(two, { opacity })]);
+      // The same line, pixel for pixel: the renderer continues one path through the cut.
+      expect(inkBox(whole)?.count ?? 0, String(opacity)).toBeGreaterThan(1_000);
+      expect(differing(whole, cut, 0), String(opacity)).toBe(0);
+      // Where the runs meet isn't darker than the line.
+      expect(cut.at(100, 30)).toEqual(cut.at(70, 30));
+    }
+    // Runs that don't meet are two lines, each with its own round ends.
+    const apart = await drawn([
+      drawing([
+        pen(
+          [
+            [40, 30, 90, 30],
+            [110, 30, 160, 30],
+          ],
+          { width: 12 },
+        ),
+      ]),
+    ]);
+    expect(apart.at(100, 30)).toEqual(WHITE);
+    expect(apart.at(94, 30)).toEqual(BLACK);
+    expect(apart.at(106, 30)).toEqual(BLACK);
+    // A dot on the end of a line adds nothing; one elsewhere is a disc.
+    const dotted = await drawn([
+      drawing([
+        pen(
+          [
+            [40, 30, 90, 30],
+            [90, 30],
+            [130, 70],
+          ],
+          { width: 12 },
+        ),
+      ]),
+    ]);
+    const line = await drawn([
+      drawing([
+        pen(
+          [
+            [40, 30, 90, 30],
+            [130, 70],
+          ],
+          { width: 12 },
+        ),
+      ]),
+    ]);
+    expect(differing(dotted, line, 0)).toBe(0);
+    expect(dotted.at(130, 70)).toEqual(BLACK);
+    expect(dotted.at(130, 78)).toEqual(WHITE);
+  });
+
+  it("composites a drawing as one: strokes that cross don't darken each other", async () => {
+    const cross = drawing(
+      [pen([[40, 60, 160, 60]], { width: 14 }), pen([[100, 20, 100, 100]], { width: 14 })],
+      { opacity: 50 },
+    );
+    const pixels = await drawn([cross]);
+    const arm = pixels.at(60, 60);
+    // Half black over white: mid grey, on an arm and where they cross alike.
+    expect(Math.abs((arm[0] ?? 0) - 128)).toBeLessThanOrEqual(2);
+    expect(pixels.at(100, 60)).toEqual(arm);
+    expect(pixels.at(100, 30)).toEqual(arm);
+    // Hidden, or with no opacity, it draws nothing.
+    expect(inkBox(await drawn([{ ...cross, visible: false }]))).toBeNull();
+    expect(inkBox(await drawn([{ ...cross, opacity: 0 }]))).toBeNull();
+  });
+
+  it("uses each stroke's own colour, in order, and is never developed with the base", async () => {
+    const pixels = await drawn(
+      [
+        drawing([
+          pen([[40, 60, 160, 60]], { width: 14, colour: "#c02020" }),
+          pen([[100, 20, 100, 100]], { width: 14, colour: "#2020c0" }),
+        ]),
+      ],
+      {
+        base: {
+          ...createPlan("s").base,
+          develop: { ...createPlan("s").base.develop, exposure: -60, saturation: -100 },
+          filter: { preset: "sepia", strength: 100 },
+        },
+      },
+    );
+    expect(pixels.at(60, 60)).toEqual([0xc0, 0x20, 0x20, 255]);
+    // The later stroke is over the earlier one where they cross.
+    expect(pixels.at(100, 60)).toEqual([0x20, 0x20, 0xc0, 255]);
+    expect(pixels.at(100, 30)).toEqual([0x20, 0x20, 0xc0, 255]);
+  });
+
+  it("draws an arrow with its tip on the point it aims at, and nothing past it", async () => {
+    const layer = arrow({ x: 30, y: 60 }, { x: 150, y: 60 }, { width: 6, colour: "#c02020" });
+    const pixels = await drawn([layer]);
+    const RED = [0xc0, 0x20, 0x20, 255];
+    // The head is 24 long and 24 across; the shaft 6 across, with a square tail.
+    const bounds = arrowBounds(layer);
+    expect(bounds).toEqual({ x: 30, y: 48, width: 120, height: 24 });
+    const ink = inkBox(pixels);
+    expect(ink?.left).toBe(30);
+    expect(ink?.right).toBe(149);
+    expect(Math.abs((ink?.top ?? 0) - 48)).toBeLessThanOrEqual(1);
+    expect(Math.abs((ink?.bottom ?? 0) - 71)).toBeLessThanOrEqual(1);
+    // The shaft, exactly its colour across its width, and nothing beside it.
+    for (const y of [57, 60, 62]) expect(pixels.at(70, y)).toEqual(RED);
+    expect(pixels.at(70, 55)).toEqual(WHITE);
+    expect(pixels.at(70, 64)).toEqual(WHITE);
+    expect(pixels.at(30, 60)).toEqual(RED);
+    // The head widens to its base, at 126, and narrows to the tip.
+    expect(pixels.at(128, 51)).toEqual(RED);
+    expect(pixels.at(128, 68)).toEqual(RED);
+    expect(pixels.at(145, 60)).toEqual(RED);
+    expect(pixels.at(145, 52)).toEqual(WHITE);
+    // Nothing is drawn at or past the tip's column.
+    for (let y = 0; y < HEIGHT; y += 1) {
+      if (pixels.at(150, y).join() !== WHITE.join()) throw new Error(`ink past the tip at ${y}`);
+    }
+  });
+
+  it("draws an arrow in any direction inside its bounds, and one shorter than its head as a head", async () => {
+    for (const [from, to, width] of [
+      [{ x: 150, y: 100 }, { x: 40, y: 20 }, 5],
+      [{ x: 60, y: 20 }, { x: 60, y: 100 }, 8],
+      // Shorter than its head of 40: all head.
+      [{ x: 100, y: 60 }, { x: 110, y: 66 }, 10],
+    ] as const) {
+      const layer = arrow(from, to, { width });
+      const ink = inkBox(await drawn([layer]));
+      const bounds = arrowBounds(layer);
+      if (!ink) throw new Error("no ink");
+      expect(ink.left).toBeGreaterThanOrEqual(bounds.x);
+      expect(ink.top).toBeGreaterThanOrEqual(bounds.y);
+      expect(ink.right).toBeLessThan(bounds.x + bounds.width);
+      expect(ink.bottom).toBeLessThan(bounds.y + bounds.height);
+      // And it fills them, to a pixel's antialiasing each way.
+      expect(ink.left - bounds.x).toBeLessThanOrEqual(1);
+      expect(bounds.x + bounds.width - 1 - ink.right).toBeLessThanOrEqual(1);
+      expect(ink.top - bounds.y).toBeLessThanOrEqual(1);
+      expect(bounds.y + bounds.height - 1 - ink.bottom).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("keeps a drawing's ink inside its bounds, and scales with the export", async () => {
+    const layer = drawing(
+      [
+        pen([[0, 0, 60, 30, 20, 50]], { width: 8 }),
+        pen([[90, 10]], { width: 16, colour: "#c02020" }),
+      ],
+      { x: 40, y: 30 },
+    );
+    const bounds = drawingBounds(layer);
+    const full = inkBox(await drawn([layer]));
+    if (!full) throw new Error("no ink");
+    // Inside its bounds, to the pixel of antialiasing a round end's curve may spill.
+    expect(full.left).toBeGreaterThanOrEqual(bounds.x - 1);
+    expect(full.top).toBeGreaterThanOrEqual(bounds.y - 1);
+    expect(full.right).toBeLessThanOrEqual(bounds.x + bounds.width);
+    expect(full.bottom).toBeLessThanOrEqual(bounds.y + bounds.height);
+    // And it reaches them: the bounds aren't loose.
+    expect(full.left).toBeLessThanOrEqual(bounds.x + 1);
+    expect(full.right).toBeGreaterThanOrEqual(bounds.x + bounds.width - 2);
+    // At half size the same drawing is half as large, from the same geometry.
+    const half = inkBox(await drawn([layer], { output: { kind: "scale", scale: 0.5 } }));
+    if (!half) throw new Error("no ink");
+    expect(Math.abs(half.left - full.left / 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(half.top - full.top / 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(half.width - full.width / 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(half.height - full.height / 2)).toBeLessThanOrEqual(1);
+  });
+
+  it("stays on the pixels it was drawn on when the image is cropped, turned and mirrored", async () => {
+    const dot = drawing([pen([[0, 0]], { width: 10, colour: "#c02020" })], { x: 150, y: 30 });
+    const RED = [0xc0, 0x20, 0x20, 255];
+    // Cropped from 100, 10: the dot is 50 across and 20 down.
+    const cropped = await drawn([dot], {
+      base: { ...createPlan("s").base, crop: { x: 100, y: 10, width: 100, height: 100 } },
+    });
+    expect(cropped.at(50, 20)).toEqual(RED);
+    // Mirrored left to right: 200 − 150 = 50 from the left.
+    const mirrored = await drawn([dot], {
+      base: { ...createPlan("s").base, orientation: { rotate: 0, flipX: true, flipY: false } },
+    });
+    expect(mirrored.at(49, 30)).toEqual(RED);
+    expect(mirrored.at(150, 30)).toEqual(WHITE);
+    // A quarter turn clockwise: the image is 120 × 200, and the dot 120 − 30 across, 150 down.
+    const turned = await drawn([dot], {
+      base: { ...createPlan("s").base, orientation: { rotate: 90, flipX: false, flipY: false } },
+    });
+    expect([turned.width, turned.height]).toEqual([120, 200]);
+    expect(turned.at(89, 150)).toEqual(RED);
   });
 });
 
@@ -779,7 +1060,13 @@ describe("image layers under a redaction (docs/adr/0010)", () => {
     const { processor } = await opened();
     const region = { x: 50, y: 30, width: 100, height: 60 };
     const plan = withLayers(
-      [shape({ x: 30, y: 20, width: 140, height: 80 }), text("Secret", { ...region, bold: true })],
+      [
+        shape({ x: 30, y: 20, width: 140, height: 80 }),
+        text("Secret", { ...region, bold: true }),
+        // A scribble across the region and out of it, and an arrow that ends inside it.
+        drawing([pen([[10, 10, 150, 80, 60, 90, 190, 20]], { width: 9, colour: "#e00000" })]),
+        arrow({ x: 10, y: 110 }, { x: 100, y: 60 }, { width: 8, colour: "#00a000" }),
+      ],
       { redactions: [{ key: "r", mode: "solid", ...region, colour: "#1a2b3c" }] },
     );
     const pixels = await decoded(await processor.export({ plan, format: { type: "png" } }));
@@ -789,7 +1076,10 @@ describe("image layers under a redaction (docs/adr/0010)", () => {
       }
     }
     // The shape still shows around the region.
-    expect(pixels.at(35, 25)).toEqual([0x20, 0x60, 0xc0, 255]);
+    expect(pixels.at(165, 95)).toEqual([0x20, 0x60, 0xc0, 255]);
+    // And so do the scribble and the arrow, outside it.
+    expect(pixels.at(10, 10)).toEqual([0xe0, 0, 0, 255]);
+    expect(pixels.at(16, 106)).toEqual([0, 0xa0, 0, 255]);
   });
 
   it("never serves an image layer from a copy built for other redactions or another place", async () => {

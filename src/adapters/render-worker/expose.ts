@@ -31,7 +31,7 @@ function sameDecode(a: ImageProbe, b: ImageProbe): boolean {
  * The parts of a plan this worker draws, beyond the base. A plan with any
  * other is refused before anything is drawn (docs/adr/0009).
  */
-const DRAWS: readonly ImagePlanPart[] = ["layers", "redactions"];
+const DRAWS: readonly ImagePlanPart[] = ["layers", "drawings", "redactions"];
 
 /**
  * Answers the render worker's contract (docs/adr/0002). It does nothing on
