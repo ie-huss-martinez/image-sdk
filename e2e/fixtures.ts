@@ -132,6 +132,72 @@ export function gifFrameOutsideScreen(): Uint8Array {
   return bytes;
 }
 
+/**
+ * LZW image data for a frame of one colour index, with a two-bit minimum
+ * code size: a clear code before each pixel keeps every code three bits
+ * wide, so there's no table to build.
+ */
+function gifImageData(pixels: number, index: number): number[] {
+  const codes = [...Array.from({ length: pixels }, () => [4, index]).flat(), 5];
+  const bytes: number[] = [];
+  let bits = 0;
+  let count = 0;
+  for (const code of codes) {
+    bits |= code << count;
+    count += 3;
+    while (count >= 8) {
+      bytes.push(bits & 0xff);
+      bits >>>= 8;
+      count -= 8;
+    }
+  }
+  if (count > 0) bytes.push(bits & 0xff);
+  return [2, bytes.length, ...bytes, 0];
+}
+
+const le16 = (v: number) => [v & 0xff, (v >>> 8) & 0xff];
+
+/** A GIF frame of one colour index, with its disposal method. */
+function gifFrame(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  index: number,
+  disposal: number,
+): number[] {
+  return [
+    ...[0x21, 0xf9, 4, disposal << 2, 10, 0, 0, 0],
+    ...[0x2c, ...le16(left), ...le16(top), ...le16(width), ...le16(height), 0],
+    ...gifImageData(width * height, index),
+  ];
+}
+
+/**
+ * An 8 × 8 GIF whose colour table is red and blue, with blue as its
+ * background colour. Its frames are red, opaque, and never reach the
+ * bottom-right pixel in the frame the matrix reads: that pixel shows what a
+ * browser puts where no frame draws, and after a frame is disposed of
+ * (docs/adr/0011).
+ *
+ * - `"first frame"`: one frame, the top-left 4 × 4.
+ * - `"after disposal 2"`: a frame over the whole screen, disposed of by
+ *   restoring the background, then the top-left 4 × 4.
+ */
+export function gifWithBackground(frames: "first frame" | "after disposal 2"): Uint8Array {
+  return Uint8Array.from([
+    ...latin1("GIF89a"),
+    ...le16(8),
+    ...le16(8),
+    // A global colour table of two colours, and background colour index 1.
+    ...[0x80, 1, 0],
+    ...[0xff, 0, 0, 0, 0, 0xff],
+    ...(frames === "after disposal 2" ? gifFrame(0, 0, 8, 8, 0, 2) : []),
+    ...gifFrame(0, 0, 4, 4, 0, 1),
+    0x3b,
+  ]);
+}
+
 /** The primary PNG with an `eXIf` chunk after `IHDR` giving orientation 6: upright, it's 32 × 48. */
 export function pngRotated(): Uint8Array {
   const png = fixture("primary.png");

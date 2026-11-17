@@ -4,14 +4,17 @@ import {
   type DecodeOutcome,
   ENCODED_TYPES,
   type FeatureOutcome,
+  type GifFrameOutcome,
   type Request,
   SIDE_CEILING,
+  TEXT_FAMILIES,
+  type TextOutcome,
 } from "./protocol.js";
 
 /**
  * Measures, in a dedicated worker as the SDK's engine runs, what this
- * browser decodes with `createImageBitmap`, and what `OffscreenCanvas` can
- * draw and encode (docs/adr/0001, docs/capabilities.md).
+ * browser decodes with `createImageBitmap`, what `OffscreenCanvas` can draw
+ * and encode, and how it composes a GIF (docs/adr/0001, docs/capabilities.md).
  */
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -132,6 +135,144 @@ function transferred(canvas: OffscreenCanvas | undefined): FeatureOutcome["trans
   }
 }
 
+/**
+ * Draws on a white canvas and returns its pixels, or nothing when the worker
+ * has no 2D canvas or drawing throws.
+ */
+function drawn(draw: (context: OffscreenCanvasRenderingContext2D) => void): Uint8ClampedArray {
+  try {
+    const context = new OffscreenCanvas(240, 120).getContext("2d", {
+      colorSpace: "srgb",
+      willReadFrequently: true,
+    });
+    if (!context) return new Uint8ClampedArray();
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, 240, 120);
+    context.fillStyle = "#000000";
+    context.strokeStyle = "#000000";
+    draw(context);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    return context.getImageData(0, 0, 240, 120, { colorSpace: "srgb" }).data;
+  } catch {
+    return new Uint8ClampedArray();
+  }
+}
+
+/** Whether any pixel is no longer white. */
+function inked(pixels: Uint8ClampedArray): boolean {
+  for (let i = 0; i < pixels.length; i += 4) {
+    if ((pixels[i] ?? 255) < 128 || (pixels[i + 1] ?? 255) < 128 || (pixels[i + 2] ?? 255) < 128) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Whether any pixel's channels differ: a grey glyph has none. */
+function coloured(pixels: Uint8ClampedArray): boolean {
+  for (let i = 0; i < pixels.length; i += 4) {
+    const [r = 0, g = 0, b = 0] = [pixels[i], pixels[i + 1], pixels[i + 2]];
+    if (Math.abs(r - g) > 40 || Math.abs(g - b) > 40) return true;
+  }
+  return false;
+}
+
+/** What text the worker's canvas draws: the text renderer relies on each (docs/adr/0009). */
+function text(): TextOutcome {
+  const fills = Object.fromEntries(
+    TEXT_FAMILIES.map((family) => [
+      family,
+      inked(
+        drawn((context) => {
+          context.font = `40px ${family}`;
+          context.fillText("Hg", 10, 60);
+        }),
+      ),
+    ]),
+  ) as TextOutcome["fills"];
+  const strokes = inked(
+    drawn((context) => {
+      context.font = "40px sans-serif";
+      context.lineWidth = 2;
+      context.strokeText("Hg", 10, 60);
+    }),
+  );
+  let measures = false;
+  try {
+    const context = new OffscreenCanvas(1, 1).getContext("2d");
+    if (context) {
+      context.font = "40px sans-serif";
+      measures = context.measureText("Hg").width > 0;
+    }
+  } catch {
+    measures = false;
+  }
+  const emoji = drawn((context) => {
+    context.font = "40px sans-serif";
+    context.fillText("\u{1F600}", 10, 60);
+  });
+  const rightToLeft = inked(
+    drawn((context) => {
+      context.font = "40px sans-serif";
+      context.fillText("\u05E9\u05DC\u05D5\u05DD", 120, 60);
+    }),
+  );
+  const direct = drawn((context) => {
+    context.font = "80px sans-serif";
+    context.fillText("Hg", 10, 80);
+  });
+  const through = drawn((context) => {
+    context.setTransform(0.5, 0, 0, 0.5, 0, 0);
+    context.font = "160px sans-serif";
+    context.fillText("Hg", 20, 160);
+  });
+  return {
+    fills,
+    strokes,
+    measures,
+    emoji: !inked(emoji) ? "nothing" : coloured(emoji) ? "colour" : "one colour",
+    rightToLeft,
+    scaled:
+      !inked(direct) || !inked(through)
+        ? "nothing"
+        : direct.every((value, index) => value === through[index])
+          ? "same"
+          : "differs",
+  };
+}
+
+/**
+ * One frame of a GIF as the browser composes it: the first through
+ * `createImageBitmap`, the second through WebCodecs' `ImageDecoder`, the
+ * only way a worker sees a later frame.
+ */
+async function gifFrame(bytes: ArrayBuffer, frame: 0 | 1): Promise<GifFrameOutcome> {
+  try {
+    let image: ImageBitmap | VideoFrame;
+    if (frame === 0) {
+      image = await createImageBitmap(new Blob([bytes]));
+    } else {
+      if (typeof ImageDecoder === "undefined") return { status: "unavailable" };
+      const decoder = new ImageDecoder({ data: bytes, type: "image/gif" });
+      image = (await decoder.decode({ frameIndex: frame })).image;
+    }
+    const width = "displayWidth" in image ? image.displayWidth : image.width;
+    const height = "displayHeight" in image ? image.displayHeight : image.height;
+    const context = new OffscreenCanvas(width, height).getContext("2d", {
+      willReadFrequently: true,
+    });
+    if (!context) return { status: "rejected" };
+    context.drawImage(image, 0, 0);
+    image.close();
+    return {
+      status: "decoded",
+      pixel: Array.from(context.getImageData(width - 1, height - 1, 1, 1).data),
+    };
+  } catch {
+    return { status: "rejected" };
+  }
+}
+
 async function features(canvas?: OffscreenCanvas): Promise<FeatureOutcome> {
   let offscreen2d = false;
   try {
@@ -159,6 +300,7 @@ async function features(canvas?: OffscreenCanvas): Promise<FeatureOutcome> {
     contextFilter: contextFilter(),
     draws: sizes,
     longestSide: low,
+    text: text(),
   };
 }
 
@@ -167,6 +309,8 @@ self.addEventListener("message", async (event: MessageEvent<Request>) => {
   self.postMessage(
     request.kind === "decode"
       ? await decode(request.bytes, request.imageOrientation)
-      : await features(request.canvas),
+      : request.kind === "gifFrame"
+        ? await gifFrame(request.bytes, request.frame)
+        : await features(request.canvas),
   );
 });

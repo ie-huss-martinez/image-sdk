@@ -42,8 +42,23 @@ interface Window {
           contextFilter: "applies" | "ignored" | "not available";
           draws: Readonly<Record<string, boolean>>;
           longestSide: number;
+          text: {
+            fills: Readonly<Record<"sans-serif" | "serif" | "monospace", boolean>>;
+            strokes: boolean;
+            measures: boolean;
+            emoji: "colour" | "one colour" | "nothing";
+            rightToLeft: boolean;
+            scaled: "same" | "differs" | "nothing";
+          };
         }
       | undefined
     >;
+    gifFrame(
+      bytes: ArrayBuffer,
+      frame: 0 | 1,
+    ): Promise<{
+      status: "decoded" | "rejected" | "unavailable" | "timeout";
+      pixel?: readonly number[];
+    }>;
   };
 }

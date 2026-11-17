@@ -60,6 +60,8 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 - **Display-P3 2D context:** whether `getContext("2d", { colorSpace: "display-p3" })` gives a Display-P3 context.
 - **Canvas sizes:** whether a canvas of that size draws its far corner pixel. Some engines return a context for a canvas they can't back. 50.3 MP is the first size over `maxImagePixels`' 50 MP (ADR 0004). iOS Safari's own cap is lower than desktop WebKit's and can't be measured here.
 - **Longest side:** the longest one-pixel-high canvas that draws, found by binary search up to 131,071 pixels; an engine that reaches that shows `at least`.
+- **Text:** drawn on a 2D `OffscreenCanvas` in the worker, where the text renderer draws it (ADR 0009). `fillText` and `strokeText` must leave ink, in each of the three generic families the plan offers, and `measureText` must give a width. The emoji is U+1F600, and **draws in colour** means some pixel isn't grey. The right-to-left text is Hebrew.
+- **Text through a transform:** the renderer lays text out at one size and scales it with the context's transform. **same pixels** means text at 160 pixels through a half-scale transform equals the same text at 80, pixel for pixel.
 
 | Feature | Chromium | Firefox | WebKit |
 |---|---|---|---|
@@ -74,3 +76,22 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 | Canvas of 4,096 × 4,096 (16.8 MP) | draws | draws | draws |
 | Canvas of 8,192 × 6,144 (50.3 MP) | draws | draws | draws |
 | Longest side of a one-pixel-high canvas | 65,535 pixels | 65,535 pixels | at least 131,071 pixels |
+| fillText in sans-serif, serif and monospace | draws | draws | draws |
+| strokeText | draws | draws | draws |
+| measureText | measures | measures | measures |
+| Emoji with fillText | draws in colour | draws in colour | draws in colour |
+| Right-to-left text with fillText | draws | draws | draws |
+| Text at twice the size through a half-scale transform | same pixels | same pixels | same pixels |
+
+## How browsers compose a GIF
+
+The SDK decodes GIFs itself, and starts and clears the screen to transparent, whatever background colour the file names (ADR 0011). These rows show that browsers do the same, so a GIF opens as they show it. Each file is 8 × 8, with red frames and a blue background colour, and the cell is its bottom-right pixel, where the frame that's read doesn't draw.
+
+- **First frame:** decoded with `createImageBitmap`. The frame covers only the top-left quarter.
+- **Second frame:** decoded with WebCodecs' `ImageDecoder`, the only way a worker sees a later frame. The first frame covers the screen and is disposed of by restoring the background (disposal 2); the second covers the top-left quarter.
+- **transparent:** the pixel has no colour. **background colour:** it's the file's blue. **frame's colour:** the disposed frame's red is still there. **no ImageDecoder:** the worker has none, so the row can't be measured in that engine.
+
+| File and frame | Chromium | Firefox | WebKit |
+|---|---|---|---|
+| First frame smaller than the screen, where it doesn't draw | transparent | transparent | transparent |
+| Second frame, where the first was disposed of to the background | transparent | transparent | transparent |

@@ -9,6 +9,8 @@ import {
   decodeCell,
   FEATURES,
   featureCells,
+  GIF_CASES,
+  gifCell,
   IN_PINNED_IMAGE,
   RESULTS,
   readTable,
@@ -107,3 +109,23 @@ test("worker canvas and encoding", async ({ page, browserName, browser }, info) 
   const cells = featureCells(features);
   for (const row of FEATURES) check(info, browserName, browser.version(), row, cells[row]);
 });
+
+for (const gifCase of GIF_CASES) {
+  test(`gif: ${gifCase.name}`, async ({ page, browserName, browser }, info) => {
+    const bytes = gifCase.bytes();
+
+    // The SDK's probe must accept the file, with every frame it carries.
+    const probed = await probeImage(createWindowReader(new Blob([bytes.slice()])));
+    expect(probed.oriented).toEqual({ width: 8, height: 8 });
+    expect(probed.frames).toBe(gifCase.frames);
+
+    const foreign = foreignRequests(page);
+    await page.goto("/");
+    const outcome = await page.evaluate(
+      ([data, frame]) => window.imageCapabilities.gifFrame(new Uint8Array(data).buffer, frame),
+      [Array.from(bytes), gifCase.frame] as const,
+    );
+    expect(foreign).toEqual([]);
+    check(info, browserName, browser.version(), gifCase.name, gifCell(outcome));
+  });
+}
