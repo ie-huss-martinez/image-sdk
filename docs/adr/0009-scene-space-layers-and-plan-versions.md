@@ -6,10 +6,11 @@
 - **Amended:** 2026-11-17: a font family and `bold` are requests the device answers, as measured, under "Text is drawn by the device's fonts"
 - **Amended:** 2026-11-17: a layer's box has `flipX`, so a layer can be mirrored, and one added to a mirrored image reads as it should, under "A box can be mirrored"
 - **Amended:** 2026-11-17, by [ADR 0014](0014-drawing-strokes-and-arrows.md): a stroke holds `runs` of points, so that a long stroke stays one stroke
+- **Amended:** 2026-11-17: format version 4 and the animation ship in 0.7.0, not 0.6.0, which carried the GIF decoder and its fixes with no change to the plan
 
 ## Context
 
-Releases up to 0.3.0 edit one image: the plan has a `base`, an `output` and `metadata`. The next three releases add redaction and layers (0.4.0), drawing (0.5.0) and animation (0.6.0). [ADR 0003](0003-layer-plan-document-model.md) sketched layers before any were built. Three parts of that sketch don't hold up.
+Releases up to 0.3.0 edit one image: the plan has a `base`, an `output` and `metadata`. The next releases add redaction and layers (0.4.0), drawing (0.5.0) and animation (0.7.0; 0.6.0 changed how a GIF is decoded, not the plan). [ADR 0003](0003-layer-plan-document-model.md) sketched layers before any were built. Three parts of that sketch don't hold up.
 
 - **Layers in canvas pixels come loose from the photo.** ADR 0003 places layers in the canvas, after the base's crop and orientation. A layer then keeps its canvas position when the base is rotated or cropped again, while the photo moves beneath it. For an arrow that's a nuisance. For a redaction it's a leak: the bar stays where it was, and the face it covered is somewhere else.
 - **A redaction as a layer has too many states.** A layer has an opacity, a visibility and a place in the stack. A redaction with any of those can be half-applied, or sit under something the user thinks it covers.
@@ -37,7 +38,7 @@ interface ImagePlan {
   base: ImageBase;                    // unchanged
   layers: readonly ImageLayer[];      // bottom to top, over the base
   redactions: readonly ImageRedaction[]; // over everything (ADR 0010)
-  animation: ImageAnimation | null;   // from 0.6.0 (ADR 0011)
+  animation: ImageAnimation | null;   // from 0.7.0 (ADR 0011)
   output: ImageOutput;                // unchanged
   metadata: ImageKeepableMetadata;    // unchanged
 }
@@ -113,7 +114,7 @@ Layers, redactions and, later, frames are each a list of keyed items, and one re
 |---|---|---|
 | 2 | 0.4.0 | `layers` with `text`, `shape` and `image`; `redactions`; `animation`, always `null` |
 | 3 | 0.5.0 | The `drawing` and `arrow` kinds, and the stroke commands |
-| 4 | 0.6.0 | `animation` as an object, and the frame commands ([ADR 0011](0011-gif-and-animation.md)) |
+| 4 | 0.7.0 | `animation` as an object, and the frame commands ([ADR 0011](0011-gif-and-animation.md)) |
 
 - **Each widening is a new version, never an addition to the last one.** Readers are strict. A 0.4 reader given a document with a drawing must refuse it as `UNSUPPORTED_FORMAT` with `unknown-format-version`, which a host can show as "update the application". If version 2 had grown a new kind instead, that reader would refuse the same document as `INVALID_DOCUMENT`, which a host shows as a damaged file. Filter presets are different: a preset is a value in a field, and they're only ever added ([ADR 0006](0006-develop-and-filters.md)).
 - **`hm-image-command` takes the same version numbers.** Version 1's commands are valid in every later version, unchanged.
