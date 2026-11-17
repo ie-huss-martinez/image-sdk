@@ -1,11 +1,19 @@
-import { ImageError } from "../../core/errors/image-error.js";
+import { ImageError, isImageError } from "../../core/errors/image-error.js";
 import type { ImageProbe } from "../../core/model/source.js";
+import { createGifComposer } from "../gif/compose.js";
+import { readGifFrames } from "../gif/frames.js";
 import { type Calibration, calibrate } from "./calibration.js";
 import { orientBitmap } from "./orientation.js";
 
 /** What decoding needs from the browser, replaceable in tests. */
 export interface DecodeEnvironment {
   readonly decode: (file: Blob) => Promise<ImageBitmap>;
+  /** Makes a bitmap of RGBA pixels that aren't premultiplied: a GIF's composed frame. */
+  readonly fromPixels?: (
+    pixels: Uint8ClampedArray<ArrayBuffer>,
+    width: number,
+    height: number,
+  ) => Promise<ImageBitmap>;
   readonly calibrate: (format: ImageProbe["format"]) => Promise<Calibration>;
 }
 
@@ -19,6 +27,41 @@ const browser: DecodeEnvironment = {
   calibrate,
 };
 
+/** A bitmap of RGBA pixels that aren't premultiplied, as files are decoded. */
+const bitmapOf = (pixels: Uint8ClampedArray<ArrayBuffer>, width: number, height: number) =>
+  createImageBitmap(new ImageData(pixels, width, height), { premultiplyAlpha: "none" });
+
+/**
+ * A GIF's first frame, by the SDK's own decoder (docs/adr/0011): the browser's
+ * decoder never sees a GIF. The file is read whole, which the file policy's
+ * size limit already allowed, its frame table is read and checked against
+ * the probe, and its first frame is composed over a transparent screen.
+ *
+ * A malformed file fails with the decoder's own `INVALID_IMAGE`, never
+ * `DECODE_FAILED`: it's our code that refused it, and it says why.
+ */
+async function decodeGif(
+  file: Blob,
+  probe: ImageProbe,
+  environment: DecodeEnvironment,
+): Promise<ImageBitmap> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const gif = readGifFrames(bytes);
+  // The probe bounded this file by its frames and its screen: the table the
+  // decoder reads must be the one the probe walked.
+  if (
+    gif.frames.length !== probe.frames ||
+    gif.width !== probe.stored.width ||
+    gif.height !== probe.stored.height
+  ) {
+    throw new ImageError("INVALID_IMAGE", "The GIF's frames differ from what its probe read.", {
+      details: { format: "gif", problem: "the frame table differs from the probe" },
+    });
+  }
+  const screen = createGifComposer(bytes, gif).next();
+  return (environment.fromPixels ?? bitmapOf)(screen, gif.width, gif.height);
+}
+
 const decodeFailed = (probe: ImageProbe, problem: string) =>
   new ImageError("DECODE_FAILED", "The browser couldn't decode the image.", {
     details: { format: probe.format, problem },
@@ -28,7 +71,8 @@ const decodeFailed = (probe: ImageProbe, problem: string) =>
  * Decodes a probed file into an upright bitmap, in the worker (docs/adr/0001,
  * docs/adr/0005):
  *
- * - `createImageBitmap` decodes it, and a refusal is `DECODE_FAILED`;
+ * - a GIF is decoded by the SDK's own decoder, its first frame (docs/adr/0011);
+ *   anything else by `createImageBitmap`, whose refusal is `DECODE_FAILED`;
  * - for a file the probe reads an orientation in, the format's calibration
  *   says whether the browser applied it: if not, the worker draws the bitmap
  *   upright itself, and if the calibration was neither, the decode fails
@@ -46,8 +90,13 @@ export async function decodeUpright(
 ): Promise<ImageBitmap> {
   let bitmap: ImageBitmap;
   try {
-    bitmap = await environment.decode(file);
+    bitmap =
+      probe.format === "gif"
+        ? await decodeGif(file, probe, environment)
+        : await environment.decode(file);
   } catch (error) {
+    // Our own decoder's refusal is the answer; the browser's is wrapped.
+    if (isImageError(error)) throw error;
     throw new ImageError("DECODE_FAILED", "The browser couldn't decode the image.", {
       details: { format: probe.format },
       cause: error,

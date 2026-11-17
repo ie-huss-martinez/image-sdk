@@ -119,6 +119,15 @@ describe("the GIF frame table (docs/adr/0011)", () => {
     ]);
   });
 
+  it("reads the reserved disposal methods as browsers do: 4 restores, 5 to 7 keep", () => {
+    const disposals = [0, 1, 2, 3, 4, 5, 6, 7].map(
+      (disposal) =>
+        readGifFrames(writeGif({ ...TWO_BY_TWO, frames: [{ pixels: [0, 1, 2, 3], disposal }] }))
+          .frames[0]?.disposal,
+    );
+    expect(disposals).toEqual([0, 1, 2, 3, 3, 0, 0, 0]);
+  });
+
   it("tells an absent loop count from an infinite and a finite one", () => {
     const loopOf = (extra: Partial<GifFixture>) =>
       readGifFrames(writeGif({ ...TWO_BY_TWO, ...extra })).loop;
@@ -173,13 +182,103 @@ describe("the GIF frame table (docs/adr/0011)", () => {
     expect([file.width, file.height]).toEqual([probed.stored.width, probed.stored.height]);
   });
 
-  it("refuses a frame with no colour table, a frame outside the screen, and a reserved disposal", () => {
+  it("ends a file where it stops being a GIF, once it has a whole frame", () => {
+    const first = { pixels: [0, 1, 2, 3] };
+    const one = writeGif({ ...TWO_BY_TWO, frames: [first] });
+    const withSecond = (second: GifFixture["frames"][number], fixture: Partial<GifFixture> = {}) =>
+      writeGif({ ...TWO_BY_TWO, ...fixture, frames: [first, second] });
+    const second = { pixels: [3, 2, 1, 0] };
+    const two = withSecond(second);
+    const secondAt = readGifFrames(two).frames[1]?.data as number;
+    const cases: Record<string, Uint8Array> = {
+      "no trailer": one.slice(0, -1),
+      "bytes after the trailer": Uint8Array.from([...one, 0x21, 0x2c, 0xff, 7]),
+      "a block that isn't one": Uint8Array.from([...one.slice(0, -1), 0x00, 0x13, 0x37, 0x3b]),
+      "a second frame cut inside its data": two.slice(0, secondAt + 2),
+      "a second frame cut inside its descriptor": two.slice(0, secondAt - 4),
+      "a second frame without its terminator": two.slice(0, -2),
+      "a second frame outside the screen": withSecond({ ...second, x: 1 }),
+      "a second frame with a code size of 9": withSecond({ ...second, codeSize: 9 }),
+      "a second frame with a code size of 0": withSecond({ ...second, codeSize: 0 }),
+    };
+    for (const [name, bytes] of Object.entries(cases)) {
+      const file = readGifFrames(bytes);
+      expect(file.frames, name).toHaveLength(1);
+      expect(screens(bytes), name).toEqual(screens(one));
+    }
+    // The same in the first frame is refused: there's no whole frame to show.
+    expect(refusal(() => readGifFrames(one.slice(0, -2))).problem).toBe(
+      "a data sub-block ends past the end of the file",
+    );
     expect(
-      refusal(() => readGifFrames(writeGif({ width: 1, height: 1, frames: [{ pixels: [0] }] }))),
-    ).toEqual({
-      code: "INVALID_IMAGE",
-      problem: "a frame has no colour table",
+      refusal(() => readGifFrames(Uint8Array.from([...one.slice(0, 13 + 12), 0x00, 0x3b]))).problem,
+    ).toBe("an unknown block");
+  });
+
+  it("ends every file where the probe ends it: truncated, changed, or noise", async () => {
+    const valid = writeGif({
+      width: 4,
+      height: 3,
+      palette: FOUR,
+      loop: 0,
+      comment: "note",
+      frames: [
+        { pixels: Array.from({ length: 12 }, (_, i) => i % 4), delay: 3 },
+        { x: 1, y: 1, width: 2, height: 2, pixels: [0, 1, 2, 3], transparent: 1, disposal: 2 },
+        { pixels: Array.from({ length: 12 }, (_, i) => (i * 3) % 4), palette: [BLUE, RED] },
+      ],
     });
+    /** What a walk makes of a file: its screen and frame count, or the code it refuses with. */
+    const probed = async (bytes: Uint8Array) => {
+      try {
+        const probe = await probeGif(createWindowReader(new Blob([bytes.slice()])));
+        return `${probe.stored.width}x${probe.stored.height}, ${probe.frames}`;
+      } catch (error) {
+        if (!isImageError(error)) throw error;
+        return error.code;
+      }
+    };
+    const read = (bytes: Uint8Array) => {
+      try {
+        const file = readGifFrames(bytes);
+        return `${file.width}x${file.height}, ${file.frames.length}`;
+      } catch (error) {
+        if (!isImageError(error)) throw error;
+        return error.code;
+      }
+    };
+    expect(read(valid)).toBe("4x3, 3");
+    for (let length = 6; length <= valid.length; length += 1) {
+      const cut = valid.slice(0, length);
+      expect(read(cut), `${length} bytes`).toBe(await probed(cut));
+    }
+    for (let at = 6; at < valid.length; at += 1) {
+      for (const value of [
+        0x00,
+        0xff,
+        (valid[at] as number) ^ 0x01,
+        (valid[at] as number) ^ 0x80,
+      ]) {
+        const changed = valid.slice();
+        changed[at] = value;
+        expect(read(changed), `byte ${at} as ${value}`).toBe(await probed(changed));
+      }
+    }
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(fc.tuple(fc.nat(valid.length - 7), fc.nat(255)), { maxLength: 6 }),
+        fc.nat(valid.length),
+        async (changes, length) => {
+          const changed = valid.slice(0, Math.max(6, length));
+          for (const [at, value] of changes) if (at + 6 < changed.length) changed[at + 6] = value;
+          expect(read(changed)).toBe(await probed(changed));
+        },
+      ),
+      { numRuns: 2_000 },
+    );
+  });
+
+  it("refuses a first frame outside the screen or with a code size out of range, and a file with no frame", () => {
     expect(
       refusal(() =>
         readGifFrames(
@@ -187,11 +286,6 @@ describe("the GIF frame table (docs/adr/0011)", () => {
         ),
       ).problem,
     ).toBe("a frame doesn't fit inside the logical screen");
-    expect(
-      refusal(() =>
-        readGifFrames(writeGif({ ...TWO_BY_TWO, frames: [{ pixels: [0, 0, 0, 0], disposal: 4 }] })),
-      ).problem,
-    ).toBe("a frame uses a reserved disposal method");
     expect(refusal(() => readGifFrames(writeGif({ ...TWO_BY_TWO, frames: [] }))).problem).toBe(
       "there are no frames",
     );
@@ -307,17 +401,61 @@ describe("decoding a frame (docs/adr/0011)", () => {
     ).toEqual(screens(writeGif(TWO_BY_TWO)));
   });
 
-  it("refuses data that holds more pixels than the frame, or fewer", () => {
+  it("stops at a frame's last pixel: what follows it in the data isn't read", () => {
+    const expected = [0, 1, 2, 3];
+    const decoded = (data: number[]) => {
+      const bytes = writeGif({ ...TWO_BY_TWO, frames: [{ pixels: expected, data }] });
+      return [...decodeGifFrame(bytes, readGifFrames(bytes).frames[0] as never)];
+    };
+    // One pixel more, and a frame's worth more.
+    expect(decoded(lzwEncode([...expected, 0], 2))).toEqual(expected);
+    expect(decoded(lzwEncode([...expected, ...expected, ...expected], 2))).toEqual(expected);
+    // A string that starts inside the frame and ends outside it: 2, 3, then 3, 3, 3 as one code.
+    expect(decoded(lzwEncode([0, 1, 3, 3, 3, 3, 3, 3], 2))).toEqual([0, 1, 3, 3]);
+    // Codes that aren't defined, after the last pixel: they're never reached.
+    expect(decoded([...lzwEncode(expected, 2, false), 0xff, 0xff, 0xff])).toEqual(expected);
+    // Bytes after the end code.
+    expect(decoded([...lzwEncode(expected, 2), 9, 9, 9])).toEqual(expected);
+  });
+
+  it("refuses data that holds fewer pixels than the frame: a frame is whole or refused", () => {
     const withData = (pixels: number[]) =>
       writeGif({ ...TWO_BY_TWO, frames: [{ pixels: [0, 0, 0, 0], data: lzwEncode(pixels, 2) }] });
-    expect(refusal(() => decodeAll(withData([0, 1, 2, 3, 0]))).problem).toBe(
-      "a frame's data holds more pixels than the frame",
-    );
     expect(refusal(() => decodeAll(withData([0, 1, 2]))).problem).toBe(
       "a frame's data holds fewer pixels than the frame",
     );
     expect(refusal(() => decodeAll(withData([]))).problem).toBe(
       "a frame's data holds fewer pixels than the frame",
+    );
+  });
+
+  it("decodes a frame whose code size is 1, as files in the wild have for two colours", () => {
+    const bytes = writeGif({
+      width: 3,
+      height: 2,
+      palette: [RED, GREEN],
+      frames: [{ pixels: [0, 1, 1, 0, 0, 1], codeSize: 1 }],
+    });
+    expect(readGifFrames(bytes).frames[0]?.codeSize).toBe(1);
+    expect(screens(bytes)).toEqual([
+      [opaque(RED), opaque(GREEN), opaque(GREEN), opaque(RED), opaque(RED), opaque(GREEN)],
+    ]);
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 40 }),
+        fc.integer({ min: 1, max: 40 }),
+        fc.infiniteStream(fc.nat(1)),
+        (width, height, values) => {
+          const pixels = [...values.take(width * height)];
+          const file = writeGif({
+            width,
+            height,
+            palette: [RED, GREEN],
+            frames: [{ pixels, codeSize: 1 }],
+          });
+          expect([...decodeGifFrame(file, readGifFrames(file).frames[0] as never)]).toEqual(pixels);
+        },
+      ),
     );
   });
 
@@ -353,21 +491,37 @@ describe("decoding a frame (docs/adr/0011)", () => {
     ]);
   });
 
-  it("refuses a pixel that names a colour its table doesn't have, unless it's the transparent one", () => {
+  it("doesn't draw a pixel that names a colour its table doesn't have", () => {
     // A table of two colours, and code size 2, whose codes reach 3.
     const frames = (transparent?: number) =>
       writeGif({
-        width: 2,
+        width: 3,
         height: 1,
         palette: [RED, GREEN],
         frames: [
-          { pixels: [0, 3], codeSize: 2, ...(transparent === undefined ? {} : { transparent }) },
+          { pixels: [0, 3, 1], codeSize: 2, ...(transparent === undefined ? {} : { transparent }) },
         ],
       });
-    expect(refusal(() => decodeAll(frames())).problem).toBe(
-      "a pixel names a colour its table doesn't have",
-    );
-    expect(screens(frames(3))).toEqual([[opaque(RED), [...CLEAR]]]);
+    expect(screens(frames())).toEqual([[opaque(RED), [...CLEAR], opaque(GREEN)]]);
+    expect(screens(frames(3))).toEqual([[opaque(RED), [...CLEAR], opaque(GREEN)]]);
+    // A frame with no table, in a file with none, draws nothing.
+    expect(screens(writeGif({ width: 2, height: 1, frames: [{ pixels: [0, 1] }] }))).toEqual([
+      [[...CLEAR], [...CLEAR]],
+    ]);
+    // Over an earlier frame, the pixel under it stays.
+    expect(
+      screens(
+        writeGif({
+          width: 3,
+          height: 1,
+          palette: [RED, GREEN],
+          frames: [
+            { pixels: [1, 1, 1], codeSize: 2 },
+            { pixels: [0, 3, 0], codeSize: 2 },
+          ],
+        }),
+      )[1],
+    ).toEqual([opaque(RED), opaque(GREEN), opaque(RED)]);
   });
 });
 
@@ -503,10 +657,24 @@ describe("hostile GIFs (docs/adr/0011)", () => {
     }
   };
 
-  it("decodes the whole file, and refuses it truncated at every byte offset", () => {
-    expect(outcome(VALID)).toBe("decoded");
+  it("ends a file truncated at any byte offset at its last whole frame, or refuses it", () => {
+    const whole = screens(VALID);
+    expect(whole).toHaveLength(3);
+    // Where each frame's data ends: after the terminator of its sub-blocks.
+    const ends = readGifFrames(VALID).frames.map((frame) => {
+      let offset = frame.data;
+      while (VALID[offset] !== 0) offset += 1 + (VALID[offset] as number);
+      return offset + 1;
+    });
     for (let length = 0; length < VALID.length; length += 1) {
-      expect(outcome(VALID.subarray(0, length)), `${length} bytes`).toBe("INVALID_IMAGE");
+      const cut = VALID.slice(0, length);
+      const kept = ends.filter((end) => end <= length).length;
+      if (kept === 0) {
+        expect(outcome(cut), `${length} bytes`).toBe("INVALID_IMAGE");
+      } else {
+        // The frames that are whole, each exactly as the whole file has it: never a partial one.
+        expect(screens(cut), `${length} bytes`).toEqual(whole.slice(0, kept));
+      }
     }
   });
 

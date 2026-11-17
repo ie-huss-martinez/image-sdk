@@ -1,4 +1,4 @@
-import { ImageError } from "../../core/errors/image-error.js";
+import { ImageError, isImageError } from "../../core/errors/image-error.js";
 import { ascii, invalid, u16le } from "../probe/bytes.js";
 
 /**
@@ -37,9 +37,9 @@ export interface GifFrame {
   /** The colour index that isn't drawn, or `null`. */
   readonly transparent: number | null;
   readonly interlaced: boolean;
-  /** Its own colour table, or `null` to use the file's. */
+  /** Its own colour table, or `null` to use the file's, which may be `null` too: no colours. */
   readonly table: GifColourTable | null;
-  /** The LZW minimum code size: 2 to 8. */
+  /** The LZW minimum code size: 1 to 8. */
   readonly codeSize: number;
   /** Where its first data sub-block starts. */
   readonly data: number;
@@ -86,10 +86,18 @@ function tableAt(bytes: Uint8Array, offset: number, bits: number): GifColourTabl
 }
 
 /**
- * Reads a GIF's frame table by walking every block to the trailer
- * (docs/adr/0011), as the probe does, and recording for each frame its
- * rectangle, delay, disposal, transparent colour, interlacing, and where
- * its colour table and data are. Image data isn't decompressed.
+ * Reads a GIF's frame table by walking its blocks (docs/adr/0011), as the
+ * probe does, and recording for each frame its rectangle, delay, disposal,
+ * transparent colour, interlacing, and where its colour table and data
+ * are. Image data isn't decompressed.
+ *
+ * The file's frames end at its trailer, or where it stops being a GIF
+ * after at least one whole frame: the end of the file, a block cut short,
+ * a block that isn't one, or a frame the format doesn't allow. Browsers
+ * show such a file, so the frames before that point are its frames, and
+ * nothing after it is read. A file with no whole frame is `INVALID_IMAGE`.
+ * The probe ends a file at the same place by the same rules: change them
+ * together.
  *
  * It's hostile-input code: every offset and length is checked against the
  * file before it's used, the table is bounded at {@link MAX_GIF_FRAMES},
@@ -120,90 +128,96 @@ export function readGifFrames(bytes: Uint8Array): GifFile {
   let transparent: number | null = null;
   for (let count = 0; ; count += 1) {
     if (count >= MAX_BLOCKS) throw invalid("gif", "the file has too many blocks");
-    need(bytes, offset, 1, "a block");
-    const introducer = bytes[offset] as number;
-    if (introducer === 0x3b) break;
-    if (introducer === 0x21) {
-      need(bytes, offset, 2, "an extension label");
-      const label = bytes[offset + 1] as number;
-      if (label === 0xf9) {
-        need(bytes, offset + 2, 6, "a graphic control extension");
-        if (bytes[offset + 2] !== 4) {
-          throw invalid("gif", "a graphic control extension is the wrong size");
+    try {
+      need(bytes, offset, 1, "a block");
+      const introducer = bytes[offset] as number;
+      if (introducer === 0x3b) break;
+      if (introducer === 0x21) {
+        need(bytes, offset, 2, "an extension label");
+        const label = bytes[offset + 1] as number;
+        if (label === 0xf9) {
+          need(bytes, offset + 2, 6, "a graphic control extension");
+          if (bytes[offset + 2] !== 4) {
+            throw invalid("gif", "a graphic control extension is the wrong size");
+          }
+          const flags = bytes[offset + 3] as number;
+          const method = (flags >>> 2) & 0x07;
+          // The format reserves 4 to 7. Files have them, and browsers read 4
+          // as 3 and the rest as "keep": the same here (docs/adr/0011).
+          disposal = method === 4 ? 3 : method > 4 ? 0 : (method as GifDisposal);
+          delay = u16le(bytes, offset + 4);
+          transparent = (flags & 0x01) !== 0 ? (bytes[offset + 6] as number) : null;
+        } else if (label === 0xff) {
+          need(bytes, offset + 2, 12, "an application extension");
+          const name = ascii(bytes, offset + 3, 11);
+          // The loop count: a sub-block of 3 bytes, the first of them 1.
+          if (
+            bytes[offset + 2] === 11 &&
+            (name === "NETSCAPE2.0" || name === "ANIMEXTS1.0") &&
+            offset + 18 <= bytes.length &&
+            bytes[offset + 14] === 3 &&
+            bytes[offset + 15] === 1
+          ) {
+            loop = u16le(bytes, offset + 16);
+          }
         }
-        const flags = bytes[offset + 3] as number;
-        const method = (flags >>> 2) & 0x07;
-        if (method > 3) throw invalid("gif", "a frame uses a reserved disposal method");
-        disposal = method as GifDisposal;
-        delay = u16le(bytes, offset + 4);
-        transparent = (flags & 0x01) !== 0 ? (bytes[offset + 6] as number) : null;
-      } else if (label === 0xff) {
-        need(bytes, offset + 2, 12, "an application extension");
-        const name = ascii(bytes, offset + 3, 11);
-        // The loop count: a sub-block of 3 bytes, the first of them 1.
-        if (
-          bytes[offset + 2] === 11 &&
-          (name === "NETSCAPE2.0" || name === "ANIMEXTS1.0") &&
-          offset + 18 <= bytes.length &&
-          bytes[offset + 14] === 3 &&
-          bytes[offset + 15] === 1
-        ) {
-          loop = u16le(bytes, offset + 16);
-        }
+        offset = afterSubBlocks(bytes, offset + 2);
+        continue;
       }
-      offset = afterSubBlocks(bytes, offset + 2);
-      continue;
-    }
-    if (introducer !== 0x2c) throw invalid("gif", "an unknown block");
-    need(bytes, offset, 10, "an image descriptor");
-    const x = u16le(bytes, offset + 1);
-    const y = u16le(bytes, offset + 3);
-    const frameWidth = u16le(bytes, offset + 5);
-    const frameHeight = u16le(bytes, offset + 7);
-    if (frameWidth < 1 || frameHeight < 1 || x + frameWidth > width || y + frameHeight > height) {
-      throw invalid("gif", "a frame doesn't fit inside the logical screen");
-    }
-    const flags = bytes[offset + 9] as number;
-    offset += 10;
-    let own: GifColourTable | null = null;
-    if ((flags & 0x80) !== 0) {
-      own = tableAt(bytes, offset, flags & 0x07);
-      offset += 3 * own.size;
-    }
-    if (own === null && table === null) throw invalid("gif", "a frame has no colour table");
-    need(bytes, offset, 1, "an LZW minimum code size");
-    const codeSize = bytes[offset] as number;
-    if (codeSize < 2 || codeSize > 8) {
-      throw invalid("gif", "a frame's LZW minimum code size is out of range");
-    }
-    const data = offset + 1;
-    offset = afterSubBlocks(bytes, data);
-    if (frames.length >= MAX_GIF_FRAMES) {
-      throw new ImageError("TOO_MANY_FRAMES", `A GIF holds at most ${MAX_GIF_FRAMES} frames.`, {
-        details: {
-          limit: "maxFrames",
-          maximum: MAX_GIF_FRAMES,
-          actual: frames.length + 1,
-          unit: "count",
-        },
+      if (introducer !== 0x2c) throw invalid("gif", "an unknown block");
+      need(bytes, offset, 10, "an image descriptor");
+      const x = u16le(bytes, offset + 1);
+      const y = u16le(bytes, offset + 3);
+      const frameWidth = u16le(bytes, offset + 5);
+      const frameHeight = u16le(bytes, offset + 7);
+      if (frameWidth < 1 || frameHeight < 1 || x + frameWidth > width || y + frameHeight > height) {
+        throw invalid("gif", "a frame doesn't fit inside the logical screen");
+      }
+      const flags = bytes[offset + 9] as number;
+      offset += 10;
+      let own: GifColourTable | null = null;
+      if ((flags & 0x80) !== 0) {
+        own = tableAt(bytes, offset, flags & 0x07);
+        offset += 3 * own.size;
+      }
+      need(bytes, offset, 1, "an LZW minimum code size");
+      const codeSize = bytes[offset] as number;
+      if (codeSize < 1 || codeSize > 8) {
+        throw invalid("gif", "a frame's LZW minimum code size is out of range");
+      }
+      const data = offset + 1;
+      offset = afterSubBlocks(bytes, data);
+      if (frames.length >= MAX_GIF_FRAMES) {
+        throw new ImageError("TOO_MANY_FRAMES", `A GIF holds at most ${MAX_GIF_FRAMES} frames.`, {
+          details: {
+            limit: "maxFrames",
+            maximum: MAX_GIF_FRAMES,
+            actual: frames.length + 1,
+            unit: "count",
+          },
+        });
+      }
+      frames.push({
+        x,
+        y,
+        width: frameWidth,
+        height: frameHeight,
+        delay,
+        disposal,
+        transparent,
+        interlaced: (flags & 0x40) !== 0,
+        table: own,
+        codeSize,
+        data,
       });
+      delay = 0;
+      disposal = 0;
+      transparent = null;
+    } catch (error) {
+      // After a whole frame, what can't be read is where the file's frames end.
+      if (frames.length > 0 && isImageError(error) && error.code === "INVALID_IMAGE") break;
+      throw error;
     }
-    frames.push({
-      x,
-      y,
-      width: frameWidth,
-      height: frameHeight,
-      delay,
-      disposal,
-      transparent,
-      interlaced: (flags & 0x40) !== 0,
-      table: own,
-      codeSize,
-      data,
-    });
-    delay = 0;
-    disposal = 0;
-    transparent = null;
   }
   if (frames.length === 0) throw invalid("gif", "there are no frames");
   return { width, height, loop, table, frames };
