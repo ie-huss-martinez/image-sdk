@@ -33,7 +33,7 @@ export function Editor({ file }: { file: File }) {
 | Tools and toolbar groups | `tools` (ordered tool IDs), `toolbar` (groups of IDs); see [`imageTools`](src/features/tools.ts) |
 | Inspector panels and export dialog | `features: { adjust, filters, info, export }`, all enabled by default; disabling export still permits the ref's `export()` |
 | Theme and styling | `theme: "light" \| "dark" \| "system"`, `className`, `classNames`, `unstyled`, `icons`; page attributes `data-hm-theme` and `data-hm-density` |
-| Translation | `messages` overrides, including shared control text, and `locale` for formatting; [`imageMessages`](src/messages/en.ts) is the catalogue |
+| Translation | `messages` overrides, including shared control text, and `locale` for formatting; [`imageEditorMessages`](src/react/editor-messages.ts), from `./react` and `./element`, is the editor's catalogue. The headless entry's [`imageMessages`](src/messages/en.ts) holds the errors and warnings only |
 | Limits and assets | `filePolicy`, `assetsUrl`; see [host integration](docs/hosting.md) |
 | Host-owned processing | `engine`, `processor`, `session`; a supplied session must use the supplied engine |
 | Host callbacks | `onEvent` receives anonymous usage events; `onExport(blob, details)` receives the exported file instead of the dialog offering a download |

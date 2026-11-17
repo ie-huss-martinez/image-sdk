@@ -12,15 +12,15 @@
 export default [
   {
     name: "Server-safe core (.), with the shared code it loads",
-    // The core never loads the React editor's chunks. Measured at 21.1 kB
-    // with the plan's format version 2: the keyed-list reducer; the layer
-    // model, its checks and its commands; redaction's commands, geometry
-    // and tool; the migration; and the session's layer sources, with
-    // `insertImage` (docs/adr/0009 expected about 22 kB once drawing and
-    // animation had joined; about 2.4 kB of it is the message catalogue).
+    // The core never loads the React editor's chunks, nor the interface's
+    // text, which the React entry holds (docs/adr/0012). Measured at
+    // 19.2 kB with the plan's format version 2: the keyed-list reducer; the
+    // layer model, its checks and its commands; redaction's commands and
+    // geometry; the migration; the session's layer sources, with
+    // `insertImage`; and the text of errors and warnings.
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
-    limit: "22 kB",
+    limit: "20 kB",
   },
   {
     name: "React entry (./react), with the shared code it loads",

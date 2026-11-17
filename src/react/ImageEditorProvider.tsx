@@ -12,9 +12,9 @@ import {
   type ImageSessionEvent,
 } from "../core/session/session.js";
 import { createEditorStore } from "../features/editor-state.js";
-import { type ImageMessageCatalogue, imageMessages } from "../messages/en.js";
 import { createOpener, ImageContext } from "./context.js";
 import { EngineBoundary } from "./EngineBoundary.js";
+import { type ImageEditorMessageCatalogue, imageEditorMessages } from "./editor-messages.js";
 import { createViewStore } from "./view-store.js";
 
 /**
@@ -43,7 +43,7 @@ export interface ImageEditorProviderProps {
   /** Anonymous usage events from a session the provider creates. */
   readonly onEvent?: (event: ImageSessionEvent) => void;
   /** Text overrides, typed against the English catalogue (ADR 0019). */
-  readonly messages?: MessageOverrides<ImageMessageCatalogue>;
+  readonly messages?: MessageOverrides<ImageEditorMessageCatalogue>;
   /** The locale for numbers and plurals. Defaults to `"en"`. */
   readonly locale?: string;
   /** The components that use the session, such as `ImageStage`. */
@@ -123,7 +123,7 @@ export function ImageProvider(
 
   const messages = useMemo(
     () =>
-      createMessages(imageMessages, {
+      createMessages(imageEditorMessages, {
         locale,
         ...(overrides ? { overrides } : {}),
       }),
