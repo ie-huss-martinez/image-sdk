@@ -4,10 +4,11 @@
 - **Date:** 2026-11-17
 - **Amends:** [ADR 0001](0001-image-engines.md), [ADR 0002](0002-workers-and-assets.md) and [ADR 0004](0004-image-limits.md), as "What this changes in earlier records" lists
 - **Amended:** 2026-11-17, as the decoder was put behind opening a file: it and the probe open what browsers open where that's safe, under "What a malformed file does". The decoder was strict before, and the probe refused any file it couldn't walk to its trailer
+- **Amended:** 2026-11-17, before the animation was built: it ships in 0.7.0, since 0.6.0 carried the decoder and the malformed-file fixes on their own; an animation ends at the frame before one that can't be decoded, decided when the file is opened, under "A later frame that can't be decoded"; and the reserved disposal methods' mapping is marked as read from decoders, not measured, until its test exists
 
 ## Context
 
-Releases up to 0.5.0 open a GIF as its first frame and can't write one. The probe already walks every block of a GIF and counts its frames ([ADR 0001](0001-image-engines.md)), but nothing decodes them.
+Releases up to 0.6.0 open a GIF as its first frame and can't write one. Up to 0.5.0 the probe walked every block of a GIF and counted its frames ([ADR 0001](0001-image-engines.md)), and the browser decoded the first; 0.6.0 decodes that frame with the decoder below. The animation, the timeline and writing a GIF are 0.7.0.
 
 ADR 0001 decided the approach before any of it was built: our own strict decoder in the worker, and `gifenc` to encode. [ADR 0002](0002-workers-and-assets.md) decided a second worker for long jobs. This record fills in what those left open, and checks them against what has changed since:
 
@@ -37,15 +38,40 @@ Many GIFs in use are malformed, and browsers show them. A decoder that refused e
 - **The file's frames end where it stops being a GIF,** once it has one whole frame: at the trailer, at the end of the file with no trailer, at a block cut short, at a block that isn't one, or at a frame the format doesn't allow (outside the screen, or with a code size out of range). The frames before that point are the file, and nothing after it is read. Chromium and Firefox show such a file's first frame in every case measured; WebKit does in most, and shows an empty image in the rest. The probe counts only those frames, so the bounds are for exactly what the decoder reads, and the decoder checks that its table is the one the probe walked.
 - **A file with no whole frame is `INVALID_IMAGE`.**
 - **A colour that isn't there isn't drawn.** A pixel that names a colour past the end of its table is left as it was, like a transparent one, and a frame with no table at all, neither its own nor the file's, draws nothing. Browsers open these, and each draws something else: black in Chromium, another colour of the table in Firefox, nothing in WebKit. Drawing nothing invents no colour.
-- **The reserved disposal methods are read as browsers' decoders read them:** 4 as 3, and 5 to 7 as "keep". Every browser opens a file that has them.
+- **The reserved disposal methods are read as browsers' decoders read them:** 4 as 3, and 5 to 7 as "keep". Every browser opens a file that has them, and that much is measured: such a file's first frame is the sound file's, in the three engines. The mapping itself came from reading Chromium's and Firefox's decoders, not from a measurement, because 0.6.0 shows only the first frame, where a disposal method changes nothing. It stays marked so until the animation work adds its test: a file whose later frames depend on methods 4 to 7, composed by our decoder and by each engine, frame by frame, in the capability matrix ([ADR 0001](0001-image-engines.md)). If an engine composes them another way, this line changes before the animation ships.
 - **A code size of 1 is read,** as files with two colours have it, though the format says 2 to 8. Chromium reads it the same way; Firefox refuses such a file, and WebKit shows it empty.
 - **A first frame at the screen's corner that covers it is the screen.** When the first frame is at 0, 0 and at least as wide and as tall as the logical screen, the image is that frame alone, at the frame's size, and later frames are held to it. Every browser shows exactly that. The probe reports the frame's size, so the limits are checked against what's decoded.
 - **Still refused:** any other first frame outside the logical screen, where browsers don't agree on the image's size (wider than the screen but not as tall, or away from its corner: Chromium makes one size of it, Firefox and WebKit another); a screen with no pixels, which every browser refuses; and a first frame with a code size of 0 or above 8, which would name colours past 255.
 - **Bytes after the trailer** were always ignored.
 
-What this costs is that a truncated animation opens shorter than it was made, without a word. Whether and how the editor says that a file's frames ended before its trailer is for the animation work in 0.6.0.
+What this costs is that a truncated animation opens shorter than it was made. From 0.7.0 the editor says so: see "A later frame that can't be decoded".
 
 These rules are held by tests in the three engines: each defect opens as exactly the sound file's first frame, and a corpus of 80 files from other decoders' test suites (`test/fixtures/gif-corpus`), of which 71 open as the frame the browser draws and 9 are refused, each for a reason the test names.
+
+### A later frame that can't be decoded
+
+The frame table ends where the file stops being a GIF, and the probe counts the frames before that. But a frame can be whole in the table and still not decode: its data holds fewer pixels than its rectangle, or uses a code that isn't defined. Only decoding finds that, and 0.6.0, which shows the first frame, never decodes the others.
+
+- **An animation ends at the frame before the first one that can't be decoded.** It's the rule the frame table already follows, one step later: the frames before the damage are the file. Dropping only the bad frame and keeping those after it would compose them over a screen the file never described.
+- **It's decided when the file is opened.** Registering an animated source decodes every frame once, in order, composing as it goes, and stops at the first that fails. The source's `frames` is the count that decoded, and the plan's `animation` lists exactly those. The probe's count stays what it was, the bound the limits were checked against: it can only be the same or larger. So a plan never names a frame that can't be drawn, a timeline never shows one, and an export can't fail half way on a frame that was always bad.
+- **What that pass costs** is one decode of each frame, with one screen held. It's bounded before it starts by `maxFrames`, `maxAnimationPixels` and `maxDecodedSize`, and it runs under the open's `withProcessingTime`. It fills the frame cache as it goes, so it isn't work thrown away. A first frame that can't be decoded is still `INVALID_IMAGE`: there's nothing to show.
+- **Measured:** 200 frames of 800 × 600, each a whole frame of 256 colours, through this decoder on the page's thread of each pinned engine, on a 12-core desktop that was running other work:
+
+  | Content | File | Chromium | Firefox | WebKit | First frame |
+  |---|---|---|---|---|---|
+  | A dithered gradient with noise, the worst case for LZW: a video clip | 91 MB | 2.4 to 2.8 s | 1.6 to 3.0 s | 1.3 to 1.4 s | 15 to 44 ms |
+  | Flat areas with a moving box: a screen recording | 1.7 MB | 0.9 to 1.0 s | 0.7 s | 0.5 to 0.9 s | 4 to 25 ms |
+
+  That's 7 to 15 ms a frame for the worst content and 3 to 5 ms for flat content, and no single frame took over 30 ms. Reading the frame table took under 15 ms. The largest animation the default limits allow is 250 million pixels across its frames (`maxDecodedSize`, 1 GB), 2.6 times this one: about 4 to 8 s of the worst content on this machine. A phone hasn't been measured, and should be assumed several times slower; `maxProcessingTime` (120 s) is the ceiling either way. These are a desktop's numbers, to be measured again on phones with `maxAnimationPixels`.
+- **So the open stays responsive, by design and not by being fast:**
+  - **The first frame shows as soon as it's decoded,** not after the last. The stage draws it while the rest are checked, with the tools disabled: the image is there in tens of milliseconds, and it can't be edited until the open is done, because the plan doesn't exist yet.
+  - **The open reports progress:** frames decoded of the total, from the worker through `sdk-core`'s call progress ([sdk-core ADR 0018](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0018-worker-rpc-protocol.md)). The session's snapshot carries it while `status` is `"opening"`, as `progress: { done, total } | null`, `null` for a still. The stage shows it as a progress bar with a name and the count in words, "Checking frames: 40 of 200", in place of the spinner. It's announced when it starts and when the image is open, not at each step.
+  - **It can be cancelled like any open:** the same Cancel button beside the progress, and opening another file. The worker checks its signal between frames, so a cancel is answered within one frame's decode. A cancelled open leaves the document that was open as it was, as today.
+  - **The worker stays answerable:** it yields to its messages between frames, as develop does between strips ([ADR 0006](0006-develop-and-filters.md)), so the document still open keeps rendering while another file is checked.
+- **What a user sees for a large animation near the limits:** the first frame at once; a progress bar that moves for some seconds, or tens of seconds on a slow phone, with Cancel beside it; then the timeline. If the processing time runs out, `PROCESSING_TIME_EXCEEDED`, with its text from the catalogue, and the document that was open stays. Above `maxFrames`, `maxAnimationPixels` or `maxDecodedSize` the file is refused from its headers, before any of this starts. Between a limit's warning and its maximum, the open's warning says the animation is large, as for a large still.
+- **The editor says so.** A source records whether its file's frames ended early, either way: before its trailer, or at a frame that couldn't be decoded. `ImageSourceInfo` gains `incomplete: boolean` for it, `false` for every still. When it's `true`, the editor says, once, at open and in the Info panel, that the file is damaged and how many frames opened, in text from the catalogue. It's information, not an error: the image is open and can be edited and exported.
+- **The usage event** for an open carries nothing new: no file name, no frame count.
+- **Tests:** a file whose third frame is short opens as two frames in the three engines, with `incomplete` set and the notice shown; the same for a file with no trailer; a sound file has neither. The plan, the timeline and the export of such a file hold exactly the frames that decoded. An open of many frames shows its first frame and its progress before it's done; cancelling it mid-way leaves the earlier document open and usable, and the worker answers a render of that document while the check runs.
 
 ### What the worker holds
 
@@ -91,7 +117,7 @@ interface ImageFrame {
 - **`maxFrames` applies to the plan too,** on each command that adds frames, so duplicating can't pass what opening allows.
 - **In a document,** each source gains `frames`, and the migration from version 3 sets it to 1.
 - **The frame being shown is view state,** like zoom: outside the plan and the history. The renderer's and the processor's calls take it.
-- **Making a GIF from several stills** isn't in this record. It needs frames from different sources, each fitted to one size, and comes after 0.6.0 with its own format version.
+- **Making a GIF from several stills** isn't in this record. It needs frames from different sources, each fitted to one size, and comes after 0.7.0 with its own format version.
 
 ### Encoding: `gifenc`, in a job worker
 
@@ -140,7 +166,7 @@ The decoder joins the render worker, within the 28 kB [ADR 0009](0009-scene-spac
 
 ### What this changes in earlier records
 
-- **[ADR 0001](0001-image-engines.md):** a GIF is no longer decoded by `createImageBitmap`, even a still one, and from 0.6.0 it opens as an animation. Animated PNG and WebP still open as stills. Its probe no longer needs every block up to a trailer, and takes a first frame that covers the screen as the image's size: ADR 0001 refused that file because the browser's decode would have been larger than the bound, and now the bound is the frame's and the decoder is ours.
+- **[ADR 0001](0001-image-engines.md):** a GIF is no longer decoded by `createImageBitmap`, even a still one, from 0.6.0, and from 0.7.0 it opens as an animation. Animated PNG and WebP still open as stills. Its probe no longer needs every block up to a trailer, and takes a first frame that covers the screen as the image's size: ADR 0001 refused that file because the browser's decode would have been larger than the bound, and now the bound is the frame's and the decoder is ours.
 - **[ADR 0002](0002-workers-and-assets.md):** its test that no message between the page and the render worker carries a pixel buffer gains one exception beside an export's `Blob`: a GIF export's frames, transferred through the page one at a time and never read there.
 - **[ADR 0004](0004-image-limits.md):** `maxAnimationPixels` joins the limits, and an animated source counts against `maxSessionSize` as what the worker holds.
 
