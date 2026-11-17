@@ -4,11 +4,15 @@ import { invalid } from "../probe/bytes.js";
 const MAX_CODES = 4_096;
 
 /**
- * Decodes a frame's LZW code stream into colour indexes, strictly
- * (docs/adr/0011): the stream must decode to exactly `out.length` pixels.
+ * Decodes a frame's LZW code stream into colour indexes (docs/adr/0011):
+ * the stream must hold every one of the frame's `out.length` pixels, and
+ * what follows them isn't read.
  *
- * - A code that isn't defined yet, more pixels than the frame holds, fewer,
- *   or data that ends inside a code is `INVALID_IMAGE`.
+ * - It stops at the frame's last pixel. Codes after it, an end code that
+ *   never comes and anything else left in the data are ignored, as every
+ *   browser ignores them: the frame is whole without them.
+ * - A code that isn't defined yet, or data that ends before the frame is
+ *   whole, is `INVALID_IMAGE`: a frame is never returned partly decoded.
  * - The table has at most 4,096 entries, and the output is the frame's
  *   rectangle: no allocation is sized by the code stream.
  * - It reads at most the bytes of the frame's own data sub-blocks, each
@@ -16,7 +20,7 @@ const MAX_CODES = 4_096;
  *
  * @param bytes - The file.
  * @param data - Where the frame's first data sub-block starts.
- * @param codeSize - The frame's LZW minimum code size: 2 to 8.
+ * @param codeSize - The frame's LZW minimum code size: 1 to 8.
  * @param out - One byte for each pixel of the frame's rectangle, in the
  *   order the file has them.
  */
@@ -110,13 +114,13 @@ export function decodeLzw(
     stack[length] = current;
     length += 1;
 
-    if (written + length > out.length) {
-      throw invalid("gif", "a frame's data holds more pixels than the frame");
-    }
-    for (let index = length - 1; index >= 0; index -= 1) {
+    // The string, first colour first, as far as the frame has room for it.
+    for (let index = length - 1; index >= 0 && written < out.length; index -= 1) {
       out[written] = stack[index] as number;
       written += 1;
     }
+    // The frame is whole: nothing after its last pixel is read.
+    if (written === out.length) return;
 
     // The previous string and this one's first colour become the next code.
     if (previous !== -1 && next < MAX_CODES) {
@@ -124,11 +128,13 @@ export function decodeLzw(
       suffix[next] = current;
       first[next] = first[previous] as number;
       next += 1;
-      // The code grows a bit when the table fills its width, up to 12 bits.
-      if (next === 1 << width && width < 12) width += 1;
     }
+    // The code grows a bit when the table fills its width, up to 12 bits.
+    // With a code size of 1 it's full from the start, so the first code
+    // after a clear grows it, which is why this isn't only after an entry.
+    if (next >= 1 << width && width < 12) width += 1;
     previous = code;
   }
-  if (written !== out.length)
-    throw invalid("gif", "a frame's data holds fewer pixels than the frame");
+  // The data ended, or said it had, before the frame's last pixel.
+  throw invalid("gif", "a frame's data holds fewer pixels than the frame");
 }

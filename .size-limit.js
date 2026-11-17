@@ -52,14 +52,14 @@ export default [
   {
     // The render worker, inlined as a minified string and loaded on the first
     // call (docs/adr/0002): the probes, the decoder and its orientation
-    // calibration, the renderer, the encoders' metadata rewrite, and develop
-    // and filters (docs/adr/0006). Measured at 20.3 kB with develop,
-    // redaction's two passes (docs/adr/0010) and the layer renderer, with
-    // image layers sanitised under a redaction (docs/adr/0009, which
-    // expects about 28 kB once the GIF decoder has joined it).
+    // calibration, the renderer, the encoders' metadata rewrite, develop and
+    // filters (docs/adr/0006), redaction's two passes (docs/adr/0010), the
+    // layer renderer with drawings and arrows, and the SDK's own GIF
+    // decoder (docs/adr/0011). Measured at 22.2 kB with the GIF decoder,
+    // which docs/adr/0009 expected to bring it to about 28 kB.
     name: "Render worker, inlined (lazy)",
     path: "dist/lazy/inline-worker-*.js",
     brotli: true,
-    limit: "21 kB",
+    limit: "23 kB",
   },
 ];

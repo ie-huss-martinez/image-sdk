@@ -1,6 +1,8 @@
-import { invalid } from "../probe/bytes.js";
-import type { GifFile, GifFrame } from "./frames.js";
+import type { GifColourTable, GifFile, GifFrame } from "./frames.js";
 import { decodeLzw } from "./lzw.js";
+
+/** The table of a frame that has none, and whose file has none. */
+const NO_COLOURS: GifColourTable = { offset: 0, size: 0 };
 
 /** Where each pass of an interlaced frame starts, and how far apart its rows are. */
 const PASSES: readonly (readonly [start: number, step: number])[] = [
@@ -12,8 +14,8 @@ const PASSES: readonly (readonly [start: number, step: number])[] = [
 
 /**
  * The colour indexes of one frame's rectangle, row by row from its top:
- * its LZW data decoded strictly, and its rows put in order when it's
- * interlaced.
+ * its LZW data decoded, every pixel of it or not at all, and its rows put
+ * in order when it's interlaced.
  */
 export function decodeGifFrame(bytes: Uint8Array, frame: GifFrame): Uint8Array {
   const { width, height } = frame;
@@ -40,7 +42,10 @@ export function decodeGifFrame(bytes: Uint8Array, frame: GifFrame): Uint8Array {
  *   names.
  * - Disposal 0 and 1 keep the frame; 2 clears its rectangle to transparent;
  *   3 restores what was there before it.
- * - A pixel that names a colour its table doesn't have is `INVALID_IMAGE`.
+ * - A pixel that names a colour its table doesn't have isn't drawn, like a
+ *   transparent one, and a frame with no table at all draws nothing.
+ *   Browsers open such files and each draws something else there; no
+ *   colour is the only answer that invents none.
  *
  * It holds one screen, and one copy of a frame's rectangle while a frame
  * that restores is shown: never every frame.
@@ -55,7 +60,7 @@ export interface GifComposer {
    *
    * @throws `RangeError` after the last frame.
    */
-  next(): Uint8ClampedArray;
+  next(): Uint8ClampedArray<ArrayBuffer>;
   /** Starts again from before the first frame. */
   reset(): void;
 }
@@ -98,13 +103,7 @@ export function createGifComposer(bytes: Uint8Array, file: GifFile): GifComposer
       if (!frame) throw new RangeError("The GIF has no more frames.");
       // Decoded before anything is drawn, so a frame that fails leaves the screen as it was.
       const indexes = decodeGifFrame(bytes, frame);
-      const table = frame.table ?? file.table;
-      if (!table) throw invalid("gif", "a frame has no colour table");
-      for (const index of indexes) {
-        if (index !== frame.transparent && index >= table.size) {
-          throw invalid("gif", "a pixel names a colour its table doesn't have");
-        }
-      }
+      const table = frame.table ?? file.table ?? NO_COLOURS;
       const previous = file.frames[shown];
       if (previous) dispose(previous);
       if (frame.disposal === 3) {
@@ -118,7 +117,7 @@ export function createGifComposer(bytes: Uint8Array, file: GifFile): GifComposer
         let to = ((frame.y + row) * file.width + frame.x) * 4;
         for (let column = 0; column < frame.width; column += 1, to += 4) {
           const index = indexes[row * frame.width + column] as number;
-          if (index === frame.transparent) continue;
+          if (index === frame.transparent || index >= table.size) continue;
           const colour = table.offset + index * 3;
           screen[to] = bytes[colour] as number;
           screen[to + 1] = bytes[colour + 1] as number;

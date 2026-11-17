@@ -380,11 +380,47 @@ describe("probing GIF", () => {
     expect(isImageError(await failure(bytes), "INVALID_IMAGE")).toBe(true);
   });
 
-  it("rejects a file without its trailer", async () => {
+  it("ends a file where it stops being a GIF, once it has a whole frame (docs/adr/0011)", async () => {
+    const frame = { width: 4, height: 4 };
+    const one = gif({ width: 4, height: 4, frames: [frame] });
+    const three = gif({ width: 4, height: 4, frames: [frame, frame, frame] });
+    // No trailer, bytes after it, and a block that isn't one: the frame before it is the file.
+    expect((await probe(one.slice(0, -1))).frames).toBe(1);
+    expect((await probe(Uint8Array.from([...one, 1, 2, 3]))).frames).toBe(1);
+    expect((await probe(Uint8Array.from([...one.slice(0, -1), 0x00, 0x13, 0x3b]))).frames).toBe(1);
+    // A last frame cut short isn't counted, so it isn't in the bound either.
+    const cut = await probe(three.slice(0, -3));
+    expect(cut).toMatchObject({ frames: 2, decodedPixelBound: 32 });
+    // A later frame the format doesn't allow ends the file before it.
+    const outside = gif({
+      width: 4,
+      height: 4,
+      frames: [frame, { width: 4, height: 4, x: 1 }, frame],
+    });
+    expect((await probe(outside)).frames).toBe(1);
+  });
+
+  it("rejects a file cut before its first frame is whole", async () => {
     const bytes = gif({ width: 4, height: 4, frames: [{ width: 4, height: 4 }] });
-    expect(isImageError(await failure(bytes.subarray(0, bytes.length - 1)), "INVALID_IMAGE")).toBe(
-      true,
-    );
+    for (let length = 6; length < bytes.length - 1; length += 1) {
+      expect(
+        isImageError(await failure(bytes.slice(0, length)), "INVALID_IMAGE"),
+        `${length}`,
+      ).toBe(true);
+    }
+  });
+
+  it("takes a code size of 1, and rejects 0", async () => {
+    expect(
+      (await probe(gif({ width: 4, height: 4, codeSize: 1, frames: [{ width: 4, height: 4 }] })))
+        .frames,
+    ).toBe(1);
+    expect(
+      isImageError(
+        await failure(gif({ width: 4, height: 4, codeSize: 0, frames: [{ width: 4, height: 4 }] })),
+        "INVALID_IMAGE",
+      ),
+    ).toBe(true);
   });
 });
 

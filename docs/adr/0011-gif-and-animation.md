@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Amends:** [ADR 0001](0001-image-engines.md), [ADR 0002](0002-workers-and-assets.md) and [ADR 0004](0004-image-limits.md), as "What this changes in earlier records" lists
+- **Amended:** 2026-11-17, as the decoder was put behind opening a file: it and the probe open what browsers open where that's safe, under "What a malformed file does". The decoder was strict before, and the probe refused any file it couldn't walk to its trailer
 
 ## Context
 
@@ -22,11 +23,28 @@ A GIF is hostile input twice over. Its size on disk says little about its decode
 
 - **The render worker decodes GIFs with the SDK's own code,** written in TypeScript, with no third-party parser. That includes a GIF with one frame, so there's one path, and `createImageBitmap` never sees a GIF.
 - **The probe's walk becomes the frame table.** For each frame it records the rectangle, the delay, the disposal, the transparent colour, whether it's interlaced, and where its colour table and data are. It also reads the loop count from the `NETSCAPE2.0` or `ANIMEXTS1.0` extension. The table is bounded: a file with more than 4,096 frames is refused with `TOO_MANY_FRAMES` whatever the file policy says, as AVIF's tiles are capped at 1,024 ([ADR 0001](0001-image-engines.md)).
-- **Strict LZW.** A frame's code stream must decode to exactly its rectangle's pixels. A code that isn't defined yet, more pixels than the rectangle holds, fewer, or data that ends early is `INVALID_IMAGE`. The decoder's table has at most 4,096 entries, as the format allows, and its output buffer is the rectangle's size, which the probe already checked against the logical screen. So no allocation is sized by the code stream.
-- **A frame with no colour table,** neither its own nor the file's, is `INVALID_IMAGE`. So are the reserved disposal methods, as today.
-- **Composition follows GIF89a:** each frame is drawn over the logical screen, skipping its transparent colour. Disposal 0 and 1 keep the result, 2 clears the frame's rectangle, and 3 restores what was there before the frame. The screen starts transparent, and "clears" means to transparent, whatever background colour the file names. Browsers are expected to do the same, and the capability matrix gains a row that measures it before the decoder relies on it ([ADR 0001](0001-image-engines.md)).
+- **LZW decodes a frame whole, or refuses it.** A frame's code stream must hold every pixel of its rectangle. The decoder's table has at most 4,096 entries, as the format allows, and its output buffer is the rectangle's size, which the probe already checked against the logical screen. So no allocation is sized by the code stream.
+- **Composition follows GIF89a:** each frame is drawn over the logical screen, skipping its transparent colour, and any pixel that names a colour its table doesn't have. Disposal 0 and 1 keep the result, 2 clears the frame's rectangle, and 3 restores what was there before the frame. The screen starts transparent, and "clears" means to transparent, whatever background colour the file names. Browsers are expected to do the same, and the capability matrix gains a row that measures it before the decoder relies on it ([ADR 0001](0001-image-engines.md)).
 - **Values are kept as the file has them:** a delay in hundredths of a second from 0 to 65,535, including 0, and a loop count that's absent (play once), 0 (for ever) or a number of repeats.
 - **It's hostile-input code,** held to ADR 0001's bar: fixtures written by hand, truncated at every byte offset; random bytes; corrupted code streams; a property-based fuzz test that mutates valid files; and a fixed time for each case to settle with a result or `INVALID_IMAGE`. The decoder is pure, so these run in Node as well as in the three engines.
+
+### What a malformed file does
+
+Many GIFs in use are malformed, and browsers show them. A decoder that refused every one would turn "this file has an error" into "my GIF won't open", for files that open everywhere else. So the probe and the decoder were measured against `createImageBitmap` in Chromium, Firefox and WebKit, defect by defect, and they follow one rule: **open a file when browsers open it and what to show isn't in doubt; refuse it when showing it would mean inventing or dropping pixels of the frame being shown.**
+
+- **A frame is whole or it isn't shown.** Data that ends before a frame's last pixel, or uses a code that isn't defined yet, is `INVALID_IMAGE`. Chromium refuses these; Firefox shows a truncated frame with the missing part made up, and WebKit an empty image. A partial frame is never drawn.
+- **Nothing after a frame's last pixel is read.** More pixels than the rectangle holds, codes after them, a missing end code and bytes after the end code are ignored: every browser shows the frame.
+- **The file's frames end where it stops being a GIF,** once it has one whole frame: at the trailer, at the end of the file with no trailer, at a block cut short, at a block that isn't one, or at a frame the format doesn't allow (outside the screen, or with a code size out of range). The frames before that point are the file, and nothing after it is read. Chromium and Firefox show such a file's first frame in every case measured; WebKit does in most, and shows an empty image in the rest. The probe counts only those frames, so the bounds are for exactly what the decoder reads, and the decoder checks that its table is the one the probe walked.
+- **A file with no whole frame is `INVALID_IMAGE`.**
+- **A colour that isn't there isn't drawn.** A pixel that names a colour past the end of its table is left as it was, like a transparent one, and a frame with no table at all, neither its own nor the file's, draws nothing. Browsers open these, and each draws something else: black in Chromium, another colour of the table in Firefox, nothing in WebKit. Drawing nothing invents no colour.
+- **The reserved disposal methods are read as browsers' decoders read them:** 4 as 3, and 5 to 7 as "keep". Every browser opens a file that has them.
+- **A code size of 1 is read,** as files with two colours have it, though the format says 2 to 8. Chromium reads it the same way; Firefox refuses such a file, and WebKit shows it empty.
+- **Still refused:** a first frame outside the logical screen, where the browsers that open the file don't agree on the image's size; a screen with no pixels, which every browser refuses; and a first frame with a code size of 0 or above 8, which would name colours past 255.
+- **Bytes after the trailer** were always ignored.
+
+What this costs is that a truncated animation opens shorter than it was made, without a word. Whether and how the editor says that a file's frames ended before its trailer is for the animation work in 0.6.0.
+
+These rules are held by tests in the three engines: each defect opens as exactly the sound file's first frame, and a corpus of 80 files from other decoders' test suites (`test/fixtures/gif-corpus`), of which 70 open as the frame the browser draws and 10 are refused, each for a reason the test names.
 
 ### What the worker holds
 
@@ -140,6 +158,7 @@ The decoder joins the render worker, within the 28 kB [ADR 0009](0009-scene-spac
 
 - **A GIF opens, edits and exports as an animation,** with its timing kept exactly.
 - **A hostile GIF is bounded three ways before it's decoded:** by its frames, by its screen, and by the total it could decode to. The decoder trusts nothing in its code stream.
+- **A malformed GIF that browsers show opens here too,** as its whole frames, and one that can't be shown whole is refused with what was wrong.
 - **Memory for an animation is a few screens and a bounded cache,** whatever the number of frames.
 - **The SDK has its first bundled third-party code,** `gifenc`, and a `NOTICE` file with it.
 - **There are two workers,** and a self-hosting application serves both files.
