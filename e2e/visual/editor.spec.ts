@@ -13,6 +13,8 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `empty` | The drop zone, before an image is open |
  * | `open` | An image on the stage, with the Adjust panel |
  * | `crop` | The crop frame and its handles, with the crop panel |
+ * | `redact` | A solid redaction selected, with its frame and handles, and the redact panel |
+ * | `redact-pixelate` | Two redactions, the second pixelated and selected, with the warning that pixelation may not hide text |
  * | `filters` | The Filters panel, with Sepia chosen |
  * | `export-summary` | The export dialog's choices and its summary of the metadata it removes |
  * | `export-done` | The export dialog's result, with Download focused |
@@ -20,7 +22,7 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `notices` | An image with a colour profile, and the notice that its colours are clipped on export |
  * | `info` | The Info panel, for that image |
  * | `element-empty`, `element-open` | `<hm-image-editor>`, whose styles arrive through the host's imports |
- * | `rtl-open`, `rtl-crop` | An image, and cropping it, in a right-to-left page: the layout mirrors, the image and its crop handles don't |
+ * | `rtl-open`, `rtl-crop`, `rtl-redact` | An image, cropping it and redacting it, in a right-to-left page: the layout mirrors, the image and its frames' handles don't |
  * | `engine-unavailable` | Terminal engine recovery notice after resource loss; stale preview, controls and dialogs removed |
  * | `long-text`, `long-text-export` | A host's longer text, as a translation can be: the panels and the export dialog wrap it |
  *
@@ -72,6 +74,23 @@ const EDITOR: Readonly<Record<string, State>> = {
     await page.keyboard.press("c");
     await expect(page.getByRole("group", { name: "Crop area" })).toBeFocused();
   },
+  redact: async (page) => {
+    await opened(page);
+    await page.getByRole("button", { name: "Redact" }).click();
+    await page.getByRole("button", { name: "Add area" }).click();
+    await expect(page.getByRole("group", { name: "Redacted area 1 of 1" })).toBeFocused();
+  },
+  "redact-pixelate": async (page) => {
+    await opened(page);
+    await page.getByRole("button", { name: "Redact" }).click();
+    // A solid area moved to the left, then a second one, pixelated.
+    await page.getByRole("button", { name: "Add area" }).click();
+    for (let i = 0; i < 14; i += 1) await page.keyboard.press("ArrowLeft");
+    await page.getByRole("button", { name: "Add area" }).click();
+    await page.getByRole("radio", { name: "Pixelation" }).click();
+    await expect(page.getByText("Pixelation may not hide text.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Area 2: pixelated, 12 × 8" })).toBeVisible();
+  },
   filters: async (page) => {
     await opened(page);
     await page.getByRole("radio", { name: "Filters" }).click();
@@ -101,6 +120,7 @@ const EDITOR: Readonly<Record<string, State>> = {
 const RIGHT_TO_LEFT: Readonly<Record<string, State>> = {
   "rtl-open": opened,
   "rtl-crop": EDITOR["crop"] as State,
+  "rtl-redact": EDITOR["redact"] as State,
 };
 
 /** On the editor page with `?long-text`, the example's longer overrides. */

@@ -111,7 +111,12 @@ export interface ImageEditorState {
     } | null;
     readonly dialog: "export" | null;
     readonly preview: ImagePlan | null;
-    readonly tool: "crop" | null;
+    readonly redact: {
+        readonly selected: string | null;
+        readonly mode: ImageRedactionMode;
+        readonly colour: string;
+    } | null;
+    readonly tool: "crop" | "redact" | null;
 }
 
 // @public
@@ -144,6 +149,15 @@ export function ImageInfoPanel(props: ImageInfoPanelProps): ReactNode;
 
 // @public
 export interface ImageInfoPanelProps {
+    // (undocumented)
+    readonly className?: string;
+}
+
+// @public
+export function ImageRedactPanel(props: ImageRedactPanelProps): ReactNode;
+
+// @public
+export interface ImageRedactPanelProps {
     // (undocumented)
     readonly className?: string;
 }
@@ -229,7 +243,8 @@ export function useImageView(): readonly [ImageViewState, Store<ImageViewState>]
 
 // Warnings were encountered during analysis:
 //
-// temp/types/features/editor-state.d.ts:16:9 - (ae-forgotten-export) The symbol "ImageCrop" needs to be exported by the entry point react.d.ts
-// temp/types/features/editor-state.d.ts:17:9 - (ae-forgotten-export) The symbol "ImageAspect" needs to be exported by the entry point react.d.ts
+// temp/types/features/editor-state.d.ts:17:9 - (ae-forgotten-export) The symbol "ImageCrop" needs to be exported by the entry point react.d.ts
+// temp/types/features/editor-state.d.ts:18:9 - (ae-forgotten-export) The symbol "ImageAspect" needs to be exported by the entry point react.d.ts
+// temp/types/features/editor-state.d.ts:26:9 - (ae-forgotten-export) The symbol "ImageRedactionMode" needs to be exported by the entry point react.d.ts
 
 ```

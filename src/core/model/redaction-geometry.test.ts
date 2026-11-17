@@ -3,11 +3,14 @@ import { describe, expect, it } from "vitest";
 import { compositionToSource } from "./geometry.js";
 import type { ImageOrientation } from "./plan.js";
 import {
+  compositionRectToScene,
+  fitRedactionRegion,
   type ImageRect,
   redactionBlockSize,
   redactionBlocksInOutput,
   redactionBlocksInScene,
   redactionRectInOutput,
+  sceneRectToComposition,
 } from "./redaction-geometry.js";
 
 const area = (rects: readonly ImageRect[]) =>
@@ -169,6 +172,77 @@ describe("redaction geometry (ADR 0010)", () => {
         }));
         expect(redactionBlocksInOutput(r, within, upright, output)).toEqual(moved);
       }),
+    );
+  });
+
+  it("maps a region to the composition and back, exactly, through every crop, turn and flip", () => {
+    fc.assert(
+      fc.property(region, crop, orientation, (r, within, turn) => {
+        const shown = sceneRectToComposition(r, within, turn);
+        // A quarter turn swaps its sides; nothing else changes its size.
+        const turned = turn.rotate % 180 !== 0;
+        expect([shown.width, shown.height]).toEqual(
+          turned ? [r.height, r.width] : [r.width, r.height],
+        );
+        expect(compositionRectToScene(shown, within, turn)).toEqual(r);
+      }),
+    );
+    // Upright and uncropped, the composition is the scene.
+    const upright = { rotate: 0, flipX: false, flipY: false } as const;
+    const whole = { x: 0, y: 0, width: 60, height: 40 };
+    expect(sceneRectToComposition({ x: 5, y: 6, width: 7, height: 8 }, whole, upright)).toEqual({
+      x: 5,
+      y: 6,
+      width: 7,
+      height: 8,
+    });
+    // Turned a quarter clockwise, the scene's top-left is the composition's top-right.
+    expect(
+      sceneRectToComposition({ x: 0, y: 0, width: 10, height: 4 }, whole, {
+        ...upright,
+        rotate: 90,
+      }),
+    ).toEqual({ x: 36, y: 0, width: 4, height: 10 });
+  });
+
+  it("fits a rectangle as a region: whole pixels outward, at least one, within the scene's reach", () => {
+    expect(fitRedactionRegion({ x: 1.2, y: 2.8, width: 3.1, height: 0.1 })).toEqual({
+      x: 1,
+      y: 2,
+      width: 4,
+      height: 1,
+    });
+    expect(fitRedactionRegion({ x: 5, y: 5, width: 0, height: 0 })).toEqual({
+      x: 5,
+      y: 5,
+      width: 1,
+      height: 1,
+    });
+    expect(fitRedactionRegion({ x: -70_000, y: 70_000, width: 200_000, height: 10 })).toEqual({
+      x: -65_536,
+      y: 65_535,
+      width: 131_072,
+      height: 1,
+    });
+    fc.assert(
+      fc.property(
+        fc.record({
+          x: fc.double({ min: -1e6, max: 1e6, noNaN: true }),
+          y: fc.double({ min: -1e6, max: 1e6, noNaN: true }),
+          width: fc.double({ min: 0, max: 1e6, noNaN: true }),
+          height: fc.double({ min: 0, max: 1e6, noNaN: true }),
+        }),
+        (rect) => {
+          const fitted = fitRedactionRegion(rect);
+          for (const value of Object.values(fitted)) expect(Number.isInteger(value)).toBe(true);
+          expect(fitted.width).toBeGreaterThanOrEqual(1);
+          expect(fitted.height).toBeGreaterThanOrEqual(1);
+          expect(fitted.x).toBeGreaterThanOrEqual(-65_536);
+          expect(fitted.y).toBeGreaterThanOrEqual(-65_536);
+          expect(fitted.x + fitted.width).toBeLessThanOrEqual(65_536);
+          expect(fitted.y + fitted.height).toBeLessThanOrEqual(65_536);
+        },
+      ),
     );
   });
 });

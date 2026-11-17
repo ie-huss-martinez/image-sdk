@@ -62,6 +62,7 @@ export {
   outputSize,
   sourceToComposition,
 } from "./core/model/geometry.js";
+export { createImageKey } from "./core/model/keys.js";
 export type {
   ImageBase,
   ImageCrop,
@@ -90,10 +91,13 @@ export {
 } from "./core/model/plan.js";
 export type { ImageRect } from "./core/model/redaction-geometry.js";
 export {
+  compositionRectToScene,
+  fitRedactionRegion,
   redactionBlockSize,
   redactionBlocksInOutput,
   redactionBlocksInScene,
   redactionRectInOutput,
+  sceneRectToComposition,
 } from "./core/model/redaction-geometry.js";
 export type {
   ExifOrientation,

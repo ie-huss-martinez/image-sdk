@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Partially supersedes:** [ADR 0001](0001-image-engines.md) and [ADR 0003](0003-layer-plan-document-model.md), only where they name a blurred redaction and a redaction as a kind of layer
+- **Amended:** 2026-11-17: a redaction's frame takes the crop frame's keys ([ADR 0007](0007-editor-shell.md)): `Shift` with the arrows resizes, not `Alt`
 
 ## Context
 
@@ -91,7 +92,7 @@ The README and the API documentation say this plainly.
 
 ### In the editor
 
-- **The Redact tool** places a region by dragging, or from the keyboard: its button inserts one at the centre of the view, and the region is then a focusable frame like the crop's, moved with the arrow keys and resized with `Alt` and the arrows, with number fields in its panel ([ADR 0007](0007-editor-shell.md), [ADR 0009](0009-scene-space-layers-and-plan-versions.md)).
+- **The Redact tool** places a region by dragging, or from the keyboard: its button inserts one at the centre of the view, and the region is then a focusable frame like the crop's, moved with the arrow keys and resized with `Shift` and the arrows, the crop frame's keys, with number fields in its panel ([ADR 0007](0007-editor-shell.md), [ADR 0009](0009-scene-space-layers-and-plan-versions.md)).
 - **The panel lists the redactions,** each with its mode, its size and a remove button, so someone who can't see the preview knows what's covered.
 - **The export summary says how many areas are redacted,** and when any is pixelated, that pixelated areas may not hide text.
 - **Events** say that a redaction command ran, never where ([ADR 0003](0003-layer-plan-document-model.md)).

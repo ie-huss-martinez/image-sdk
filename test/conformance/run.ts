@@ -18,10 +18,13 @@ import {
 } from "../../src/core/model/geometry.js";
 import type { ImagePlan } from "../../src/core/model/plan.js";
 import {
+  compositionRectToScene,
+  fitRedactionRegion,
   redactionBlockSize,
   redactionBlocksInOutput,
   redactionBlocksInScene,
   redactionRectInOutput,
+  sceneRectToComposition,
 } from "../../src/core/model/redaction-geometry.js";
 import { createImageReducer } from "../../src/core/operations/commands.js";
 import {
@@ -110,6 +113,11 @@ const GEOMETRY: Readonly<Record<string, (input: GeometryArguments) => unknown>> 
     redactionRectInOutput(region, crop, orientation, size),
   redactionBlocksInOutput: ({ region, crop, orientation, size }) =>
     redactionBlocksInOutput(region, crop, orientation, size),
+  sceneRectToComposition: ({ region, crop, orientation }) =>
+    sceneRectToComposition(region, crop, orientation),
+  compositionRectToScene: ({ region, crop, orientation }) =>
+    compositionRectToScene(region, crop, orientation),
+  fitRedactionRegion: ({ region }) => fitRedactionRegion(region),
 };
 
 /** The names of the geometry operations, in the order the vectors list them. */
