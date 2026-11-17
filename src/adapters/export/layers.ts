@@ -1,7 +1,14 @@
-import { ImageError } from "../../core/errors/image-error.js";
+import { arrowOutline } from "../../core/model/drawing-geometry.js";
 import { cropRect } from "../../core/model/geometry.js";
-import { fitTextLines, isRightToLeft, layerToOutput } from "../../core/model/layer-geometry.js";
+import {
+  fitTextLines,
+  isRightToLeft,
+  layerToOutput,
+  sceneToOutput,
+} from "../../core/model/layer-geometry.js";
 import type {
+  ImageArrowLayer,
+  ImageDrawingLayer,
   ImageImageLayer,
   ImagePlan,
   ImageShapeLayer,
@@ -126,11 +133,80 @@ async function drawImageLayer(
 }
 
 /**
+ * A drawing's strokes (docs/adr/0014): each run a polyline through its
+ * points, at the stroke's width, with round joins and round ends, and a run
+ * of one point a disc as wide as the stroke. No curve is fitted.
+ *
+ * A run that starts where the one before it ended continues the same path,
+ * as the simplifier's runs do. So a long stroke that was cut into runs is
+ * drawn as the one line it is, joined where it was cut: pixel for pixel
+ * what it would be uncut.
+ */
+function drawDrawing(context: Context, layer: ImageDrawingLayer): void {
+  context.translate(layer.x, layer.y);
+  context.lineJoin = "round";
+  context.lineCap = "round";
+  for (const stroke of layer.strokes) {
+    context.strokeStyle = stroke.colour;
+    context.fillStyle = stroke.colour;
+    context.lineWidth = stroke.width;
+    context.beginPath();
+    const dots: number[] = [];
+    let endX = Number.NaN;
+    let endY = Number.NaN;
+    for (const run of stroke.runs) {
+      const x = run[0] as number;
+      const y = run[1] as number;
+      const joined = x === endX && y === endY;
+      if (run.length === 2) {
+        // A line of no length draws nothing in some engines: a dot is a disc,
+        // unless it's on the end of a line, which already covers it.
+        if (!joined) dots.push(x, y);
+        endX = Number.NaN;
+        continue;
+      }
+      if (!joined) context.moveTo(x, y);
+      for (let index = 2; index + 1 < run.length; index += 2) {
+        context.lineTo(run[index] as number, run[index + 1] as number);
+      }
+      endX = run[run.length - 2] as number;
+      endY = run[run.length - 1] as number;
+    }
+    context.stroke();
+    // The dots are filled, in the stroke's one colour: a stroked point has no outline to draw.
+    if (dots.length > 0) {
+      context.beginPath();
+      for (let index = 0; index < dots.length; index += 2) {
+        const x = dots[index] as number;
+        const y = dots[index + 1] as number;
+        context.moveTo(x + stroke.width / 2, y);
+        context.arc(x, y, stroke.width / 2, 0, Math.PI * 2);
+      }
+      context.fill();
+    }
+  }
+}
+
+/** An arrow: its outline, filled, so nothing is drawn past its tip (docs/adr/0014). */
+function drawArrow(context: Context, layer: ImageArrowLayer): void {
+  const outline = arrowOutline(layer.from, layer.to, layer.width);
+  context.fillStyle = layer.colour;
+  context.beginPath();
+  outline.forEach((point, index) => {
+    if (index === 0) context.moveTo(point.x, point.y);
+    else context.lineTo(point.x, point.y);
+  });
+  context.closePath();
+  context.fill();
+}
+
+/**
  * Draws the plan's visible layers into the output, in order.
  *
  * A layer with an opacity under 100 is drawn whole into a scratch canvas
- * the size of the output, then composited once: its fill and stroke, or its
- * overlapping glyphs, don't show through each other. One scratch canvas is
+ * the size of the output, then composited once: its fill and stroke, its
+ * overlapping glyphs, or a drawing's crossing strokes, don't show through
+ * each other. One scratch canvas is
  * reused from layer to layer.
  *
  * @param base - The base source's size, which the crop is in.
@@ -148,13 +224,6 @@ export async function drawLayers(
   const crop = cropRect(plan.base.crop, base);
   let scratch: Context | undefined;
   for (const layer of plan.layers) {
-    // A drawing or an arrow is refused before anything is drawn
-    // (`checkPlanSupport`): never skipped, even here (ADR 0009).
-    if (layer.kind === "drawing" || layer.kind === "arrow") {
-      throw new ImageError("UNSUPPORTED_PLAN", "This renderer can't draw the plan's drawings.", {
-        details: { reason: "drawings" },
-      });
-    }
     if (!layer.visible || layer.opacity === 0) continue;
     await checkpoint(signal);
     let target = context;
@@ -171,10 +240,17 @@ export async function drawLayers(
       target = scratch;
     }
     target.save();
-    target.setTransform(...layerToOutput(layer, crop, plan.base.orientation, size));
-    if (layer.kind === "shape") drawShape(target, layer);
-    else if (layer.kind === "text") drawText(target, layer);
-    else await drawImageLayer(target, layer, plan, sources, signal);
+    if (layer.kind === "drawing" || layer.kind === "arrow") {
+      // Geometry in the scene, with no box of its own (docs/adr/0014).
+      target.setTransform(...sceneToOutput(crop, plan.base.orientation, size));
+      if (layer.kind === "drawing") drawDrawing(target, layer);
+      else drawArrow(target, layer);
+    } else {
+      target.setTransform(...layerToOutput(layer, crop, plan.base.orientation, size));
+      if (layer.kind === "shape") drawShape(target, layer);
+      else if (layer.kind === "text") drawText(target, layer);
+      else await drawImageLayer(target, layer, plan, sources, signal);
+    }
     target.restore();
     if (target !== context) {
       context.save();

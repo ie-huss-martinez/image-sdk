@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-17
+- **Amended:** 2026-11-17, as the renderer was built: runs that meet are drawn as one path, so a cut is exactly invisible, under "How a stroke is drawn"
 - **Amended:** 2026-11-17, as the model was built: which refusals are the schema's, `too-many-strokes`, and the exact sample count of 64 runs
 - **Amends:** [ADR 0009](0009-scene-space-layers-and-plan-versions.md), only in the form of a stroke: it holds `runs` of points, not one list of `points`
 - **Builds on:** [ADR 0009](0009-scene-space-layers-and-plan-versions.md) (the `drawing` and `arrow` kinds, their commands, format version 3 and `maxDrawingPoints`), [ADR 0007](0007-editor-shell.md) (gestures as transient plans) and [ADR 0010](0010-redaction.md) (redactions cover what's drawn)
@@ -97,7 +98,7 @@ The details that make it exact:
 
 - **The algorithm is quadratic when nothing can go,** and doubling repeats that cost and then flattens a stroke to a line: the zigzag became its two ends.
 - **Cut into runs of 2,000, the worst case is one run's:** 58 to 73 ms measured for 2,000 turns, against 1 ms for a hand-like run, and a run never needs a second pass, because simplifying only removes points.
-- **A cut can't be seen.** Runs are drawn with round ends, and a drawing is composited as one group ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)), so two runs that meet at a point cover what one polyline through it covers, at any opacity.
+- **A cut can't be seen.** A run that starts where the one before it ended is drawn as the same path, joined there, so a stroke that was cut is drawn as the one line it is: the same pixels as uncut, in every engine. See "How a stroke is drawn".
 - **A cut can't be felt either.** The runs stay inside one stroke, so undo and "remove the last stroke" act on all that was drawn, never on its last part.
 - **64 runs is the stroke's ceiling,** fixed in the schema: 127,937 samples before simplifying, since each run after the first starts on the last point of the one before. That's many minutes of drawing without lifting. There the draw tool ends the stroke and starts another, the one case where a gesture is two strokes. `simplifyStroke` given more than that throws a `RangeError`: it's a caller's mistake, not a file's.
 
@@ -108,6 +109,7 @@ The details that make it exact:
 ### How a stroke is drawn
 
 - **Each run is a polyline through its points,** in the stroke's colour, at its width, with round joins and round ends, drawn through the scene's transform to the output ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). A run of one point is a disc as wide as the stroke.
+- **A run that starts on the last point of the run before it continues that run's path,** with a round join where they meet, as within a run. Measured before this was decided: two runs drawn apart, each with its own round ends, weren't quite the one line. At a 12-pixel stroke's corner, 10 to 19 pixels differed by more than an eighth of full scale in Chromium, Firefox and WebKit, and 7 by more than a quarter in WebKit, where the two ends' antialiasing overlaps. Drawn as one path they differ by nothing. A run that starts anywhere else is its own line, with its own ends; a run of one point on the end of a line adds nothing to it.
 - **No curve is fitted.** A simplified stroke keeps a point where the hand turned, and a curve through sparse points would round a drawn corner and bulge between far points. At a tolerance of one screen pixel, a polyline with round joins already looks like what was drawn.
 - **Pressure, tilt and speed aren't recorded.** A stroke has one width. A pen, a finger and a mouse draw the same.
 - **A drawing is composited as a group:** its strokes are drawn opaque into the scratch canvas, which is then composited at the layer's opacity ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). So strokes that cross don't darken where they meet. A highlighter is a wide stroke in a drawing whose opacity is low.

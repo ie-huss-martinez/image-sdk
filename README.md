@@ -134,7 +134,7 @@ The editor adds text, rectangles, ellipses and other images over an image as lay
 
 Text is drawn with the device's own fonts, in one of three generic families, so the same plan can look different on another device; the preview and the export of one session always agree ([ADR 0009](docs/adr/0009-scene-space-layers-and-plan-versions.md)). A new layer is set against the image's rotation and flips, so text added to a turned or mirrored image reads as text; "Mirror" in the panel flips a layer about its own box.
 
-Headless, a layer is a command: `image.insertLayers`, or `session.insertImage(file)` for an image, which places it the same way: centred, fitted, and neither turned nor mirrored in the output.
+Headless, a layer is a command: `image.insertLayers`, or `session.insertImage(file)` for an image, which places it the same way: centred, fitted, and neither turned nor mirrored in the output. A plan can also hold freehand drawings and arrows ([ADR 0014](docs/adr/0014-drawing-strokes-and-arrows.md)): `simplifyStroke` turns a pointer's samples into a stroke, and `image.addStrokes` adds it.
 
 ## Formats and browsers
 
