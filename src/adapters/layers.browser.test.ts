@@ -97,7 +97,14 @@ const withLayers = (
   ...changes,
 });
 
-const common = (x: number, y: number, width: number, height: number, rotation = 0) => ({
+const common = (
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  rotation = 0,
+  flipX = false,
+) => ({
   name: "",
   visible: true,
   opacity: 100,
@@ -106,6 +113,7 @@ const common = (x: number, y: number, width: number, height: number, rotation = 
   width,
   height,
   rotation,
+  flipX,
 });
 const text = (value: string, changes: Partial<ImageTextLayer> = {}): ImageTextLayer => ({
   ...common(20, 30, 160, 60),
@@ -159,7 +167,8 @@ describe("the preview is the export (docs/adr/0009)", () => {
     renderers.push(renderer);
     await renderer.attach(document.createElement("canvas"));
     const image: ImageImageLayer = {
-      ...common(120, 60, 60, 40, 250),
+      // Mirrored, and turned.
+      ...common(120, 60, 60, 40, 250, true),
       key: "i",
       kind: "image",
       source: "inset",
@@ -167,10 +176,27 @@ describe("the preview is the export (docs/adr/0009)", () => {
     };
     const layers: ImageLayer[] = [
       shape({ shape: "ellipse", stroke: { colour: "#c02020", width: 6 } }),
-      shape({ key: "turned", x: 10, y: 60, rotation: 300, opacity: 55, fill: "#20a040" }),
+      shape({
+        key: "turned",
+        x: 10,
+        y: 60,
+        rotation: 300,
+        flipX: true,
+        opacity: 55,
+        fill: "#20a040",
+      }),
       image,
       text("Hello\nשלום 📷", { bold: true, colour: "#101010", align: "start" }),
-      text("fit", { key: "t2", x: 130, y: 5, width: 60, height: 30, rotation: 3_450, opacity: 70 }),
+      text("fit", {
+        key: "t2",
+        x: 130,
+        y: 5,
+        width: 60,
+        height: 30,
+        rotation: 3_450,
+        flipX: true,
+        opacity: 70,
+      }),
     ];
     for (const orientation of [
       { rotate: 0, flipX: false, flipY: false },
@@ -348,6 +374,57 @@ describe("text layers, for any font (docs/adr/0009)", () => {
     expect(exact).toBeGreaterThan(20);
   });
 
+  it("reads on a mirrored image as it does on the image, when it's mirrored back", async () => {
+    // The image mirrored left to right, and the layer mirrored in the scene's
+    // mirror of its place: the two cancel, and it's drawn as it was.
+    const box = { x: 30, y: 40, width: 120, height: 40 };
+    for (const rotation of [0, 250]) {
+      const plain = await drawn([text("Hamburg", { ...box, rotation })]);
+      const mirrored = await drawn(
+        [
+          text("Hamburg", {
+            ...box,
+            x: WIDTH - box.x - box.width,
+            // A turn seen in a mirror runs the other way.
+            rotation: (3_600 - rotation) % 3_600,
+            flipX: true,
+          }),
+        ],
+        {
+          base: {
+            ...createPlan("s").base,
+            orientation: { rotate: 0, flipX: true, flipY: false },
+          },
+        },
+      );
+      const ink = inkBox(plain);
+      expect(ink?.count ?? 0).toBeGreaterThan(200);
+      if (rotation === 0) {
+        // The same transform to the last digit: the same pixels.
+        let different = 0;
+        for (let i = 0; i < plain.data.length; i += 1) {
+          if (plain.data[i] !== mirrored.data[i]) different += 1;
+        }
+        expect(different).toBe(0);
+      } else {
+        // Turned, the transform is the same to rounding: the same ink, within a pixel.
+        const other = inkBox(mirrored);
+        if (!ink || !other) throw new Error("no ink");
+        for (const side of ["left", "top", "right", "bottom"] as const) {
+          expect(Math.abs(ink[side] - other[side]), side).toBeLessThanOrEqual(1);
+        }
+        expect(Math.abs(ink.count - other.count)).toBeLessThanOrEqual(ink.count * 0.02);
+      }
+      // Mirrored alone, on the image as it is, the text is backwards: other pixels.
+      const backwards = await drawn([text("Hamburg", { ...box, rotation, flipX: true })]);
+      let changed = 0;
+      for (let i = 0; i < plain.data.length; i += 1) {
+        if (plain.data[i] !== backwards.data[i]) changed += 1;
+      }
+      expect(changed).toBeGreaterThan(200);
+    }
+  });
+
   it("turns with its box, about the box's centre", async () => {
     // A quarter turn of a wide box: the ink becomes tall, about the same centre.
     const box = { x: 60, y: 45, width: 80, height: 30 };
@@ -510,6 +587,32 @@ describe("shape and image layers (docs/adr/0009)", () => {
     expect(ink?.height).toBeGreaterThan(60);
   });
 
+  it("mirrors an image layer left to right, about its box, before it's turned", async () => {
+    // Left half red, right half green.
+    const halves = await png(40, 20, (x) => (x < 20 ? [200, 0, 0, 255] : [0, 160, 0, 255]));
+    const RED = [200, 0, 0, 255];
+    const GREEN = [0, 160, 0, 255];
+    const layer: ImageImageLayer = {
+      ...common(60, 30, 80, 60),
+      key: "i",
+      kind: "image",
+      source: "halves",
+      crop: null,
+    };
+    const upright = await drawn([layer], { halves });
+    expect([upright.at(70, 60), upright.at(130, 60)]).toEqual([RED, GREEN]);
+    const mirrored = await drawn([{ ...layer, flipX: true }], { halves });
+    expect([mirrored.at(70, 60), mirrored.at(130, 60)]).toEqual([GREEN, RED]);
+    // Its box is where it was.
+    expect(inkBox(mirrored)).toMatchObject({ left: 60, top: 30, right: 139, bottom: 89 });
+    // Mirrored, then a quarter turn clockwise: the box's own left, now green, is up.
+    const turned = await drawn([{ ...layer, flipX: true, rotation: 900 }], { halves });
+    expect([turned.at(100, 30), turned.at(100, 90)]).toEqual([GREEN, RED]);
+    // With a half turn, it's a mirror top to bottom: left and right as they were.
+    const half = await drawn([{ ...layer, flipX: true, rotation: 1_800 }], { halves });
+    expect([half.at(70, 60), half.at(130, 60)]).toEqual([RED, GREEN]);
+  });
+
   it("fails on an image layer whose source isn't registered, with nothing exported", async () => {
     const { processor } = await opened();
     const layer: ImageImageLayer = {
@@ -592,6 +695,9 @@ describe("image layers under a redaction (docs/adr/0010)", () => {
       { ...common(60, 25, 30, 22), crop: null },
       { ...common(50, 15, 90, 70, 300), crop: { x: 4, y: 3, width: 30, height: 24 } },
       { ...common(30, 10, 120, 90, 1_370), crop: null },
+      // Mirrored: upright, and turned with a crop.
+      { ...common(40, 20, 80, 60, 0, true), crop: null },
+      { ...common(50, 15, 90, 70, 300, true), crop: { x: 4, y: 3, width: 30, height: 24 } },
     ]) {
       const layer: ImageImageLayer = { ...geometry, key: "i", kind: "image", source: "a" };
       const covered = whollyInside(layer, region);
@@ -674,6 +780,9 @@ describe("image layers under a redaction (docs/adr/0010)", () => {
       // The same redaction, the layer moved under it: other pixels are covered.
       [{ ...layer, x: 60 }, [B]],
       [{ ...layer, rotation: 200 }, [B]],
+      // Mirrored where it is: the same box covers other pixels of its source.
+      [{ ...layer, flipX: true }, [B]],
+      [layer, [B]],
       [layer, [B, A]],
     ];
     for (const [placed, redactions] of sequence) {
@@ -683,9 +792,10 @@ describe("image layers under a redaction (docs/adr/0010)", () => {
       const reference = await bytesOf(
         await fresh.processor.export({ plan, format: { type: "png" } }),
       );
-      expect(same(reused, reference), JSON.stringify([placed.x, placed.rotation, redactions])).toBe(
-        true,
-      );
+      expect(
+        same(reused, reference),
+        JSON.stringify([placed.x, placed.rotation, placed.flipX, redactions]),
+      ).toBe(true);
     }
   });
 });

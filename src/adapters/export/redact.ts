@@ -203,8 +203,8 @@ export async function sanitisedLayerSource(
     cached?.delete(layer.key);
     return source;
   }
-  const { x, y, width, height, rotation } = layer;
-  const key = JSON.stringify([covering, x, y, width, height, rotation, crop]);
+  const { x, y, width, height, rotation, flipX } = layer;
+  const key = JSON.stringify([covering, x, y, width, height, rotation, flipX, crop]);
   const existing = cached?.get(layer.key);
   if (existing?.key === key) return existing.canvas;
 

@@ -291,6 +291,7 @@ export type ImageLayer = ImageTextLayer | ImageShapeLayer | ImageImageLayer;
 
 // @public
 export interface ImageLayerBox {
+    readonly flipX: boolean;
     readonly height: number;
     readonly rotation: number;
     readonly width: number;

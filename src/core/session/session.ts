@@ -278,6 +278,7 @@ function defaultLayer(
     width,
     height,
     rotation: 0,
+    flipX: false,
     source: source.id,
     crop: null,
   };

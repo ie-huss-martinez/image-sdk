@@ -275,6 +275,7 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
         width,
         height,
         rotation: 0,
+        flipX: false,
       });
       const rectangle = (key: string, fill: string, ...at: [number, number, number, number]) =>
         ({ ...box(...at), key, kind: "shape", shape: "rectangle", fill, stroke: null }) as const;

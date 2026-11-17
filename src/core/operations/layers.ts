@@ -19,7 +19,7 @@ import { checkColour } from "./redactions.js";
 export const LAYER_NAMES: KeyedListNames = { unknown: "unknown-layer", item: "layer" };
 
 const COMMON = ["key", "kind", "name", "visible", "opacity"] as const;
-const BOX = ["x", "y", "width", "height", "rotation"] as const;
+const BOX = ["x", "y", "width", "height", "rotation", "flipX"] as const;
 /** Each kind's own fields, after those every layer has and its box. */
 const OWN: Readonly<Record<ImageLayerKind, readonly string[]>> = {
   text: ["text", "font", "bold", "colour", "align"],
@@ -105,7 +105,8 @@ export function checkLayer(
       `a layer's box is at least 1 × 1, within ${MAX_SCENE_COORDINATE} pixels of the scene's origin, turned by 0 to 3599 tenths of a degree`,
     );
   }
-  const common = { key, name, visible, opacity, x, y, width, height, rotation };
+  const flipX = checkBoolean(value["flipX"], "a layer's flipX");
+  const common = { key, name, visible, opacity, x, y, width, height, rotation, flipX };
 
   if (kind === "text") {
     return {

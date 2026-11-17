@@ -42,10 +42,11 @@ function seen(box: ImageLayerBox, of: ImagePlan) {
     top: Math.min(...ys),
     width: Math.max(...xs) - Math.min(...xs),
     height: Math.max(...ys) - Math.min(...ys),
-    /** Whether the box's own top edge is its top on screen. */
-    topIsUp:
-      Math.abs((corners[0]?.y ?? 0) - (corners[1]?.y ?? 0)) < 1e-9 &&
-      (corners[0]?.y ?? 0) < (corners[2]?.y ?? 0),
+    /** Whether the box reads as it was made: its own top-left corner is the top left on screen. */
+    asMade:
+      Math.abs((corners[0]?.x ?? 0) - Math.min(...xs)) < 1e-9 &&
+      Math.abs((corners[0]?.y ?? 0) - Math.min(...ys)) < 1e-9 &&
+      Math.abs((corners[1]?.y ?? 0) - Math.min(...ys)) < 1e-9,
     composition,
   };
 }
@@ -64,6 +65,7 @@ describe("a new layer's box (ADR 0013)", () => {
       width: 100,
       height: 40,
       rotation: 0,
+      flipX: false,
     });
   });
 
@@ -75,7 +77,7 @@ describe("a new layer's box (ADR 0013)", () => {
     });
   });
 
-  it("is seen at its size, in the middle, with its top up, whatever the plan's turn and flips", () => {
+  it("is seen at its size, in the middle, neither turned nor mirrored, whatever the plan's turn and flips", () => {
     fc.assert(
       fc.property(
         orientations,
@@ -89,7 +91,8 @@ describe("a new layer's box (ADR 0013)", () => {
           }
           expect([0, 900, 1_800, 2_700]).toContain(box.rotation);
           const on = seen(box, turned);
-          expect(on.topIsUp).toBe(true);
+          // Not turned and not mirrored, as it's seen: text in it reads as text.
+          expect(on.asMade).toBe(true);
           expect(on.width).toBeCloseTo(width, 9);
           expect(on.height).toBeCloseTo(height, 9);
           // Centred, to the half pixel the whole-pixel grid allows.
@@ -102,6 +105,28 @@ describe("a new layer's box (ADR 0013)", () => {
         },
       ),
     );
+  });
+
+  it("mirrors back for a mirrored plan, so text added to it reads as text", () => {
+    const mirrored = plan({ orientation: { rotate: 0, flipX: true, flipY: false } });
+    expect(newLayerBox(mirrored, SOURCE, { width: 60, height: 20 })).toMatchObject({
+      rotation: 0,
+      flipX: true,
+    });
+    // Mirrored top to bottom: a mirror left to right, and a half turn.
+    const upsideDown = plan({ orientation: { rotate: 0, flipX: false, flipY: true } });
+    expect(newLayerBox(upsideDown, SOURCE, { width: 60, height: 20 })).toMatchObject({
+      rotation: 1_800,
+      flipX: true,
+    });
+    // Both flips are a half turn, and no mirror.
+    const both = plan({ orientation: { rotate: 0, flipX: true, flipY: true } });
+    expect(newLayerBox(both, SOURCE, { width: 60, height: 20 })).toMatchObject({
+      rotation: 1_800,
+      flipX: false,
+    });
+    expect(newTextLayer(mirrored, SOURCE).flipX).toBe(true);
+    expect(newTextLayer(plan(), SOURCE).flipX).toBe(false);
   });
 
   it("turns back a quarter for a plan turned a quarter", () => {

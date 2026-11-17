@@ -37,6 +37,7 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
       for (const layer of plan.layers) {
         const plain =
           layer.rotation === 0 &&
+          !layer.flipX &&
           (layer.opacity === 100 || !layer.visible) &&
           (layer.kind === "image" ||
             (layer.kind === "shape" &&

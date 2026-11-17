@@ -294,6 +294,7 @@ test.describe("the image editor", () => {
         width: 12,
         height: 8,
         rotation: 0,
+        flipX: false,
       });
       window.imageEditor.execute([
         {

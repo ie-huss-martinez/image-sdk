@@ -59,6 +59,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -76,6 +77,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -94,6 +96,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -186,6 +189,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -203,6 +207,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -221,6 +226,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "t",
             "crop": {
@@ -490,6 +496,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -507,6 +514,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -525,6 +533,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -599,6 +608,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -616,6 +626,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -634,6 +645,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "t",
             "crop": {
@@ -713,6 +725,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -730,6 +743,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -748,6 +762,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -847,6 +862,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -864,6 +880,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -882,6 +899,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "t",
             "crop": {
@@ -986,6 +1004,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -1003,6 +1022,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -1021,6 +1041,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -1123,6 +1144,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -1140,6 +1162,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -1158,6 +1181,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -9443,6 +9467,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -9460,6 +9485,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -9478,6 +9504,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -9573,6 +9600,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -9590,6 +9618,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -9608,6 +9637,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -9701,6 +9731,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -9718,6 +9749,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -9736,6 +9768,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -9829,6 +9862,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -9846,6 +9880,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -9864,6 +9899,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -9958,6 +9994,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -9975,6 +10012,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -9993,6 +10031,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -10235,6 +10274,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -10252,6 +10292,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -10270,6 +10311,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -10364,6 +10406,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -10552,6 +10595,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "u",
             "crop": {
               "x": 100,
@@ -10654,6 +10698,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 3999,
@@ -10756,6 +10801,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "‮txet",
             "font": "sans-serif",
             "bold": true,
@@ -10856,6 +10902,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞",
             "font": "sans-serif",
             "bold": true,
@@ -10956,6 +11003,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": null
@@ -11054,6 +11102,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -11097,6 +11146,474 @@
         "error": {
           "code": "INVALID_DOCUMENT",
           "reason": "invalid-opacity"
+        }
+      }
+    },
+    {
+      "name": "refuses a layer without flipX",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "ring",
+            "kind": "shape",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "refuses a layer whose flipX isn't a boolean",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "ring",
+            "kind": "shape",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "flipX": 0,
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "error": {
+          "code": "INVALID_DOCUMENT",
+          "reason": "malformed-document"
+        }
+      }
+    },
+    {
+      "name": "reads a document whose layers are all mirrored",
+      "input": {
+        "format": "hm-image-plan",
+        "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "caption",
+            "kind": "text",
+            "name": "",
+            "visible": true,
+            "opacity": 100,
+            "x": 2,
+            "y": 20,
+            "width": 30,
+            "height": 8,
+            "rotation": 0,
+            "flipX": true,
+            "text": "Harbour\nat dusk 📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#ffffff",
+            "align": "center"
+          },
+          {
+            "key": "ring",
+            "kind": "shape",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "flipX": true,
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          },
+          {
+            "key": "inset",
+            "kind": "image",
+            "name": "",
+            "visible": false,
+            "opacity": 100,
+            "x": 25,
+            "y": 0,
+            "width": 12,
+            "height": 9,
+            "rotation": 3599,
+            "flipX": true,
+            "source": "t",
+            "crop": {
+              "x": 100,
+              "y": 100,
+              "width": 1200,
+              "height": 900
+            }
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
+        }
+      },
+      "expected": {
+        "format": "hm-image-plan",
+        "version": 2,
+        "sources": {
+          "s": {
+            "width": 40,
+            "height": 30
+          },
+          "t": {
+            "width": 4000,
+            "height": 3000
+          }
+        },
+        "base": {
+          "source": "s",
+          "crop": {
+            "x": 2,
+            "y": 3,
+            "width": 20,
+            "height": 10
+          },
+          "orientation": {
+            "rotate": 90,
+            "flipX": true,
+            "flipY": false
+          },
+          "develop": {
+            "temperature": 0,
+            "tint": 0,
+            "exposure": 20,
+            "highlights": 0,
+            "shadows": 0,
+            "contrast": -15,
+            "saturation": 0,
+            "vibrance": 0
+          },
+          "filter": {
+            "preset": "sepia",
+            "strength": 60
+          }
+        },
+        "layers": [
+          {
+            "key": "caption",
+            "name": "",
+            "visible": true,
+            "opacity": 100,
+            "x": 2,
+            "y": 20,
+            "width": 30,
+            "height": 8,
+            "rotation": 0,
+            "flipX": true,
+            "kind": "text",
+            "text": "Harbour\nat dusk 📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#ffffff",
+            "align": "center"
+          },
+          {
+            "key": "ring",
+            "name": "Ring",
+            "visible": true,
+            "opacity": 60,
+            "x": -5,
+            "y": 3,
+            "width": 20,
+            "height": 20,
+            "rotation": 450,
+            "flipX": true,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": null,
+            "stroke": {
+              "colour": "#ff0000",
+              "width": 2
+            }
+          },
+          {
+            "key": "inset",
+            "name": "",
+            "visible": false,
+            "opacity": 100,
+            "x": 25,
+            "y": 0,
+            "width": 12,
+            "height": 9,
+            "rotation": 3599,
+            "flipX": true,
+            "kind": "image",
+            "source": "t",
+            "crop": {
+              "x": 100,
+              "y": 100,
+              "width": 1200,
+              "height": 900
+            }
+          }
+        ],
+        "redactions": [
+          {
+            "key": "face",
+            "mode": "solid",
+            "x": 4,
+            "y": 5,
+            "width": 12,
+            "height": 8,
+            "colour": "#000000"
+          },
+          {
+            "key": "plate",
+            "mode": "pixelate",
+            "x": -3,
+            "y": 20,
+            "width": 30,
+            "height": 15
+          }
+        ],
+        "animation": null,
+        "output": {
+          "kind": "scale",
+          "scale": 0.5
+        },
+        "metadata": {
+          "title": "Harbour at dusk",
+          "description": "",
+          "artist": "",
+          "copyright": ""
         }
       }
     },
@@ -11155,6 +11672,7 @@
             "width": 20,
             "height": 20,
             "rotation": 3600,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -11256,6 +11774,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -11273,6 +11792,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -11291,6 +11811,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -19552,6 +20073,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -19569,6 +20091,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -19587,6 +20110,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -19684,6 +20208,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -19701,6 +20226,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -19719,6 +20245,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -19803,6 +20330,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -19820,6 +20348,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -19838,6 +20367,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "t",
             "crop": {
@@ -19935,6 +20465,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -19952,6 +20483,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -19970,6 +20502,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -20063,6 +20596,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -20080,6 +20614,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -20098,6 +20633,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "t",
             "crop": {
@@ -20201,6 +20737,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -20218,6 +20755,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -20236,6 +20774,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -20333,6 +20872,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -20350,6 +20890,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -20368,6 +20909,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "t",
             "crop": {
@@ -20464,6 +21006,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -20481,6 +21024,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -20499,6 +21043,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "constructor",
             "crop": {
               "x": 0,
@@ -20590,6 +21135,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -20607,6 +21153,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -20625,6 +21172,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "constructor",
             "crop": {
@@ -20726,6 +21274,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -20743,6 +21292,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -20761,6 +21311,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "constructor",
             "crop": {
               "x": 0,
@@ -20857,6 +21408,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -20874,6 +21426,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -20892,6 +21445,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "constructor",
             "crop": {
@@ -20988,6 +21542,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -21005,6 +21560,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -21023,6 +21579,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "constructor",
             "crop": {
               "x": 0,
@@ -21125,6 +21682,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -21142,6 +21700,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -21160,6 +21719,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -21262,6 +21822,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -21279,6 +21840,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -21297,6 +21859,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -21400,6 +21963,7 @@
               "width": 30,
               "height": 8,
               "rotation": 0,
+              "flipX": false,
               "text": "Harbour\nat dusk 📷",
               "font": "sans-serif",
               "bold": true,
@@ -21417,6 +21981,7 @@
               "width": 20,
               "height": 20,
               "rotation": 450,
+              "flipX": false,
               "shape": "ellipse",
               "fill": null,
               "stroke": {
@@ -21435,6 +22000,7 @@
               "width": 12,
               "height": 9,
               "rotation": 3599,
+              "flipX": true,
               "source": "t",
               "crop": {
                 "x": 100,
@@ -21538,6 +22104,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -21555,6 +22122,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -21573,6 +22141,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -21675,6 +22244,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -21692,6 +22262,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -21710,6 +22281,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -21813,6 +22385,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -21830,6 +22403,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -21848,6 +22422,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -21942,6 +22517,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -21959,6 +22535,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -21977,6 +22554,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -22080,6 +22658,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -22097,6 +22676,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -22115,6 +22695,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -22218,6 +22799,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -22235,6 +22817,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -22253,6 +22836,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -22355,6 +22939,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -22372,6 +22957,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -22390,6 +22976,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -22492,6 +23079,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -22509,6 +23097,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -22527,6 +23116,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -22630,6 +23220,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -22647,6 +23238,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -22665,6 +23257,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -22760,6 +23353,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -22777,6 +23371,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -22795,6 +23390,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -22897,6 +23493,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -22914,6 +23511,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -22932,6 +23530,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23034,6 +23633,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -23051,6 +23651,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -23069,6 +23670,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23171,6 +23773,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -23188,6 +23791,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -23206,6 +23810,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23308,6 +23913,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -23325,6 +23931,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -23343,6 +23950,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23446,6 +24054,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -23463,6 +24072,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -23481,6 +24091,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23583,6 +24194,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -23600,6 +24212,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -23618,6 +24231,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23720,6 +24334,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -23737,6 +24352,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -23755,6 +24371,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23858,6 +24475,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -23875,6 +24493,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -23893,6 +24512,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -23995,6 +24615,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -24012,6 +24633,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -24030,6 +24652,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -24122,6 +24745,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "kind": "text",
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
@@ -24139,6 +24763,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "kind": "shape",
             "shape": "ellipse",
             "fill": null,
@@ -24157,6 +24782,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "kind": "image",
             "source": "t",
             "crop": {
@@ -24254,6 +24880,7 @@
             "width": 30,
             "height": 8,
             "rotation": 0,
+            "flipX": false,
             "text": "Harbour\nat dusk 📷",
             "font": "sans-serif",
             "bold": true,
@@ -24271,6 +24898,7 @@
             "width": 20,
             "height": 20,
             "rotation": 450,
+            "flipX": false,
             "shape": "ellipse",
             "fill": null,
             "stroke": {
@@ -24289,6 +24917,7 @@
             "width": 12,
             "height": 9,
             "rotation": 3599,
+            "flipX": true,
             "source": "t",
             "crop": {
               "x": 100,
@@ -24355,9 +24984,9 @@
           "source": "s",
           "crop": null,
           "orientation": {
-            "rotate": 180,
+            "rotate": 0,
             "flipX": false,
-            "flipY": true
+            "flipY": false
           },
           "develop": {
             "temperature": 0,
@@ -24381,7 +25010,7 @@
         "metadata": {
           "title": "",
           "description": "",
-          "artist": "/F4[:\"`~]+",
+          "artist": "",
           "copyright": ""
         }
       },
@@ -24402,9 +25031,9 @@
           "source": "s",
           "crop": null,
           "orientation": {
-            "rotate": 180,
+            "rotate": 0,
             "flipX": false,
-            "flipY": true
+            "flipY": false
           },
           "develop": {
             "temperature": 0,
@@ -24428,7 +25057,7 @@
         "metadata": {
           "title": "",
           "description": "",
-          "artist": "/F4[:\"`~]+",
+          "artist": "",
           "copyright": ""
         }
       }
@@ -24470,63 +25099,79 @@
         },
         "layers": [
           {
-            "key": "na",
-            "name": "Caption",
-            "visible": true,
-            "opacity": 74,
-            "x": 57,
-            "y": 43,
-            "width": 9,
-            "height": 5,
-            "rotation": 668,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": null,
-            "stroke": {
-              "colour": "#000001",
-              "width": 5
-            }
-          },
-          {
             "key": "toString",
             "name": "Caption",
             "visible": true,
-            "opacity": 95,
-            "x": -8,
-            "y": -2,
-            "width": 4,
-            "height": 47,
-            "rotation": 3365,
+            "opacity": 33,
+            "x": 34,
+            "y": 2,
+            "width": 19,
+            "height": 1,
+            "rotation": 1741,
+            "flipX": true,
             "kind": "image",
             "source": "s",
-            "crop": {
-              "x": 7,
-              "y": 0,
-              "width": 30,
-              "height": 23
-            }
+            "crop": null
           },
           {
             "key": "OhrUNV",
-            "name": "Caption",
+            "name": "Logo 2",
             "visible": true,
             "opacity": 2,
-            "x": 60,
-            "y": 2,
-            "width": 4,
-            "height": 2,
-            "rotation": 506,
+            "x": 18,
+            "y": 3,
+            "width": 9,
+            "height": 47,
+            "rotation": 1249,
+            "flipX": true,
             "kind": "image",
             "source": "s",
             "crop": {
-              "x": 17,
-              "y": 12,
-              "width": 4,
-              "height": 15
+              "x": 1,
+              "y": 4,
+              "width": 3,
+              "height": 18
+            }
+          },
+          {
+            "key": "na",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 2,
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 48,
+            "rotation": 2171,
+            "flipX": false,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#000012",
+            "stroke": {
+              "colour": "#81c25c",
+              "width": 40
             }
           }
         ],
-        "redactions": [],
+        "redactions": [
+          {
+            "key": "_|",
+            "mode": "solid",
+            "x": 60,
+            "y": -20,
+            "width": 2,
+            "height": 1,
+            "colour": "#b6a104"
+          },
+          {
+            "key": " qt",
+            "mode": "pixelate",
+            "x": 60,
+            "y": 5,
+            "width": 5,
+            "height": 2
+          }
+        ],
         "animation": null,
         "output": {
           "kind": "scale",
@@ -24574,63 +25219,79 @@
         },
         "layers": [
           {
-            "key": "na",
-            "name": "Caption",
-            "visible": true,
-            "opacity": 74,
-            "x": 57,
-            "y": 43,
-            "width": 9,
-            "height": 5,
-            "rotation": 668,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": null,
-            "stroke": {
-              "colour": "#000001",
-              "width": 5
-            }
-          },
-          {
             "key": "toString",
             "name": "Caption",
             "visible": true,
-            "opacity": 95,
-            "x": -8,
-            "y": -2,
-            "width": 4,
-            "height": 47,
-            "rotation": 3365,
+            "opacity": 33,
+            "x": 34,
+            "y": 2,
+            "width": 19,
+            "height": 1,
+            "rotation": 1741,
+            "flipX": true,
             "kind": "image",
             "source": "s",
-            "crop": {
-              "x": 7,
-              "y": 0,
-              "width": 30,
-              "height": 23
-            }
+            "crop": null
           },
           {
             "key": "OhrUNV",
-            "name": "Caption",
+            "name": "Logo 2",
             "visible": true,
             "opacity": 2,
-            "x": 60,
-            "y": 2,
-            "width": 4,
-            "height": 2,
-            "rotation": 506,
+            "x": 18,
+            "y": 3,
+            "width": 9,
+            "height": 47,
+            "rotation": 1249,
+            "flipX": true,
             "kind": "image",
             "source": "s",
             "crop": {
-              "x": 17,
-              "y": 12,
-              "width": 4,
-              "height": 15
+              "x": 1,
+              "y": 4,
+              "width": 3,
+              "height": 18
+            }
+          },
+          {
+            "key": "na",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 2,
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 48,
+            "rotation": 2171,
+            "flipX": false,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#000012",
+            "stroke": {
+              "colour": "#81c25c",
+              "width": 40
             }
           }
         ],
-        "redactions": [],
+        "redactions": [
+          {
+            "key": "_|",
+            "mode": "solid",
+            "x": 60,
+            "y": -20,
+            "width": 2,
+            "height": 1,
+            "colour": "#b6a104"
+          },
+          {
+            "key": " qt",
+            "mode": "pixelate",
+            "x": 60,
+            "y": 5,
+            "width": 5,
+            "height": 2
+          }
+        ],
         "animation": null,
         "output": {
           "kind": "scale",
@@ -24679,23 +25340,70 @@
           },
           "filter": null
         },
-        "layers": [],
-        "redactions": [
+        "layers": [
           {
-            "key": "toString",
-            "mode": "pixelate",
-            "x": 2,
-            "y": -2,
-            "width": 48,
-            "height": 5
+            "key": "(R",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 13,
+            "x": 1,
+            "y": 25,
+            "width": 20,
+            "height": 33,
+            "rotation": 3163,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           },
+          {
+            "key": ":9(D2",
+            "name": "שכבה",
+            "visible": false,
+            "opacity": 97,
+            "x": -12,
+            "y": -20,
+            "width": 6,
+            "height": 48,
+            "rotation": 1698,
+            "flipX": false,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#fffff5",
+            "stroke": null
+          },
+          {
+            "key": "pmC+b(",
+            "name": "",
+            "visible": true,
+            "opacity": 74,
+            "x": 13,
+            "y": 2,
+            "width": 2,
+            "height": 4,
+            "rotation": 11,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
+          }
+        ],
+        "redactions": [
           {
             "key": "yEP@",
             "mode": "pixelate",
-            "x": -19,
-            "y": -4,
-            "width": 21,
-            "height": 1
+            "x": 2,
+            "y": 13,
+            "width": 23,
+            "height": 5
+          },
+          {
+            "key": "! ",
+            "mode": "pixelate",
+            "x": 2,
+            "y": 0,
+            "width": 33,
+            "height": 15
           }
         ],
         "animation": null,
@@ -24743,23 +25451,70 @@
           },
           "filter": null
         },
-        "layers": [],
-        "redactions": [
+        "layers": [
           {
-            "key": "toString",
-            "mode": "pixelate",
-            "x": 2,
-            "y": -2,
-            "width": 48,
-            "height": 5
+            "key": "(R",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 13,
+            "x": 1,
+            "y": 25,
+            "width": 20,
+            "height": 33,
+            "rotation": 3163,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           },
+          {
+            "key": ":9(D2",
+            "name": "שכבה",
+            "visible": false,
+            "opacity": 97,
+            "x": -12,
+            "y": -20,
+            "width": 6,
+            "height": 48,
+            "rotation": 1698,
+            "flipX": false,
+            "kind": "shape",
+            "shape": "ellipse",
+            "fill": "#fffff5",
+            "stroke": null
+          },
+          {
+            "key": "pmC+b(",
+            "name": "",
+            "visible": true,
+            "opacity": 74,
+            "x": 13,
+            "y": 2,
+            "width": 2,
+            "height": 4,
+            "rotation": 11,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
+          }
+        ],
+        "redactions": [
           {
             "key": "yEP@",
             "mode": "pixelate",
-            "x": -19,
-            "y": -4,
-            "width": 21,
-            "height": 1
+            "x": 2,
+            "y": 13,
+            "width": 23,
+            "height": 5
+          },
+          {
+            "key": "! ",
+            "mode": "pixelate",
+            "x": 2,
+            "y": 0,
+            "width": 33,
+            "height": 15
           }
         ],
         "animation": null,
@@ -24821,12 +25576,13 @@
             "width": 31,
             "height": 47,
             "rotation": 16,
+            "flipX": true,
             "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#7e80da",
+            "shape": "rectangle",
+            "fill": "#000009",
             "stroke": {
-              "colour": "#9243c9",
-              "width": 7
+              "colour": "#b24366",
+              "width": 24
             }
           },
           {
@@ -24839,12 +25595,13 @@
             "width": 49,
             "height": 11,
             "rotation": 4,
+            "flipX": true,
             "kind": "text",
-            "text": "aשa\n\né 📷é",
-            "font": "monospace",
+            "text": "\naZ",
+            "font": "sans-serif",
             "bold": false,
-            "colour": "#cfe5ea",
-            "align": "start"
+            "colour": "#eb9464",
+            "align": "center"
           }
         ],
         "redactions": [],
@@ -24904,12 +25661,13 @@
             "width": 31,
             "height": 47,
             "rotation": 16,
+            "flipX": true,
             "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#7e80da",
+            "shape": "rectangle",
+            "fill": "#000009",
             "stroke": {
-              "colour": "#9243c9",
-              "width": 7
+              "colour": "#b24366",
+              "width": 24
             }
           },
           {
@@ -24922,12 +25680,13 @@
             "width": 49,
             "height": 11,
             "rotation": 4,
+            "flipX": true,
             "kind": "text",
-            "text": "aשa\n\né 📷é",
-            "font": "monospace",
+            "text": "\naZ",
+            "font": "sans-serif",
             "bold": false,
-            "colour": "#cfe5ea",
-            "align": "start"
+            "colour": "#eb9464",
+            "align": "center"
           }
         ],
         "redactions": [],
@@ -25360,8 +26119,8 @@
           "source": "s",
           "crop": null,
           "orientation": {
-            "rotate": 0,
-            "flipX": false,
+            "rotate": 180,
+            "flipX": true,
             "flipY": false
           },
           "develop": {
@@ -25376,18 +26135,44 @@
           },
           "filter": null
         },
-        "layers": [],
-        "redactions": [
+        "layers": [
           {
-            "key": "toString",
-            "mode": "solid",
-            "x": 58,
-            "y": -1,
-            "width": 32,
-            "height": 38,
-            "colour": "#fffffb"
+            "key": "k",
+            "name": "Logo 2",
+            "visible": false,
+            "opacity": 53,
+            "x": 3,
+            "y": 5,
+            "width": 46,
+            "height": 4,
+            "rotation": 9,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 1,
+              "y": 25,
+              "width": 29,
+              "height": 3
+            }
+          },
+          {
+            "key": "__proto__",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 26,
+            "x": -17,
+            "y": 57,
+            "width": 46,
+            "height": 6,
+            "rotation": 9,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           }
         ],
+        "redactions": [],
         "animation": null,
         "output": {
           "kind": "scale",
@@ -25417,8 +26202,8 @@
           "source": "s",
           "crop": null,
           "orientation": {
-            "rotate": 0,
-            "flipX": false,
+            "rotate": 180,
+            "flipX": true,
             "flipY": false
           },
           "develop": {
@@ -25433,18 +26218,44 @@
           },
           "filter": null
         },
-        "layers": [],
-        "redactions": [
+        "layers": [
           {
-            "key": "toString",
-            "mode": "solid",
-            "x": 58,
-            "y": -1,
-            "width": 32,
-            "height": 38,
-            "colour": "#fffffb"
+            "key": "k",
+            "name": "Logo 2",
+            "visible": false,
+            "opacity": 53,
+            "x": 3,
+            "y": 5,
+            "width": 46,
+            "height": 4,
+            "rotation": 9,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 1,
+              "y": 25,
+              "width": 29,
+              "height": 3
+            }
+          },
+          {
+            "key": "__proto__",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 26,
+            "x": -17,
+            "y": 57,
+            "width": 46,
+            "height": 6,
+            "rotation": 9,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           }
         ],
+        "redactions": [],
         "animation": null,
         "output": {
           "kind": "scale",
@@ -25742,75 +26553,43 @@
         "layers": [
           {
             "key": "H-2",
-            "name": "",
-            "visible": true,
-            "opacity": 4,
-            "x": 46,
-            "y": -14,
-            "width": 19,
-            "height": 2,
-            "rotation": 15,
+            "name": "Logo 2",
+            "visible": false,
+            "opacity": 75,
+            "x": 2,
+            "y": 59,
+            "width": 3,
+            "height": 5,
+            "rotation": 2304,
+            "flipX": true,
             "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#b17c7f",
+            "shape": "rectangle",
+            "fill": "#a6f389",
             "stroke": {
-              "colour": "#228454",
-              "width": 13
+              "colour": "#3b68f4",
+              "width": 2
             }
           },
           {
             "key": "%",
-            "name": "",
-            "visible": true,
-            "opacity": 99,
-            "x": 59,
-            "y": -20,
-            "width": 24,
-            "height": 21,
-            "rotation": 2417,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#bf38a3",
-            "stroke": null
-          },
-          {
-            "key": "r8qDC",
             "name": "Caption",
             "visible": true,
-            "opacity": 93,
-            "x": 38,
-            "y": 49,
+            "opacity": 36,
+            "x": -20,
+            "y": -10,
             "width": 21,
-            "height": 42,
-            "rotation": 3,
+            "height": 18,
+            "rotation": 992,
+            "flipX": false,
             "kind": "text",
-            "text": "\nש",
-            "font": "serif",
+            "text": "📷a📷中中",
+            "font": "sans-serif",
             "bold": true,
-            "colour": "#2c7440",
+            "colour": "#618465",
             "align": "start"
           }
         ],
-        "redactions": [
-          {
-            "key": "!>Ss",
-            "mode": "solid",
-            "x": -2,
-            "y": -8,
-            "width": 30,
-            "height": 28,
-            "colour": "#47bbae"
-          },
-          {
-            "key": "constructor",
-            "mode": "solid",
-            "x": 55,
-            "y": -20,
-            "width": 25,
-            "height": 6,
-            "colour": "#2ef012"
-          }
-        ],
+        "redactions": [],
         "animation": null,
         "output": {
           "kind": "scale",
@@ -25859,75 +26638,43 @@
         "layers": [
           {
             "key": "H-2",
-            "name": "",
-            "visible": true,
-            "opacity": 4,
-            "x": 46,
-            "y": -14,
-            "width": 19,
-            "height": 2,
-            "rotation": 15,
+            "name": "Logo 2",
+            "visible": false,
+            "opacity": 75,
+            "x": 2,
+            "y": 59,
+            "width": 3,
+            "height": 5,
+            "rotation": 2304,
+            "flipX": true,
             "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#b17c7f",
+            "shape": "rectangle",
+            "fill": "#a6f389",
             "stroke": {
-              "colour": "#228454",
-              "width": 13
+              "colour": "#3b68f4",
+              "width": 2
             }
           },
           {
             "key": "%",
-            "name": "",
-            "visible": true,
-            "opacity": 99,
-            "x": 59,
-            "y": -20,
-            "width": 24,
-            "height": 21,
-            "rotation": 2417,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#bf38a3",
-            "stroke": null
-          },
-          {
-            "key": "r8qDC",
             "name": "Caption",
             "visible": true,
-            "opacity": 93,
-            "x": 38,
-            "y": 49,
+            "opacity": 36,
+            "x": -20,
+            "y": -10,
             "width": 21,
-            "height": 42,
-            "rotation": 3,
+            "height": 18,
+            "rotation": 992,
+            "flipX": false,
             "kind": "text",
-            "text": "\nש",
-            "font": "serif",
+            "text": "📷a📷中中",
+            "font": "sans-serif",
             "bold": true,
-            "colour": "#2c7440",
+            "colour": "#618465",
             "align": "start"
           }
         ],
-        "redactions": [
-          {
-            "key": "!>Ss",
-            "mode": "solid",
-            "x": -2,
-            "y": -8,
-            "width": 30,
-            "height": 28,
-            "colour": "#47bbae"
-          },
-          {
-            "key": "constructor",
-            "mode": "solid",
-            "x": 55,
-            "y": -20,
-            "width": 25,
-            "height": 6,
-            "colour": "#2ef012"
-          }
-        ],
+        "redactions": [],
         "animation": null,
         "output": {
           "kind": "scale",
@@ -25981,42 +26728,6 @@
         },
         "layers": [
           {
-            "key": "<>#",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 2,
-            "x": 53,
-            "y": -17,
-            "width": 21,
-            "height": 49,
-            "rotation": 3597,
-            "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#000012",
-            "stroke": {
-              "colour": "#d8937b",
-              "width": 6
-            }
-          },
-          {
-            "key": "toString",
-            "name": "שכבה",
-            "visible": false,
-            "opacity": 25,
-            "x": 0,
-            "y": 0,
-            "width": 22,
-            "height": 23,
-            "rotation": 2,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#37dc8f",
-            "stroke": {
-              "colour": "#713479",
-              "width": 2
-            }
-          },
-          {
             "key": "__proto__",
             "name": "",
             "visible": true,
@@ -26026,23 +26737,24 @@
             "width": 42,
             "height": 50,
             "rotation": 849,
+            "flipX": true,
             "kind": "text",
-            "text": "é",
-            "font": "serif",
-            "bold": false,
-            "colour": "#000015",
+            "text": " שéa📷aé ש",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#000005",
             "align": "start"
           }
         ],
         "redactions": [
           {
-            "key": "PdA:",
+            "key": "toString",
             "mode": "solid",
-            "x": -17,
-            "y": 12,
-            "width": 47,
-            "height": 2,
-            "colour": "#d5aca2"
+            "x": 38,
+            "y": -9,
+            "width": 5,
+            "height": 42,
+            "colour": "#000010"
           },
           {
             "key": "constructor",
@@ -26103,42 +26815,6 @@
         },
         "layers": [
           {
-            "key": "<>#",
-            "name": "Logo 2",
-            "visible": true,
-            "opacity": 2,
-            "x": 53,
-            "y": -17,
-            "width": 21,
-            "height": 49,
-            "rotation": 3597,
-            "kind": "shape",
-            "shape": "rectangle",
-            "fill": "#000012",
-            "stroke": {
-              "colour": "#d8937b",
-              "width": 6
-            }
-          },
-          {
-            "key": "toString",
-            "name": "שכבה",
-            "visible": false,
-            "opacity": 25,
-            "x": 0,
-            "y": 0,
-            "width": 22,
-            "height": 23,
-            "rotation": 2,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#37dc8f",
-            "stroke": {
-              "colour": "#713479",
-              "width": 2
-            }
-          },
-          {
             "key": "__proto__",
             "name": "",
             "visible": true,
@@ -26148,23 +26824,24 @@
             "width": 42,
             "height": 50,
             "rotation": 849,
+            "flipX": true,
             "kind": "text",
-            "text": "é",
-            "font": "serif",
-            "bold": false,
-            "colour": "#000015",
+            "text": " שéa📷aé ש",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#000005",
             "align": "start"
           }
         ],
         "redactions": [
           {
-            "key": "PdA:",
+            "key": "toString",
             "mode": "solid",
-            "x": -17,
-            "y": 12,
-            "width": 47,
-            "height": 2,
-            "colour": "#d5aca2"
+            "x": 38,
+            "y": -9,
+            "width": 5,
+            "height": 42,
+            "colour": "#000010"
           },
           {
             "key": "constructor",
@@ -26205,7 +26882,12 @@
         },
         "base": {
           "source": "s",
-          "crop": null,
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 30,
+            "height": 16
+          },
           "orientation": {
             "rotate": 0,
             "flipX": false,
@@ -26234,10 +26916,64 @@
             "width": 49,
             "height": 15,
             "rotation": 1737,
+            "flipX": true,
             "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#000000",
+            "shape": "rectangle",
+            "fill": "#adae18",
             "stroke": null
+          },
+          {
+            "key": "<kC#8",
+            "name": "Caption",
+            "visible": false,
+            "opacity": 0,
+            "x": 40,
+            "y": 58,
+            "width": 6,
+            "height": 31,
+            "rotation": 988,
+            "flipX": false,
+            "kind": "text",
+            "text": "שZ中Zשש📷📷ש📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#693a17",
+            "align": "center"
+          },
+          {
+            "key": ":",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 15,
+            "x": -10,
+            "y": -14,
+            "width": 47,
+            "height": 30,
+            "rotation": 1653,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 34,
+              "y": 12,
+              "width": 5,
+              "height": 1
+            }
+          },
+          {
+            "key": "pJ",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 6,
+            "x": 2,
+            "y": 23,
+            "width": 44,
+            "height": 4,
+            "rotation": 10,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           },
           {
             "key": "^.",
@@ -26249,30 +26985,32 @@
             "width": 4,
             "height": 27,
             "rotation": 7,
+            "flipX": true,
             "kind": "shape",
             "shape": "ellipse",
-            "fill": "#1c170b",
+            "fill": "#547b35",
             "stroke": {
-              "colour": "#d1ff05",
-              "width": 1
+              "colour": "#7fdc0f",
+              "width": 3
             }
           },
           {
             "key": "cC0.a",
-            "name": "📷",
-            "visible": false,
-            "opacity": 19,
-            "x": -15,
-            "y": 54,
-            "width": 43,
-            "height": 15,
-            "rotation": 6,
+            "name": "Caption",
+            "visible": true,
+            "opacity": 97,
+            "x": 54,
+            "y": 46,
+            "width": 15,
+            "height": 1,
+            "rotation": 3597,
+            "flipX": false,
             "kind": "text",
-            "text": "é📷",
-            "font": "monospace",
+            "text": "a 📷",
+            "font": "serif",
             "bold": false,
-            "colour": "#beb345",
-            "align": "center"
+            "colour": "#000014",
+            "align": "end"
           }
         ],
         "redactions": [],
@@ -26303,7 +27041,12 @@
         },
         "base": {
           "source": "s",
-          "crop": null,
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 30,
+            "height": 16
+          },
           "orientation": {
             "rotate": 0,
             "flipX": false,
@@ -26332,10 +27075,64 @@
             "width": 49,
             "height": 15,
             "rotation": 1737,
+            "flipX": true,
             "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#000000",
+            "shape": "rectangle",
+            "fill": "#adae18",
             "stroke": null
+          },
+          {
+            "key": "<kC#8",
+            "name": "Caption",
+            "visible": false,
+            "opacity": 0,
+            "x": 40,
+            "y": 58,
+            "width": 6,
+            "height": 31,
+            "rotation": 988,
+            "flipX": false,
+            "kind": "text",
+            "text": "שZ中Zשש📷📷ש📷",
+            "font": "sans-serif",
+            "bold": true,
+            "colour": "#693a17",
+            "align": "center"
+          },
+          {
+            "key": ":",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 15,
+            "x": -10,
+            "y": -14,
+            "width": 47,
+            "height": 30,
+            "rotation": 1653,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": {
+              "x": 34,
+              "y": 12,
+              "width": 5,
+              "height": 1
+            }
+          },
+          {
+            "key": "pJ",
+            "name": "Logo 2",
+            "visible": true,
+            "opacity": 6,
+            "x": 2,
+            "y": 23,
+            "width": 44,
+            "height": 4,
+            "rotation": 10,
+            "flipX": true,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           },
           {
             "key": "^.",
@@ -26347,30 +27144,32 @@
             "width": 4,
             "height": 27,
             "rotation": 7,
+            "flipX": true,
             "kind": "shape",
             "shape": "ellipse",
-            "fill": "#1c170b",
+            "fill": "#547b35",
             "stroke": {
-              "colour": "#d1ff05",
-              "width": 1
+              "colour": "#7fdc0f",
+              "width": 3
             }
           },
           {
             "key": "cC0.a",
-            "name": "📷",
-            "visible": false,
-            "opacity": 19,
-            "x": -15,
-            "y": 54,
-            "width": 43,
-            "height": 15,
-            "rotation": 6,
+            "name": "Caption",
+            "visible": true,
+            "opacity": 97,
+            "x": 54,
+            "y": 46,
+            "width": 15,
+            "height": 1,
+            "rotation": 3597,
+            "flipX": false,
             "kind": "text",
-            "text": "é📷",
-            "font": "monospace",
+            "text": "a 📷",
+            "font": "serif",
             "bold": false,
-            "colour": "#beb345",
-            "align": "center"
+            "colour": "#000014",
+            "align": "end"
           }
         ],
         "redactions": [],
@@ -26828,14 +27627,10 @@
             "width": 47,
             "height": 45,
             "rotation": 3386,
+            "flipX": true,
             "kind": "image",
             "source": "s",
-            "crop": {
-              "x": 37,
-              "y": 15,
-              "width": 2,
-              "height": 10
-            }
+            "crop": null
           }
         ],
         "redactions": [],
@@ -26895,14 +27690,10 @@
             "width": 47,
             "height": 45,
             "rotation": 3386,
+            "flipX": true,
             "kind": "image",
             "source": "s",
-            "crop": {
-              "x": 37,
-              "y": 15,
-              "width": 2,
-              "height": 10
-            }
+            "crop": null
           }
         ],
         "redactions": [],
@@ -26965,28 +27756,30 @@
             "width": 17,
             "height": 46,
             "rotation": 5,
-            "kind": "image",
-            "source": "s",
-            "crop": null
-          },
-          {
-            "key": "m",
-            "name": "שכבה",
-            "visible": true,
-            "opacity": 1,
-            "x": 0,
-            "y": -3,
-            "width": 28,
-            "height": 44,
-            "rotation": 10,
+            "flipX": false,
             "kind": "image",
             "source": "s",
             "crop": {
-              "x": 34,
-              "y": 10,
-              "width": 5,
-              "height": 20
+              "x": 28,
+              "y": 2,
+              "width": 3,
+              "height": 2
             }
+          },
+          {
+            "key": "m",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 82,
+            "x": -12,
+            "y": 58,
+            "width": 9,
+            "height": 47,
+            "rotation": 2669,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           }
         ],
         "redactions": [],
@@ -27047,28 +27840,30 @@
             "width": 17,
             "height": 46,
             "rotation": 5,
-            "kind": "image",
-            "source": "s",
-            "crop": null
-          },
-          {
-            "key": "m",
-            "name": "שכבה",
-            "visible": true,
-            "opacity": 1,
-            "x": 0,
-            "y": -3,
-            "width": 28,
-            "height": 44,
-            "rotation": 10,
+            "flipX": false,
             "kind": "image",
             "source": "s",
             "crop": {
-              "x": 34,
-              "y": 10,
-              "width": 5,
-              "height": 20
+              "x": 28,
+              "y": 2,
+              "width": 3,
+              "height": 2
             }
+          },
+          {
+            "key": "m",
+            "name": "Caption",
+            "visible": true,
+            "opacity": 82,
+            "x": -12,
+            "y": 58,
+            "width": 9,
+            "height": 47,
+            "rotation": 2669,
+            "flipX": false,
+            "kind": "image",
+            "source": "s",
+            "crop": null
           }
         ],
         "redactions": [],
@@ -27233,43 +28028,57 @@
             "key": "`DF",
             "name": "",
             "visible": false,
-            "opacity": 30,
-            "x": -19,
-            "y": 38,
-            "width": 9,
-            "height": 5,
-            "rotation": 2446,
+            "opacity": 39,
+            "x": -5,
+            "y": 48,
+            "width": 21,
+            "height": 3,
+            "rotation": 631,
+            "flipX": false,
             "kind": "text",
-            "text": "Z\nZa📷📷Z",
-            "font": "monospace",
+            "text": "中",
+            "font": "serif",
             "bold": true,
-            "colour": "#000011",
+            "colour": "#ffffea",
             "align": "start"
           },
           {
             "key": "E2!6",
-            "name": "Logo 2",
-            "visible": false,
-            "opacity": 11,
-            "x": 26,
-            "y": 1,
-            "width": 1,
-            "height": 41,
-            "rotation": 539,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#5b491d",
-            "stroke": null
+            "name": "Caption",
+            "visible": true,
+            "opacity": 99,
+            "x": 1,
+            "y": 55,
+            "width": 41,
+            "height": 40,
+            "rotation": 3,
+            "flipX": true,
+            "kind": "text",
+            "text": " 中a",
+            "font": "sans-serif",
+            "bold": false,
+            "colour": "#4f443c",
+            "align": "start"
           }
         ],
         "redactions": [
           {
-            "key": "5",
-            "mode": "pixelate",
-            "x": -6,
-            "y": -17,
-            "width": 20,
-            "height": 13
+            "key": "constructor",
+            "mode": "solid",
+            "x": 55,
+            "y": 55,
+            "width": 1,
+            "height": 50,
+            "colour": "#ec48fc"
+          },
+          {
+            "key": "2kt.",
+            "mode": "solid",
+            "x": 55,
+            "y": 38,
+            "width": 8,
+            "height": 17,
+            "colour": "#f63593"
           }
         ],
         "animation": null,
@@ -27322,43 +28131,57 @@
             "key": "`DF",
             "name": "",
             "visible": false,
-            "opacity": 30,
-            "x": -19,
-            "y": 38,
-            "width": 9,
-            "height": 5,
-            "rotation": 2446,
+            "opacity": 39,
+            "x": -5,
+            "y": 48,
+            "width": 21,
+            "height": 3,
+            "rotation": 631,
+            "flipX": false,
             "kind": "text",
-            "text": "Z\nZa📷📷Z",
-            "font": "monospace",
+            "text": "中",
+            "font": "serif",
             "bold": true,
-            "colour": "#000011",
+            "colour": "#ffffea",
             "align": "start"
           },
           {
             "key": "E2!6",
-            "name": "Logo 2",
-            "visible": false,
-            "opacity": 11,
-            "x": 26,
-            "y": 1,
-            "width": 1,
-            "height": 41,
-            "rotation": 539,
-            "kind": "shape",
-            "shape": "ellipse",
-            "fill": "#5b491d",
-            "stroke": null
+            "name": "Caption",
+            "visible": true,
+            "opacity": 99,
+            "x": 1,
+            "y": 55,
+            "width": 41,
+            "height": 40,
+            "rotation": 3,
+            "flipX": true,
+            "kind": "text",
+            "text": " 中a",
+            "font": "sans-serif",
+            "bold": false,
+            "colour": "#4f443c",
+            "align": "start"
           }
         ],
         "redactions": [
           {
-            "key": "5",
-            "mode": "pixelate",
-            "x": -6,
-            "y": -17,
-            "width": 20,
-            "height": 13
+            "key": "constructor",
+            "mode": "solid",
+            "x": 55,
+            "y": 55,
+            "width": 1,
+            "height": 50,
+            "colour": "#ec48fc"
+          },
+          {
+            "key": "2kt.",
+            "mode": "solid",
+            "x": 55,
+            "y": 38,
+            "width": 8,
+            "height": 17,
+            "colour": "#f63593"
           }
         ],
         "animation": null,

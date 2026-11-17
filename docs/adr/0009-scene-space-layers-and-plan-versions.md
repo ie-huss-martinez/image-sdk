@@ -4,6 +4,7 @@
 - **Date:** 2026-11-17
 - **Partially supersedes:** [ADR 0003](0003-layer-plan-document-model.md): its layer geometry (layers in canvas pixels), its list of layer kinds, its layer commands and `canvas`. The rest of ADR 0003 stands
 - **Amended:** 2026-11-17: a font family and `bold` are requests the device answers, as measured, under "Text is drawn by the device's fonts"
+- **Amended:** 2026-11-17: a layer's box has `flipX`, so a layer can be mirrored, and one added to a mirrored image reads as it should, under "A box can be mirrored"
 - **Amended:** 2026-11-17, by [ADR 0014](0014-drawing-strokes-and-arrows.md): a stroke holds `runs` of points, so that a long stroke stays one stroke
 
 ## Context
@@ -58,7 +59,15 @@ Every layer has:
 | `visible` | Whether it's drawn |
 | `opacity` | A whole number from 0 to 100 |
 
-Positioned kinds (`text`, `shape`, `image`) have a **box**: `x`, `y`, `width` and `height` in whole scene pixels, and `rotation` in tenths of a degree clockwise about the box's centre, from 0 to 3599. `width` and `height` are at least 1. `x` and `y` may be negative.
+Positioned kinds (`text`, `shape`, `image`) have a **box**: `x`, `y`, `width` and `height` in whole scene pixels; `rotation` in tenths of a degree clockwise about the box's centre, from 0 to 3599; and `flipX`, whether the layer is mirrored. `width` and `height` are at least 1. `x` and `y` may be negative.
+
+**A box can be mirrored.** `flipX` mirrors the layer left to right about the box's own vertical axis, before the box is turned.
+
+- **Why a layer needs it.** The plan's flips mirror the whole scene, layers included, which is right when someone flips an image they've already annotated. But text added after a flip would read backwards, with nothing in the layer to undo it. With `flipX`, the editor adds a layer mirrored back as well as turned back, so it reads as it's meant to whatever the base's orientation ([ADR 0013](0013-layers-in-the-editor.md)). And an image layer can be mirrored for its own sake.
+- **One flip, not two.** A mirror top to bottom is `flipX` with a half turn. One field means one way to write each box.
+- **Required, like every other field.** An optional field would give two documents for one plan, absent and `false`, and `image.updateLayers`' inverse, which carries the previous value of each field it set, can't carry "absent".
+- **In format version 2,** which no release has shipped, so it costs no version.
+- **It's in the one transform.** `layerToScene` applies the mirror, and everything else is built on it: the renderer, the copy of an image layer's source that a redaction sanitises ([ADR 0010](0010-redaction.md)), and the editor's frames. The redaction proof covers mirrored image layers.
 
 - **`text`:** `text`, up to 1,000 code points; `font`, one of `sans-serif`, `serif` and `monospace`; `bold`; `colour`; and `align`, one of `start`, `center` and `end`.
   - **The text fills its box.** Lines break only at line feeds. The renderer lays the lines out at one fixed size, then scales them uniformly to the largest size that fits inside the box, and never distorts them. So the box is the layer's whole geometry: the page needs no text measurement to place handles, and the layout can't depend on the size being rendered, because the same layout is scaled for the preview and for an export.

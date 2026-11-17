@@ -27,12 +27,10 @@ export function newLayerKey(plan: ImagePlan): string {
 
 /**
  * A box for a new layer (docs/adr/0013): of the given size as it's seen,
- * in the middle of the image as it's shown, and turned so that its top is
- * up on screen whatever the plan's rotation. Layers live in the scene, which
- * the plan's rotation turns with the image; a new one is turned back.
- *
- * A mirrored plan mirrors the whole scene, and a layer has no flip of its
- * own: its top is still up, and it's seen mirrored, as the image is.
+ * in the middle of the image as it's shown, and the right way round on
+ * screen whatever the plan's rotation and flips. Layers live in the scene,
+ * which the plan turns and mirrors with the image; a new one is turned and
+ * mirrored back, so text added to a mirrored image reads as text.
  */
 export function newLayerBox(plan: ImagePlan, source: ImageSize, seen: ImageSize): ImageLayerBox {
   const crop = cropRect(plan.base.crop, source);
@@ -40,29 +38,32 @@ export function newLayerBox(plan: ImagePlan, source: ImageSize, seen: ImageSize)
   const composition = compositionSize(plan, source);
   const width = clamp(Math.round(seen.width), 1, MAX_SCENE_COORDINATE);
   const height = clamp(Math.round(seen.height), 1, MAX_SCENE_COORDINATE);
-  // The quarter turn after which the box's own "down" is down on screen.
-  const upright = (rotation: number) => {
-    const [, , c, d] = layerToOutput(
-      { x: 0, y: 0, width, height, rotation },
+  // The quarter turn and the flip after which the box's own right is right
+  // on screen, and its own down is down: one of the eight always is.
+  const asSeen = (rotation: number, flipX: boolean) => {
+    const [a, , , d] = layerToOutput(
+      { x: 0, y: 0, width, height, rotation, flipX },
       crop,
       orientation,
       composition,
     );
-    return Math.abs(c) < 0.5 && d > 0.5;
+    return a > 0.5 && d > 0.5;
   };
-  const rotation = QUARTERS.find(upright) ?? 0;
+  const flipX = !QUARTERS.some((rotation) => asSeen(rotation, false));
+  const rotation = QUARTERS.find((quarter) => asSeen(quarter, flipX)) ?? 0;
   const centre = compositionToSource(
     { x: composition.width / 2, y: composition.height / 2 },
     crop,
     orientation,
   );
   return {
-    // A box turns about its centre, so its place is its centre's.
+    // A box is flipped and turned about its centre, so its place is its centre's.
     x: Math.round(centre.x - width / 2) || 0,
     y: Math.round(centre.y - height / 2) || 0,
     width,
     height,
     rotation,
+    flipX,
   };
 }
 

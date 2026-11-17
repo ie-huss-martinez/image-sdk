@@ -3,6 +3,7 @@ import {
   DeleteIcon,
   DuplicateIcon,
   Field,
+  FlipHorizontalIcon,
   HiddenIcon,
   IconButton,
   MoveDownIcon,
@@ -272,6 +273,17 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
           disabled={!selected || selectedIndex === 0}
           focusableWhenDisabled
           onClick={() => selected && run(() => actions.shift(selected.key, -1))}
+        />
+        <IconButton
+          label={messages.t("layers.mirror")}
+          icon={<FlipHorizontalIcon />}
+          // Pressed while the layer is mirrored about its box (docs/adr/0009).
+          pressed={selected?.flipX ?? false}
+          disabled={!selected}
+          focusableWhenDisabled
+          onClick={() =>
+            selected && run(() => actions.set(selected.key, { flipX: !selected.flipX }))
+          }
         />
         <IconButton
           label={messages.t("layers.duplicate")}

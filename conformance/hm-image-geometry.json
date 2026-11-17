@@ -1759,7 +1759,8 @@
           "y": -7,
           "width": 40,
           "height": 20,
-          "rotation": 0
+          "rotation": 0,
+          "flipX": false
         }
       },
       "expected": [
@@ -1781,7 +1782,8 @@
           "y": 20,
           "width": 40,
           "height": 20,
-          "rotation": 900
+          "rotation": 900,
+          "flipX": false
         }
       },
       "expected": [
@@ -1795,6 +1797,142 @@
       "tolerance": 1e-9
     },
     {
+      "name": "mirrors a layer about its box's own vertical axis",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 12,
+          "y": -7,
+          "width": 40,
+          "height": 20,
+          "rotation": 0,
+          "flipX": true
+        }
+      },
+      "expected": [
+        -1,
+        0,
+        0,
+        1,
+        52,
+        -7
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "mirrors a layer, then turns it a quarter, exactly",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 10,
+          "y": 20,
+          "width": 40,
+          "height": 20,
+          "rotation": 900,
+          "flipX": true
+        }
+      },
+      "expected": [
+        0,
+        -1,
+        -1,
+        0,
+        40,
+        50
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "mirrors a layer, then turns it by 33.3 degrees",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 10,
+          "y": 20,
+          "width": 40,
+          "height": 20,
+          "rotation": 333,
+          "flipX": true
+        }
+      },
+      "expected": [
+        -0.8358073613682703,
+        -0.5490228179981317,
+        -0.5490228179981317,
+        0.8358073613682703,
+        52.20637540734672,
+        32.62238274627993
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "maps a mirrored layer's box to a mirrored output, where it reads as it was drawn",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": 60,
+          "y": 40,
+          "width": 80,
+          "height": 30,
+          "rotation": 0,
+          "flipX": true
+        },
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 400,
+          "height": 300
+        }
+      },
+      "expected": [
+        1,
+        0,
+        0,
+        1,
+        260,
+        40
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "maps the scene to the pixels of a mirrored layer's cropped source",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": 60,
+          "y": 40,
+          "width": 80,
+          "height": 60,
+          "rotation": 300,
+          "flipX": true
+        },
+        "crop": {
+          "x": 4,
+          "y": 3,
+          "width": 30,
+          "height": 24
+        }
+      },
+      "expected": [
+        -0.3247595264191645,
+        -0.19999999999999998,
+        -0.18749999999999997,
+        0.3464101615137755,
+        64.60095264191645,
+        10.751288694035715
+      ],
+      "tolerance": 1e-9
+    },
+    {
       "name": "turns a layer by 33.3 degrees",
       "input": {
         "operation": "layerToScene",
@@ -1803,7 +1941,8 @@
           "y": 20,
           "width": 40,
           "height": 20,
-          "rotation": 333
+          "rotation": 333,
+          "flipX": false
         }
       },
       "expected": [
@@ -1885,7 +2024,8 @@
           "y": 40,
           "width": 80,
           "height": 30,
-          "rotation": 450
+          "rotation": 450,
+          "flipX": false
         },
         "crop": {
           "x": 40,
@@ -1922,7 +2062,8 @@
           "y": 40,
           "width": 80,
           "height": 60,
-          "rotation": 300
+          "rotation": 300,
+          "flipX": false
         },
         "crop": {
           "x": 4,
@@ -6284,7 +6425,7 @@
         0.6170358751407485,
         -0.7869350219613375,
         68.21936101866031,
-        426.4845964766579
+        426.48459647665794
       ],
       "tolerance": 1e-9
     },
@@ -6371,7 +6512,7 @@
         -0.8616291604415259,
         0.8616291604415259,
         0.5075383629607038,
-        116.86431206063564,
+        116.86431206063565,
         161.5383598098748
       ],
       "tolerance": 1e-9
@@ -6437,8 +6578,8 @@
         0.013962180339145272,
         -0.013962180339145272,
         0.9999025240093042,
-        -34.95755171670803,
-        120.91983008144874
+        -34.957551716708025,
+        120.91983008144875
       ],
       "tolerance": 1e-9
     },
@@ -6474,7 +6615,7 @@
         29.841404385428085,
         11.152768759521233,
         -23.39864989678429,
-        -2316.9713500658513,
+        -2316.971350065852,
         7158.760546634531
       ],
       "tolerance": 1e-9
@@ -6733,7 +6874,7 @@
         -0.015188392769761664,
         38.60493223131574,
         0.0002120837519870179,
-        4514.122135318541,
+        4514.122135318542,
         6.531000785570251
       ],
       "tolerance": 1e-9
@@ -6762,7 +6903,7 @@
         -0.2986925255458401,
         -0.8118183428138699,
         334.3750193902216,
-        304.803196187925
+        304.80319618792504
       ],
       "tolerance": 1e-9
     },
@@ -6874,7 +7015,7 @@
         -0.1243146549890759,
         0.10513294661328866,
         325.5239709034761,
-        -35.84098428292605
+        -35.84098428292606
       ],
       "tolerance": 1e-9
     },
@@ -6957,8 +7098,8 @@
         -0.7225428325507678,
         0.018506916892491218,
         51.744955617481494,
-        44.09398217991856,
-        -6278.249569274399
+        44.09398217991855,
+        -6278.2495692744
       ],
       "tolerance": 1e-9
     },

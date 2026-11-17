@@ -74,9 +74,9 @@ export function sceneToOutput(
 
 /**
  * The transform from a layer's own box to the scene: the box's top-left
- * corner is the origin, one unit is one scene pixel, and the box is turned
- * about its centre by its rotation, clockwise, in tenths of a degree (ADR
- * 0009).
+ * corner is the origin, one unit is one scene pixel, and the box is mirrored
+ * left to right when it's flipped, then turned about its centre by its
+ * rotation, clockwise, in tenths of a degree (ADR 0009).
  *
  * @public
  */
@@ -86,17 +86,21 @@ export function layerToScene(box: ImageLayerBox): ImageMatrix {
   const quarter = box.rotation % 900 === 0 ? (box.rotation / 900) % 4 : -1;
   const cos = quarter >= 0 ? ([1, 0, -1, 0][quarter] as number) : Math.cos(radians);
   const sin = quarter >= 0 ? ([0, 1, 0, -1][quarter] as number) : Math.sin(radians);
-  const centreX = box.x + box.width / 2;
-  const centreY = box.y + box.height / 2;
-  // To the box's centre, turned, then to its place in the scene.
+  // Never a negative zero, which JSON can't carry.
+  const negative = (value: number) => (value === 0 ? 0 : -value);
+  // A flipped box's own x axis runs the other way, before the turn.
+  const a = box.flipX ? negative(cos) : cos;
+  const b = box.flipX ? negative(sin) : sin;
+  const c = negative(sin);
+  const d = cos;
+  // The box's centre stays where it is: flipped and turned about it.
   return [
-    cos,
-    sin,
-    // Never a negative zero, which JSON can't carry.
-    sin === 0 ? 0 : -sin,
-    cos,
-    centreX - (cos * box.width) / 2 + (sin * box.height) / 2,
-    centreY - (sin * box.width) / 2 - (cos * box.height) / 2,
+    a,
+    b,
+    c,
+    d,
+    box.x + box.width / 2 - (a * box.width + c * box.height) / 2,
+    box.y + box.height / 2 - (b * box.width + d * box.height) / 2,
   ];
 }
 
