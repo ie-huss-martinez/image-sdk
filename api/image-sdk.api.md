@@ -12,6 +12,15 @@ import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
 
 // @public
+export function applyMatrix(matrix: ImageMatrix, point: {
+    readonly x: number;
+    readonly y: number;
+}): {
+    readonly x: number;
+    readonly y: number;
+};
+
+// @public
 export const ASPECT_PRESETS: readonly ImageAspect[];
 
 // @public
@@ -103,6 +112,15 @@ export function fitRedactionRegion(rect: ImageRect): ImageRect;
 
 // @public
 export function fittedView(width: number, height: number, pixelRatio?: number): ImageView;
+
+// @public
+export function fitTextLines(lines: readonly ImageTextLine[], lineHeight: number, ascent: number, box: ImageSize, align: "start" | "center" | "end", rightToLeft: boolean): {
+    readonly scale: number;
+    readonly lines: readonly {
+        readonly x: number;
+        readonly baseline: number;
+    }[];
+} | null;
 
 // @public
 export const FULL_SIZE: ImageOutput;
@@ -353,6 +371,16 @@ export type ImageLimitName = keyof ImageLimitDefinitions;
 
 // @public
 export const imageLimits: Limits<ImageLimitDefinitions>;
+
+// @public
+export type ImageMatrix = readonly [
+a: number,
+b: number,
+c: number,
+d: number,
+e: number,
+f: number
+];
 
 // @public
 export type ImageMessageCatalogue = typeof imageMessages;
@@ -743,6 +771,11 @@ export interface ImageTextLayer extends ImageLayerCommon, ImageLayerBox {
 }
 
 // @public
+export interface ImageTextLine {
+    readonly width: number;
+}
+
+// @public
 export interface ImageThumbnail {
     // (undocumented)
     close(): void;
@@ -787,9 +820,15 @@ export interface InsertRedactionsCommand {
 }
 
 // @public
+export function invertMatrix(matrix: ImageMatrix): ImageMatrix;
+
+// @public
 export function isImageError<Code extends ImageErrorCode = ImageErrorCode>(value: unknown, code?: Code): value is ImageError & {
     readonly code: Code;
 };
+
+// @public
+export function isRightToLeft(text: string): boolean;
 
 // @public
 export const LAYER_ALIGNMENTS: readonly ["start", "center", "end"];
@@ -802,6 +841,12 @@ export const LAYER_KINDS: readonly ["text", "shape", "image"];
 
 // @public
 export const LAYER_SHAPES: readonly ["rectangle", "ellipse"];
+
+// @public
+export function layerToOutput(box: ImageLayerBox, crop: ImageCrop, orientation: ImageOrientation_2, output: ImageSize): ImageMatrix;
+
+// @public
+export function layerToScene(box: ImageLayerBox): ImageMatrix;
 
 // @public
 export const MAX_KEY_LENGTH = 64;
@@ -944,6 +989,12 @@ export interface RestoreRedactionsCommand {
 
 // @public
 export function sceneRectToComposition(rect: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2): ImageRect;
+
+// @public
+export function sceneToLayerSource(box: ImageLayerBox, crop: ImageCrop): ImageMatrix;
+
+// @public
+export function sceneToOutput(crop: ImageCrop, orientation: ImageOrientation_2, output: ImageSize): ImageMatrix;
 
 // @public
 export interface SetCropCommand {

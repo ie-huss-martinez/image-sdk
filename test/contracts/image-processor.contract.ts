@@ -254,11 +254,7 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
       const { engine, processor, plan } = await open(harness, { width: 4, height: 4 });
       // An export that left a part out would show what the plan doesn't (ADR 0009).
       const animated = { ...plan, animation: { loop: 0, frames: [] } } as unknown as ImagePlan;
-      const layered = { ...plan, layers: [{ key: "t", kind: "text" }] } as unknown as ImagePlan;
-      for (const [unsupported, part] of [
-        [animated, "animation"],
-        [layered, "layers"],
-      ] as const) {
+      for (const [unsupported, part] of [[animated, "animation"]] as const) {
         const error = await rejection(
           processor.export({ plan: unsupported, format: { type: "png" } }),
         );
@@ -267,6 +263,145 @@ export function describeImageProcessorContract(name: string, harness: ImageProce
       }
       await processor.destroy();
       await engine.destroy();
+    });
+
+    describe("layers (ADR 0009)", () => {
+      const box = (x: number, y: number, width: number, height: number) => ({
+        name: "",
+        visible: true,
+        opacity: 100,
+        x,
+        y,
+        width,
+        height,
+        rotation: 0,
+      });
+      const rectangle = (key: string, fill: string, ...at: [number, number, number, number]) =>
+        ({ ...box(...at), key, kind: "shape", shape: "rectangle", fill, stroke: null }) as const;
+
+      it("draws a rectangle on exactly its box's pixels, over the base", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 12, height: 8 });
+        const layered: ImagePlan = {
+          ...plan,
+          layers: [rectangle("r", "#10a0f0", 3, 2, 4, 3)],
+        };
+        const output = await harness.inspect(
+          await processor.export({ plan: layered, format: { type: "png" } }),
+        );
+        for (let y = 0; y < 8; y += 1) {
+          for (let x = 0; x < 12; x += 1) {
+            const inside = x >= 3 && x < 7 && y >= 2 && y < 5;
+            expect(output.pixel(x, y), `${x},${y}`).toEqual(
+              inside ? [0x10, 0xa0, 0xf0, 255] : harness.storedColour(x, y),
+            );
+          }
+        }
+        await processor.destroy();
+        await engine.destroy();
+      });
+
+      it("draws layers bottom to top, leaves out a hidden one, and redactions over them all", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 10, height: 8 });
+        const layered: ImagePlan = {
+          ...plan,
+          layers: [
+            rectangle("under", "#ff0000", 1, 1, 5, 5),
+            rectangle("over", "#0000ff", 3, 3, 5, 4),
+            { ...rectangle("hidden", "#00ff00", 0, 0, 10, 8), visible: false },
+          ],
+          redactions: [
+            { key: "r", mode: "solid", x: 4, y: 4, width: 2, height: 2, colour: "#000000" },
+          ],
+        };
+        const output = await harness.inspect(
+          await processor.export({ plan: layered, format: { type: "png" } }),
+        );
+        expect(output.pixel(1, 1)).toEqual([255, 0, 0, 255]);
+        expect(output.pixel(3, 3)).toEqual([0, 0, 255, 255]);
+        expect(output.pixel(7, 6)).toEqual([0, 0, 255, 255]);
+        expect(output.pixel(4, 4)).toEqual([0, 0, 0, 255]);
+        expect(output.pixel(5, 5)).toEqual([0, 0, 0, 255]);
+        expect(output.pixel(0, 0)).toEqual(harness.storedColour(0, 0));
+        expect(output.pixel(9, 7)).toEqual(harness.storedColour(9, 7));
+        await processor.destroy();
+        await engine.destroy();
+      });
+
+      it("keeps a layer on the pixels it was placed on through every crop, turn and flip", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 10, height: 8 });
+        const at = { x: 4, y: 3, width: 3, height: 2 };
+        const crop = { x: 2, y: 1, width: 7, height: 6 };
+        for (const rotate of [0, 90, 180, 270] as const) {
+          for (const flipX of [false, true]) {
+            const edited: ImagePlan = {
+              ...plan,
+              base: { ...plan.base, crop, orientation: { rotate, flipX, flipY: false } },
+              layers: [rectangle("r", "#ff00ff", at.x, at.y, at.width, at.height)],
+            };
+            const output = await harness.inspect(
+              await processor.export({ plan: edited, format: { type: "png" } }),
+            );
+            for (let y = 0; y < output.height; y += 1) {
+              for (let x = 0; x < output.width; x += 1) {
+                const point = compositionToSource(
+                  { x: x + 0.5, y: y + 0.5 },
+                  crop,
+                  edited.base.orientation,
+                );
+                const sx = Math.floor(point.x);
+                const sy = Math.floor(point.y);
+                const inside =
+                  sx >= at.x && sx < at.x + at.width && sy >= at.y && sy < at.y + at.height;
+                expect(output.pixel(x, y), `${rotate} ${flipX} ${x},${y}`).toEqual(
+                  inside ? [255, 0, 255, 255] : harness.storedColour(sx, sy),
+                );
+              }
+            }
+          }
+        }
+        await processor.destroy();
+        await engine.destroy();
+      });
+
+      it("draws an image layer from its own source, pixel for pixel at its own size", async () => {
+        const { engine, processor, plan } = await open(harness, { width: 12, height: 8 });
+        // A second source, of which the layer draws a 3 × 2 part at its own size.
+        const file = await harness.file({ width: 6, height: 5 });
+        await engine.register("t", file, await engine.probe(file));
+        const layered: ImagePlan = {
+          ...plan,
+          layers: [
+            {
+              ...box(5, 3, 3, 2),
+              key: "i",
+              kind: "image",
+              source: "t",
+              crop: { x: 2, y: 1, width: 3, height: 2 },
+            },
+          ],
+        };
+        const output = await harness.inspect(
+          await processor.export({ plan: layered, format: { type: "png" } }),
+        );
+        for (let y = 0; y < 8; y += 1) {
+          for (let x = 0; x < 12; x += 1) {
+            const inside = x >= 5 && x < 8 && y >= 3 && y < 5;
+            // Every file the harness makes has the same pixels, by position.
+            expect(output.pixel(x, y), `${x},${y}`).toEqual(
+              inside ? harness.storedColour(x - 5 + 2, y - 3 + 1) : harness.storedColour(x, y),
+            );
+          }
+        }
+        // A layer of a source that isn't registered is an error, never a blank.
+        await expect(
+          processor.export({
+            plan: { ...layered, layers: [{ ...layered.layers[0], source: "missing" } as never] },
+            format: { type: "png" },
+          }),
+        ).rejects.toThrow(TypeError);
+        await processor.destroy();
+        await engine.destroy();
+      });
     });
 
     describe("redactions (ADR 0010)", () => {

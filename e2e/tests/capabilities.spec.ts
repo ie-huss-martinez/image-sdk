@@ -8,7 +8,10 @@ import {
   DECODE_CASES,
   decodeCell,
   FEATURES,
+  FONT_PATTERNS,
   featureCells,
+  fontFor,
+  fontRow,
   GIF_CASES,
   gifCell,
   IN_PINNED_IMAGE,
@@ -129,3 +132,11 @@ for (const gifCase of GIF_CASES) {
     check(info, browserName, browser.version(), gifCase.name, gifCell(outcome));
   });
 }
+
+test("fonts the image resolves the generic names to", async ({ browserName, browser }, info) => {
+  // fontconfig's answer is the image's, the same for every engine in it: the
+  // text rows above depend on it, so a change here explains a change there.
+  for (const [name, pattern] of FONT_PATTERNS) {
+    check(info, browserName, browser.version(), fontRow(name), fontFor(pattern));
+  }
+});

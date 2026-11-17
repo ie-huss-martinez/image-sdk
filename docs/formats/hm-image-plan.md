@@ -195,8 +195,15 @@ The TypeScript tests also check that the schemas agree with the readers. Every d
 | `redactionBlocksInOutput` | A pixelated region's blocks in the output, which tile exactly those pixels |
 | `sceneRectToComposition`, `compositionRectToScene` | A rectangle of the scene as the composition shows it, without clipping, and back: where an editor places a region's frame, and what a rectangle dragged on screen covers |
 | `fitRedactionRegion` | A rectangle as a region: whole pixels, rounded outward, at least 1 × 1, within 65,536 pixels of the origin |
+| `layerToScene` | The transform from a layer's own box to the scene: its top-left corner the origin, turned about its centre by its rotation |
+| `sceneToOutput`, `layerToOutput` | The transform from the scene, or from a layer's box, to an output of a given size, through the crop, the rotation and the flips |
+| `sceneToLayerSource` | The transform from the scene to the pixels of an image layer's source, which a renderer uses to replace what a redaction covers |
+| `fitTextLines` | Where a text layer's lines go: the scale that fits the block in the box, and each line's left edge and baseline |
+| `isRightToLeft` | Whether text reads right to left: whether its first letter with a direction is from a right-to-left script |
 
-The results compare exactly, with no tolerance. They need only IEEE addition, multiplication and division, which give the same doubles in every language, and rounding.
+A transform is six numbers, `[a, b, c, d, e, f]`, as a canvas takes them: `x' = a·x + c·y + e` and `y' = b·x + d·y + f`.
+
+The results compare exactly, with no tolerance, except those of `layerToScene`, `sceneToOutput`, `layerToOutput`, `sceneToLayerSource` and `fitTextLines`, whose cases state a tolerance of 10⁻⁹: they're computed with sines, cosines and divisions, which differ between languages in their last bits (ADR 0045, section 3). A quarter turn is exact: its sine and cosine are 0, 1 and −1, never the nearest double to them. The others need only IEEE addition, multiplication and division, which give the same doubles in every language, and rounding.
 
 **A region is rounded outward, and its blocks to the nearest pixel** ([ADR 0010](../adr/0010-redaction.md)). `redactionRectInOutput` takes `size`, the size being rendered, which needn't keep the composition's proportions: each axis has its own scale, `size.width / composition.width` and `size.height / composition.height`. The region's two edges on each axis go to the output with `floor` for the lower and `ceil` for the upper, so every output pixel the region touches is covered, then are clipped to the output. `redactionBlocksInOutput` maps every block boundary the same way, rounds the ones between blocks with `Math.round`, keeps them in order, and leaves out a block with no pixel. A port that rounds a region's edge inward shows a sliver of what's redacted, so these cases matter more than most.
 

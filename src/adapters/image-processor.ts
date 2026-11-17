@@ -1,5 +1,6 @@
 import { asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
 import { imageLimits, OUTPUT_LIMITS } from "../core/errors/image-limits.js";
+import type { ImagePlan } from "../core/model/plan.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageExportJob, ImageProcessor } from "../core/ports/image-processor.js";
 import type { ImageExportOptions } from "../core/ports/options.js";
@@ -48,8 +49,11 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
         }
       }
       internals.check();
-      if (!internals.has(plan.base.source)) {
-        throw new TypeError(`There's no source with the id "${plan.base.source}".`);
+      // The base's source, and every image layer's: a plan that names one
+      // the engine doesn't hold is the caller's mistake, found before the worker.
+      const missing = [plan.base.source, ...layerSources(plan)].find((id) => !internals.has(id));
+      if (missing !== undefined) {
+        throw new TypeError(`There's no source with the id "${missing}".`);
       }
       const signal = options?.signal;
       throwIfAborted(signal);
@@ -79,4 +83,11 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
       destroyed = true;
     },
   };
+}
+
+/** The ids of the sources a plan's image layers draw. */
+export function layerSources(plan: ImagePlan): string[] {
+  return Array.isArray(plan.layers)
+    ? plan.layers.flatMap((layer) => (layer.kind === "image" ? [layer.source] : []))
+    : [];
 }

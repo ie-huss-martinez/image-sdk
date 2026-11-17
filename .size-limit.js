@@ -14,13 +14,13 @@ export default [
     name: "Server-safe core (.), with the shared code it loads",
     // The core never loads the React editor's chunks, nor the interface's
     // text, which the React entry holds (docs/adr/0012). Measured at
-    // 19.2 kB with the plan's format version 2: the keyed-list reducer; the
-    // layer model, its checks and its commands; redaction's commands and
-    // geometry; the migration; the session's layer sources, with
-    // `insertImage`; and the text of errors and warnings.
+    // 20.3 kB with the plan's format version 2: the keyed-list reducer; the
+    // layer model, its checks, commands and geometry, with text fitting;
+    // redaction's commands and geometry; the migration; the session's
+    // layer sources, with `insertImage`; and the text of errors and warnings.
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
-    limit: "20 kB",
+    limit: "21 kB",
   },
   {
     name: "React entry (./react), with the shared code it loads",
@@ -44,11 +44,13 @@ export default [
     // The render worker, inlined as a minified string and loaded on the first
     // call (docs/adr/0002): the probes, the decoder and its orientation
     // calibration, the renderer, the encoders' metadata rewrite, and develop
-    // and filters (docs/adr/0006). Measured at 18.5 kB with develop and
-    // redaction's two passes (docs/adr/0010); the layers will join it.
+    // and filters (docs/adr/0006). Measured at 20.3 kB with develop,
+    // redaction's two passes (docs/adr/0010) and the layer renderer, with
+    // image layers sanitised under a redaction (docs/adr/0009, which
+    // expects about 28 kB once the GIF decoder has joined it).
     name: "Render worker, inlined (lazy)",
     path: "dist/lazy/inline-worker-*.js",
     brotli: true,
-    limit: "20 kB",
+    limit: "21 kB",
   },
 ];

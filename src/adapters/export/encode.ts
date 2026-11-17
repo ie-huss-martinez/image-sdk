@@ -20,9 +20,10 @@ export async function encodePlan(
   plan: ImagePlan,
   format: ImageExportFormat,
   signal?: AbortSignal,
+  sources?: (id: string) => ImageBitmap | undefined,
 ): Promise<Blob> {
   const type = MIME_TYPES[format.type];
-  const canvas = await renderPlan(source, plan, format.type === "jpeg", signal);
+  const canvas = await renderPlan(source, plan, format.type === "jpeg", signal, sources);
   const encoded = await canvas.convertToBlob({
     type,
     ...(format.type === "png" ? {} : { quality: format.quality ?? 0.92 }),

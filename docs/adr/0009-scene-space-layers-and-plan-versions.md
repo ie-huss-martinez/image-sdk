@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Partially supersedes:** [ADR 0003](0003-layer-plan-document-model.md): its layer geometry (layers in canvas pixels), its list of layer kinds, its layer commands and `canvas`. The rest of ADR 0003 stands
+- **Amended:** 2026-11-17: a font family and `bold` are requests the device answers, as measured, under "Text is drawn by the device's fonts"
 
 ## Context
 
@@ -128,7 +129,13 @@ The three new fields are required, so `ImagePlan` breaks for a host that builds 
 
 - **One list of operations.** `planToOperations` in the core turns a plan into the operations the worker draws, for the preview and for every export ([ADR 0003](0003-layer-plan-document-model.md)). It's pure, so the vectors cover it.
 - **Tests compare pixels.** On all three engines, for each layer kind and each orientation, a preview at one screen pixel per output pixel must equal the PNG export, pixel for pixel.
-- **Text is drawn by the device's fonts.** The three families are generic, so the SDK ships no font and fetches none. The same plan can look different on another device, and even between engines on one: measured in the pinned image, `mmmm` at 40 pixels is 133 pixels wide in Chromium and 131 in Firefox and WebKit. The preview and the export of one session always agree, because the same worker draws both. The vectors assert operations, never pixels.
+- **Text is drawn by the device's fonts.** The three families are generic, so the SDK ships no font and fetches none. The same plan can look different on another device, and even between engines on one. The preview and the export of one session always agree, because the same worker draws both from the same layout. The vectors assert operations, never pixels.
+  - **A family is a request, not a font.** Two families may be the same font on a device. Measured in the pinned image, in a worker: `serif` and `sans-serif` are two fonts in Chromium, and one font in Firefox and in WebKit.
+  - **`bold` is a request too.** The renderer asks the browser for the family's bold, which is a real bold face where the device has one, and the best result there. Where it doesn't, the browser may synthesise one, or change nothing. Measured in the same image: Chromium draws a real bold for `sans-serif` and `serif`, and for `monospace` exactly what it draws without `bold`; Firefox and WebKit synthesise a bold for all three.
+  - **The renderer doesn't thicken text itself.** A bold made by stroking the regular face would look the same everywhere, and worse than a real bold face everywhere that has one.
+  - **The capability matrix records it,** with the font file the image resolves each generic name to, so a change to the image's fonts shows as the reason the rows changed.
+  - **Tests hold for any font.** None compares text with stored pixels or across engines, except the Chromium screenshots (sdk-core ADR 0048). They check that the preview equals the export, pixel for pixel, and properties: the ink is inside the box and as large as fits; alignment orders it by the text's direction; lines are evenly spaced; it turns with its box and stays on its pixels through a crop and a turn. Bold is tested as drawing, fitting and agreeing with the preview, never as differing from regular.
+  - **A host can't supply a font in 0.4.0.** When it can, it will pass the font's bytes, never an address: the worker registers them with `FontFace` from a buffer, which makes no request, and the plan names the font by a key. That's a later format version, with its own record.
 - **Text in a worker's canvas works in all three engines.** Measured in the pinned image, on Chromium 159, Firefox 159 and WebKit 27.2: `fillText`, `strokeText` and `measureText` on a 2D `OffscreenCanvas` draw Latin and Hebrew text and colour emoji, and a layout drawn at 160 pixels through a half-scale transform gives the same pixels as one drawn at 80. The capability matrix gains these rows before the text renderer relies on them ([ADR 0001](0001-image-engines.md)).
 
 ### Hostile text

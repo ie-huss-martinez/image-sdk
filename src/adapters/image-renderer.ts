@@ -11,6 +11,7 @@ import {
   type ImageView,
 } from "../core/ports/image-renderer.js";
 import { engineInternals } from "./image-engine.js";
+import { layerSources } from "./image-processor.js";
 
 /** What tests reach of a renderer from {@link createImageRenderer}. */
 export interface RendererInternals {
@@ -186,10 +187,9 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
         return Promise.reject(error);
       }
       if (!attached) return Promise.reject(new TypeError("Attach a canvas before rendering."));
-      if (!internals.has(plan.base.source)) {
-        return Promise.reject(
-          new TypeError(`There's no source with the id "${plan.base.source}".`),
-        );
+      const missing = [plan.base.source, ...layerSources(plan)].find((id) => !internals.has(id));
+      if (missing !== undefined) {
+        return Promise.reject(new TypeError(`There's no source with the id "${missing}".`));
       }
       const policy = options?.filePolicy ?? imageLimits.resolve();
       try {

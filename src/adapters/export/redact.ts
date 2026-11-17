@@ -1,5 +1,12 @@
 import { cropRect } from "../../core/model/geometry.js";
-import type { ImagePlan, ImageRedaction } from "../../core/model/plan.js";
+import {
+  applyMatrix,
+  type ImageMatrix,
+  invertMatrix,
+  layerToScene,
+  sceneToLayerSource,
+} from "../../core/model/layer-geometry.js";
+import type { ImageImageLayer, ImagePlan, ImageRedaction } from "../../core/model/plan.js";
 import {
   type ImageRect,
   redactionBlocksInOutput,
@@ -58,11 +65,187 @@ interface Sanitised {
  */
 const copies = new WeakMap<ImageBitmap, Sanitised>();
 
-/** Forgets a source's sanitised copy, when the source is released. */
+/**
+ * The sanitised copies of a source as image layers draw it, by layer key:
+ * each layer places the source differently, so each has its own.
+ */
+const layerCopies = new WeakMap<ImageBitmap, Map<string, Sanitised>>();
+
+/** Forgets a source's sanitised copies, when the source is released. */
 export function forgetSanitised(source: ImageBitmap): void {
   const copy = copies.get(source);
   if (copy) copy.canvas.width = 0;
   copies.delete(source);
+  for (const layerCopy of layerCopies.get(source)?.values() ?? []) layerCopy.canvas.width = 0;
+  layerCopies.delete(source);
+}
+
+/** A rectangle that holds any box a plan can place: for rounding without clipping. */
+const EVERYWHERE: ImageRect = { x: -1e9, y: -1e9, width: 2e9, height: 2e9 };
+
+/** The corners of a rectangle under a transform. */
+function corners(matrix: ImageMatrix, rect: ImageRect) {
+  return [
+    [rect.x, rect.y],
+    [rect.x + rect.width, rect.y],
+    [rect.x + rect.width, rect.y + rect.height],
+    [rect.x, rect.y + rect.height],
+  ].map(([x, y]) => applyMatrix(matrix, { x: x as number, y: y as number }));
+}
+
+/** The whole-pixel rectangle around some points, inside `within`, or `null`. */
+function around(points: readonly { x: number; y: number }[], within: ImageRect): ImageRect | null {
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const x = Math.floor(Math.min(...xs));
+  const y = Math.floor(Math.min(...ys));
+  return intersect(
+    { x, y, width: Math.ceil(Math.max(...xs)) - x, height: Math.ceil(Math.max(...ys)) - y },
+    within,
+  );
+}
+
+/**
+ * The average of the copy's pixels whose centres a region covers, the
+ * region being a rectangle of the scene: one colour for the whole of it,
+ * coarser than a block, since an image layer's pixels don't share the
+ * scene's grid.
+ */
+async function averageUnder(
+  context: Context,
+  toSource: ImageMatrix,
+  region: ImageRect,
+  within: ImageRect,
+  signal: AbortSignal | undefined,
+): Promise<number[]> {
+  const box = around(corners(toSource, region), within);
+  if (!box) return [0, 0, 0, 0];
+  const toScene = invertMatrix(toSource);
+  const rows = Math.max(1, Math.floor(BAND_BYTES / (box.width * 4)));
+  const sums = [0, 0, 0, 0];
+  let count = 0;
+  for (let top = 0; top < box.height; top += rows) {
+    await checkpoint(signal);
+    const height = Math.min(rows, box.height - top);
+    const { data } = context.getImageData(box.x, box.y + top, box.width, height, {
+      colorSpace: "srgb",
+    });
+    for (let row = 0; row < height; row += 1) {
+      for (let column = 0; column < box.width; column += 1) {
+        const at = applyMatrix(toScene, {
+          x: box.x + column + 0.5,
+          y: box.y + top + row + 0.5,
+        });
+        if (
+          at.x < region.x ||
+          at.x >= region.x + region.width ||
+          at.y < region.y ||
+          at.y >= region.y + region.height
+        ) {
+          continue;
+        }
+        const i = (row * box.width + column) * 4;
+        const a = data[i + 3] as number;
+        sums[0] = (sums[0] as number) + (data[i] as number) * a;
+        sums[1] = (sums[1] as number) + (data[i + 1] as number) * a;
+        sums[2] = (sums[2] as number) + (data[i + 2] as number) * a;
+        sums[3] = (sums[3] as number) + a;
+        count += 1;
+      }
+    }
+  }
+  const [red = 0, green = 0, blue = 0, alpha = 0] = sums;
+  return alpha > 0 && count > 0
+    ? [
+        Math.round(red / alpha),
+        Math.round(green / alpha),
+        Math.round(blue / alpha),
+        Math.round(alpha / count),
+      ]
+    : [0, 0, 0, 0];
+}
+
+/**
+ * The source an image layer draws from: the source itself when no redaction
+ * reaches the layer, otherwise a copy in which the pixels a redaction covers
+ * are already replaced, at the source's own resolution (docs/adr/0010).
+ *
+ * A redaction is a rectangle of the scene, so in the layer's source it's a
+ * quadrilateral: it's filled through the transform from the scene to the
+ * source. Every source pixel wholly inside it is replaced. A pixel on its
+ * edge is partly inside, and partly visible outside the region by the
+ * layer's own geometry; the final pass covers the part inside.
+ *
+ * - A solid redaction's pixels take its colour.
+ * - A pixelated redaction's take the average of the pixels it covers.
+ *
+ * If the copy can't be made, this throws, and nothing is drawn.
+ */
+export async function sanitisedLayerSource(
+  source: ImageBitmap,
+  layer: ImageImageLayer,
+  plan: ImagePlan,
+  signal?: AbortSignal,
+): Promise<ImageBitmap | OffscreenCanvas> {
+  const whole: ImageRect = { x: 0, y: 0, width: source.width, height: source.height };
+  const crop = cropRect(layer.crop, source);
+  const toSource = sceneToLayerSource(layer, crop);
+  // The layer's box in the scene, as the rectangle around its turned corners.
+  const box = around(
+    corners(layerToScene(layer), { x: 0, y: 0, width: layer.width, height: layer.height }),
+    EVERYWHERE,
+  );
+  const covering = plan.redactions.filter(
+    (redaction) => box !== null && intersect(redaction, box) !== null,
+  );
+  const cached = layerCopies.get(source);
+  if (covering.length === 0) {
+    cached?.delete(layer.key);
+    return source;
+  }
+  const { x, y, width, height, rotation } = layer;
+  const key = JSON.stringify([covering, x, y, width, height, rotation, crop]);
+  const existing = cached?.get(layer.key);
+  if (existing?.key === key) return existing.canvas;
+
+  const canvas = new OffscreenCanvas(source.width, source.height);
+  const context = canvas.getContext("2d", {
+    colorSpace: "srgb",
+    willReadFrequently: pixelates(covering),
+  });
+  if (!context) throw new Error("The worker has no 2D canvas.");
+  context.imageSmoothingEnabled = false;
+  context.drawImage(source, 0, 0);
+  for (const redaction of covering) {
+    // Opaque, either way: what replaces a pixel must not let it show through.
+    const colour =
+      redaction.mode === "solid"
+        ? redaction.colour
+        : await averageUnder(context, toSource, redaction, whole, signal).then(
+            ([red, green, blue]) => `rgb(${red} ${green} ${blue})`,
+          );
+    context.save();
+    // The region, drawn in the scene's own pixels, lands on the source's.
+    context.setTransform(...toSource);
+    context.fillStyle = colour;
+    context.fillRect(redaction.x, redaction.y, redaction.width, redaction.height);
+    context.restore();
+  }
+  if (signal?.aborted) {
+    canvas.width = 0;
+    throw signal.reason;
+  }
+  const byLayer = cached ?? new Map<string, Sanitised>();
+  byLayer.set(layer.key, { key, canvas });
+  layerCopies.set(source, byLayer);
+  return canvas;
+}
+
+/** Drops the copies of layers a plan no longer has, so they aren't kept for good. */
+export function pruneLayerCopies(source: ImageBitmap, keys: ReadonlySet<string>): void {
+  const byLayer = layerCopies.get(source);
+  if (!byLayer) return;
+  for (const key of [...byLayer.keys()]) if (!keys.has(key)) byLayer.delete(key);
 }
 
 /**

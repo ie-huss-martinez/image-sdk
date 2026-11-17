@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {
   fixture,
@@ -176,6 +177,10 @@ export const FEATURES = [
   "Emoji with fillText",
   "Right-to-left text with fillText",
   "Text at twice the size through a half-scale transform",
+  "serif against sans-serif",
+  "bold in sans-serif",
+  "bold in serif",
+  "bold in monospace",
 ] as const;
 
 /** The longest side the page's search can report (examples/vite/src/protocol.ts). */
@@ -222,7 +227,40 @@ export function featureCells(features: Features): Record<(typeof FEATURES)[numbe
       differs: "different pixels",
       nothing: "doesn't draw",
     }[features.text.scaled],
+    "serif against sans-serif": features.text.serifDiffers ? "another font" : "the same font",
+    "bold in sans-serif": features.text.bold["sans-serif"] ? "bolder" : "no change",
+    "bold in serif": features.text.bold.serif ? "bolder" : "no change",
+    "bold in monospace": features.text.bold.monospace ? "bolder" : "no change",
   };
+}
+
+/**
+ * The fonts the image resolves each generic name to: the rows of the fonts
+ * table, and the fontconfig pattern each asks for.
+ */
+export const FONT_PATTERNS = [
+  ["sans-serif", "sans-serif"],
+  ["sans-serif, bold", "sans-serif:bold"],
+  ["serif", "serif"],
+  ["serif, bold", "serif:bold"],
+  ["monospace", "monospace"],
+  ["monospace, bold", "monospace:bold"],
+] as const;
+
+/** A font's row in the fonts table. */
+export const fontRow = (name: string) => `Font for ${name}`;
+
+/**
+ * What fontconfig resolves a pattern to, as `fc-match` prints it: the file,
+ * the family and the style. `not known` where there's no fontconfig, as
+ * outside the image.
+ */
+export function fontFor(pattern: string): string {
+  try {
+    return execFileSync("fc-match", [pattern], { encoding: "utf8" }).trim().replaceAll('"', "");
+  } catch {
+    return "not known";
+  }
 }
 
 /** The rows of the GIF composition table: a file, and the frame read. */
@@ -306,7 +344,7 @@ export function readTable(): Map<string, Partial<Record<Browser, string>>> {
       .map((cell) => cell.trim());
     if (
       cells.length !== 4 ||
-      ["File", "Feature", "File and frame"].includes(cells[0] ?? "") ||
+      ["File", "Feature", "File and frame", "Generic name"].includes(cells[0] ?? "") ||
       cells[0]?.startsWith("---")
     ) {
       continue;

@@ -1,6 +1,7 @@
 import { createWindowReader, type ExposeWorkerOptions, exposeWorker } from "@hussmartinez/sdk-core";
 import { ImageError } from "../../core/errors/image-error.js";
 import { checkFileLimits, checkOutputLimits, imageLimits } from "../../core/errors/image-limits.js";
+import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageProbe } from "../../core/model/source.js";
 import { backingSize } from "../../core/ports/image-renderer.js";
 import { checkPlanSupport, type ImagePlanPart } from "../../core/ports/plan-support.js";
@@ -30,7 +31,7 @@ function sameDecode(a: ImageProbe, b: ImageProbe): boolean {
  * The parts of a plan this worker draws, beyond the base. A plan with any
  * other is refused before anything is drawn (docs/adr/0009).
  */
-const DRAWS: readonly ImagePlanPart[] = ["redactions"];
+const DRAWS: readonly ImagePlanPart[] = ["layers", "redactions"];
 
 /**
  * Answers the render worker's contract (docs/adr/0002). It does nothing on
@@ -40,6 +41,22 @@ const DRAWS: readonly ImagePlanPart[] = ["redactions"];
 export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
   const sources = new Map<string, ImageBitmap>();
   const canvases = new Map<string, OffscreenCanvasRenderingContext2D>();
+  /**
+   * The sanitised copies a redaction may need, each the size of its source,
+   * checked before any is allocated: the base's, and every image layer's
+   * (docs/adr/0010).
+   */
+  const checkCopies = (
+    policy: ReturnType<typeof imageLimits.resolve>,
+    plan: ImagePlan,
+    base: ImageBitmap,
+  ) => {
+    checkOutputLimits(policy, base);
+    for (const layer of plan.layers) {
+      const source = layer.kind === "image" ? sources.get(layer.source) : undefined;
+      if (source) checkOutputLimits(policy, source);
+    }
+  };
   exposeWorker<RenderWorkerContract>(
     {
       probe: ({ file }) => probeImage(createWindowReader(file)),
@@ -80,8 +97,8 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         // and so is the sanitised copy a redaction needs (docs/adr/0010).
         const policy = imageLimits.resolve(limits);
         checkOutputLimits(policy, renderSize(plan, source));
-        if (plan.redactions.length > 0) checkOutputLimits(policy, source);
-        return encodePlan(source, plan, format, signal);
+        if (plan.redactions.length > 0) checkCopies(policy, plan, source);
+        return encodePlan(source, plan, format, signal, (id) => sources.get(id));
       },
       attachCanvas({ id, canvas }) {
         // One context per canvas, for its life: Firefox refuses a second
@@ -99,8 +116,8 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         if (!context) throw new TypeError(`There's no canvas with the id "${id}".`);
         const source = sources.get(plan.base.source);
         if (!source) throw new TypeError(`There's no source with the id "${plan.base.source}".`);
-        if (plan.redactions.length > 0) checkOutputLimits(imageLimits.resolve(limits), source);
-        await drawPreview(context, source, plan, view, signal);
+        if (plan.redactions.length > 0) checkCopies(imageLimits.resolve(limits), plan, source);
+        await drawPreview(context, source, plan, view, signal, (id) => sources.get(id));
         return undefined;
       },
       detachCanvas({ id }) {
