@@ -2,6 +2,7 @@ import { compositionSize, cropRect, outputSize } from "../../core/model/geometry
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageSize } from "../../core/model/source.js";
 import { createDeveloper, needsDevelop } from "./develop.js";
+import { drawLayers } from "./layers.js";
 import { finishRedactions, pixelates, sanitisedSource } from "./redact.js";
 import { yieldToMessages } from "./yield.js";
 
@@ -19,9 +20,11 @@ export function renderSize(plan: ImagePlan, source: ImageSize): ImageSize {
  * then the flips, scaled to the output. The same transform as
  * `compositionToSource`, applied by the canvas. JPEG has no alpha, so its
  * canvas starts white rather than transparent, which encoders would turn
- * black. Develop runs in strips, and the render yields to the worker's
+ * black. `sources` gives the decoded source of an image layer. Develop runs in strips, and the render yields to the worker's
  * messages between them, so a cancelled render stops at the next strip
- * (docs/adr/0006). Redactions are applied in two passes: the source is
+ * (docs/adr/0006). Layers are drawn over the developed base, through the
+ * transform from each one's box to the output (docs/adr/0009). Redactions
+ * are applied in two passes: the source is
  * sanitised before it's drawn, and the regions are finished last
  * (docs/adr/0010).
  */
@@ -30,6 +33,7 @@ export async function renderPlan(
   plan: ImagePlan,
   opaque: boolean,
   signal?: AbortSignal,
+  sources: (id: string) => ImageBitmap | undefined = () => undefined,
 ): Promise<OffscreenCanvas> {
   const { develop, filter } = plan.base;
   const developing = needsDevelop(develop, filter);
@@ -86,6 +90,8 @@ export async function renderPlan(
       context.putImageData(strip, 0, y);
     }
   }
+  // The layers, over the developed base: they're never developed (docs/adr/0006).
+  await drawLayers(context, plan, source, size, sources, signal);
   // Last, over everything drawn: the regions, exact, on whole pixels.
   await finishRedactions(context, plan, source, size, signal);
   return canvas;

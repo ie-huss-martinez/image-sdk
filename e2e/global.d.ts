@@ -49,6 +49,8 @@ interface Window {
             emoji: "colour" | "one colour" | "nothing";
             rightToLeft: boolean;
             scaled: "same" | "differs" | "nothing";
+            serifDiffers: boolean;
+            bold: Readonly<Record<"sans-serif" | "serif" | "monospace", boolean>>;
           };
         }
       | undefined

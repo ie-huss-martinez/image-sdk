@@ -16,6 +16,14 @@ import {
   outputSize,
   sourceToComposition,
 } from "../../src/core/model/geometry.js";
+import {
+  fitTextLines,
+  isRightToLeft,
+  layerToOutput,
+  layerToScene,
+  sceneToLayerSource,
+  sceneToOutput,
+} from "../../src/core/model/layer-geometry.js";
 import type { ImagePlan } from "../../src/core/model/plan.js";
 import {
   compositionRectToScene,
@@ -82,7 +90,14 @@ type GeometryArgument =
   | "step"
   | "resize"
   | "region"
-  | "size";
+  | "size"
+  | "box"
+  | "lines"
+  | "lineHeight"
+  | "ascent"
+  | "align"
+  | "rightToLeft"
+  | "text";
 type GeometryArguments = { readonly [Name in GeometryArgument]: never };
 
 /** The geometry functions a port implements, by the name a case gives. */
@@ -118,6 +133,13 @@ const GEOMETRY: Readonly<Record<string, (input: GeometryArguments) => unknown>> 
   compositionRectToScene: ({ region, crop, orientation }) =>
     compositionRectToScene(region, crop, orientation),
   fitRedactionRegion: ({ region }) => fitRedactionRegion(region),
+  sceneToOutput: ({ crop, orientation, size }) => sceneToOutput(crop, orientation, size),
+  layerToScene: ({ box }) => layerToScene(box),
+  layerToOutput: ({ box, crop, orientation, size }) => layerToOutput(box, crop, orientation, size),
+  sceneToLayerSource: ({ box, crop }) => sceneToLayerSource(box, crop),
+  fitTextLines: ({ lines, lineHeight, ascent, size, align, rightToLeft }) =>
+    fitTextLines(lines, lineHeight, ascent, size, align, rightToLeft),
+  isRightToLeft: ({ text }) => isRightToLeft(text),
 };
 
 /** The names of the geometry operations, in the order the vectors list them. */
@@ -133,3 +155,16 @@ export function geometry(input: { operation: string } & Record<string, unknown>)
   if (!run) throw new Error(`Unknown geometry operation ${operation}.`);
   return run(args as GeometryArguments);
 }
+
+/**
+ * The geometry operations whose results are computed with sines, cosines
+ * and divisions, and so may differ between languages in their last bits
+ * (sdk-core ADR 0045, section 3): their cases state this tolerance.
+ */
+export const GEOMETRY_TOLERANCES: Readonly<Record<string, number>> = {
+  sceneToOutput: 1e-9,
+  layerToScene: 1e-9,
+  layerToOutput: 1e-9,
+  sceneToLayerSource: 1e-9,
+  fitTextLines: 1e-9,
+};

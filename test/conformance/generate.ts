@@ -5,7 +5,13 @@ import type {
 import fc from "fast-check";
 import { type ImagePlan, NEUTRAL_DEVELOP, toImagePlanDocument } from "../../src/index.js";
 import { commandOn, mutated, plan as planArb, SIZE } from "../arbitraries/image-plan.js";
-import { applyToDocument, GEOMETRY_OPERATIONS, geometry, readAndWrite } from "./run.js";
+import {
+  applyToDocument,
+  GEOMETRY_OPERATIONS,
+  GEOMETRY_TOLERANCES,
+  geometry,
+  readAndWrite,
+} from "./run.js";
 
 /**
  * Writes the conformance cases (sdk-core ADR 0045): hand-written cases for
@@ -1180,6 +1186,12 @@ export function planCases(): ConformanceFile {
   };
 }
 
+/** A geometry case, with its operation's tolerance where it has one. */
+function tolerant(testCase: ConformanceCase): ConformanceCase {
+  const tolerance = GEOMETRY_TOLERANCES[(testCase.input as { operation: string }).operation];
+  return tolerance === undefined ? testCase : { ...testCase, tolerance };
+}
+
 /** How many generated cases each geometry operation keeps. */
 const GENERATED_PER_OPERATION = 8;
 
@@ -1490,6 +1502,93 @@ export function geometryCases(): ConformanceFile {
       }),
     ],
     [
+      "places an unturned layer's box in the scene",
+      op("layerToScene", { box: { x: 12, y: -7, width: 40, height: 20, rotation: 0 } }),
+    ],
+    [
+      "turns a layer a quarter clockwise about its centre, exactly",
+      op("layerToScene", { box: { x: 10, y: 20, width: 40, height: 20, rotation: 900 } }),
+    ],
+    [
+      "turns a layer by 33.3 degrees",
+      op("layerToScene", { box: { x: 10, y: 20, width: 40, height: 20, rotation: 333 } }),
+    ],
+    [
+      "maps the scene to an output at the composition's own size",
+      op("sceneToOutput", { crop: whole, orientation: upright, size: source }),
+    ],
+    [
+      "maps the scene through a crop, a quarter turn and a mirror, to half size",
+      op("sceneToOutput", { crop, orientation: mirrored, size: { width: 50, height: 100 } }),
+    ],
+    [
+      "maps a turned layer's box to a turned, cropped output",
+      op("layerToOutput", {
+        box: { x: 60, y: 40, width: 80, height: 30, rotation: 450 },
+        crop,
+        orientation: turned,
+        size: { width: 100, height: 200 },
+      }),
+    ],
+    [
+      "maps the scene to the pixels of a layer's cropped source",
+      op("sceneToLayerSource", {
+        box: { x: 60, y: 40, width: 80, height: 60, rotation: 300 },
+        crop: { x: 4, y: 3, width: 30, height: 24 },
+      }),
+    ],
+    [
+      "fits one line to a box's width, centred down it",
+      op("fitTextLines", {
+        lines: [{ width: 300 }],
+        lineHeight: 120,
+        ascent: 90,
+        size: { width: 150, height: 200 },
+        align: "start",
+        rightToLeft: false,
+      }),
+    ],
+    [
+      "fits three lines to a box's height, each aligned to the end",
+      op("fitTextLines", {
+        lines: [{ width: 300 }, { width: 120 }, { width: 0 }],
+        lineHeight: 120,
+        ascent: 90,
+        size: { width: 400, height: 90 },
+        align: "end",
+        rightToLeft: false,
+      }),
+    ],
+    [
+      "puts the start of right-to-left text at the box's right edge",
+      op("fitTextLines", {
+        lines: [{ width: 100 }, { width: 50 }],
+        lineHeight: 100,
+        ascent: 80,
+        size: { width: 400, height: 100 },
+        align: "start",
+        rightToLeft: true,
+      }),
+    ],
+    [
+      "gives null for text whose lines are all empty",
+      op("fitTextLines", {
+        lines: [{ width: 0 }, { width: 0 }],
+        lineHeight: 100,
+        ascent: 80,
+        size: { width: 400, height: 100 },
+        align: "center",
+        rightToLeft: false,
+      }),
+    ],
+    ["reads Latin text left to right", op("isRightToLeft", { text: "Hello" })],
+    ["reads Hebrew text right to left", op("isRightToLeft", { text: "שלום" })],
+    [
+      "takes the direction of the first letter that has one, after digits and emoji",
+      op("isRightToLeft", { text: "123 📷 مرحبا abc" }),
+    ],
+    ["reads text with no letters left to right", op("isRightToLeft", { text: "42 📷" })],
+    [
       "shows a region where the crop puts it",
       op("sceneRectToComposition", {
         region: { x: 50, y: 40, width: 30, height: 20 },
@@ -1560,6 +1659,13 @@ export function geometryCases(): ConformanceFile {
       height: fc.integer({ min: 1, max: 4_000 }),
     }),
   );
+  const layerBox = fc.record({
+    x: fc.integer({ min: -60, max: 420 }),
+    y: fc.integer({ min: -60, max: 320 }),
+    width: fc.integer({ min: 1, max: 300 }),
+    height: fc.integer({ min: 1, max: 300 }),
+    rotation: fc.integer({ min: 0, max: 3_599 }),
+  });
   // A region near the 400 × 300 source, sometimes partly or wholly outside it.
   const region = fc.record({
     x: fc.integer({ min: -60, max: 420 }),
@@ -1617,6 +1723,26 @@ export function geometryCases(): ConformanceFile {
     redactionBlocksInOutput: fc.record({ region, crop: cropArb, orientation, size }),
     sceneRectToComposition: fc.record({ region, crop: cropArb, orientation }),
     compositionRectToScene: fc.record({ region, crop: cropArb, orientation }),
+    sceneToOutput: fc.record({ crop: cropArb, orientation, size }),
+    layerToScene: fc.record({ box: layerBox }),
+    layerToOutput: fc.record({ box: layerBox, crop: cropArb, orientation, size }),
+    sceneToLayerSource: fc.record({ box: layerBox, crop: cropArb }),
+    fitTextLines: fc.record({
+      lines: fc.array(fc.record({ width: fc.integer({ min: 0, max: 900 }) }), {
+        minLength: 1,
+        maxLength: 4,
+      }),
+      lineHeight: fc.constant(120),
+      ascent: fc.constant(90),
+      size,
+      align: fc.constantFrom("start", "center", "end"),
+      rightToLeft: fc.boolean(),
+    }),
+    isRightToLeft: fc.record({
+      text: fc
+        .array(fc.constantFrom("a", "Z", "1", " ", "📷", "ש", "ع", "中", "…"), { maxLength: 5 })
+        .map((parts) => parts.join("")),
+    }),
     fitRedactionRegion: fc.record({
       region: fc.record({
         x: fc.integer({ min: -4_000, max: 4_000 }).map((n) => n / 8),
@@ -1632,7 +1758,7 @@ export function geometryCases(): ConformanceFile {
     return fc
       .sample(arbitrary, { seed: SEED, numRuns: GENERATED_PER_OPERATION })
       .map((args, index) =>
-        make(`generated ${operation} ${index + 1}`, op(operation, args), geometry),
+        tolerant(make(`generated ${operation} ${index + 1}`, op(operation, args), geometry)),
       );
   });
   return {
@@ -1640,7 +1766,10 @@ export function geometryCases(): ConformanceFile {
     version: 1,
     subject: "hm-image-geometry",
     description:
-      "image-sdk's geometry (docs/formats/hm-image-plan.md): input.operation names a function and the other fields are its arguments, with null for a missing ratio; expected is its result, exactly. Sizes, crops and points are in pixels of the oriented source or of the composition. Results are rounded as JavaScript's Math.round does, halves toward positive infinity. Generated cases come from fixed-seed generators.",
-    cases: [...handWritten.map(([name, input]) => make(name, input, geometry)), ...generated],
+      "image-sdk's geometry (docs/formats/hm-image-plan.md): input.operation names a function and the other fields are its arguments, with null for a missing ratio; expected is its result, exactly, or within the case's tolerance where it states one. Sizes, crops and points are in pixels of the oriented source or of the composition. Results are rounded as JavaScript's Math.round does, halves toward positive infinity. Generated cases come from fixed-seed generators.",
+    cases: [
+      ...handWritten.map(([name, input]) => tolerant(make(name, input, geometry))),
+      ...generated,
+    ],
   };
 }

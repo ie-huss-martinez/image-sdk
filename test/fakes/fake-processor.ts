@@ -9,6 +9,7 @@ import {
 import {
   checkOutputLimits,
   checkPlanSupport,
+  ImageError,
   type ImageProcessor,
   type ImageRect,
   imageLimits,
@@ -30,8 +31,24 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
         throw new Error("The processor was destroyed.");
       }
       throwIfAborted(options?.signal);
-      // It draws the base and redactions, and refuses anything else (ADR 0009).
-      checkPlanSupport(plan, ["redactions"]);
+      // It draws the base, redactions, and the layers it can sample without
+      // a canvas; it refuses anything else (ADR 0009).
+      checkPlanSupport(plan, ["layers", "redactions"]);
+      for (const layer of plan.layers) {
+        const plain =
+          layer.rotation === 0 &&
+          (layer.opacity === 100 || !layer.visible) &&
+          (layer.kind === "image" ||
+            (layer.kind === "shape" &&
+              layer.shape === "rectangle" &&
+              layer.fill !== null &&
+              layer.stroke === null));
+        if (!plain) {
+          throw new ImageError("UNSUPPORTED_PLAN", "The fake processor can't draw this layer.", {
+            details: { reason: "layers" },
+          });
+        }
+      }
       const source = engine.sources.get(plan.base.source);
       if (source === undefined) {
         throw new TypeError(`Unknown source "${plan.base.source}".`);
@@ -58,6 +75,42 @@ export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
       // The same reference math as the SDK's renderer (ADR 0006).
       const developed = Uint8ClampedArray.from(pixels);
       developPixels(developed, plan.base.develop, plan.base.filter);
+      // Layers, bottom to top, over the developed base: the nearest pixel of
+      // each, for the scene point at the output pixel's centre.
+      const hex = (colour: string) =>
+        [1, 3, 5].map((at) => Number.parseInt(colour.slice(at, at + 2), 16));
+      for (const layer of plan.layers) {
+        if (!layer.visible) continue;
+        const from = layer.kind === "image" ? engine.sources.get(layer.source) : undefined;
+        if (layer.kind === "image" && from === undefined) {
+          throw new TypeError(`Unknown source "${layer.source}".`);
+        }
+        for (let y = 0; y < size.height; y += 1) {
+          for (let x = 0; x < size.width; x += 1) {
+            const at = compositionToSource(
+              {
+                x: ((x + 0.5) * composition.width) / size.width,
+                y: ((y + 0.5) * composition.height) / size.height,
+              },
+              crop,
+              plan.base.orientation,
+            );
+            const u = (at.x - layer.x) / layer.width;
+            const v = (at.y - layer.y) / layer.height;
+            if (u < 0 || u >= 1 || v < 0 || v >= 1) continue;
+            const to = (y * size.width + x) * 4;
+            if (layer.kind === "shape") {
+              developed.set([...hex(layer.fill as string), 255], to);
+            } else if (from) {
+              const part = cropRect(layer.kind === "image" ? layer.crop : null, from);
+              const sx = part.x + Math.floor(u * part.width);
+              const sy = part.y + Math.floor(v * part.height);
+              const s = (sy * from.width + sx) * 4;
+              developed.set(from.pixels.subarray(s, s + 4), to);
+            }
+          }
+        }
+      }
       // Redactions last, on whole output pixels (ADR 0010). It samples the
       // nearest pixel, with no scaler to read a neighbourhood, so it needs
       // no sanitised source.

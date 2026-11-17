@@ -226,7 +226,23 @@ function text(): TextOutcome {
     context.font = "160px sans-serif";
     context.fillText("Hg", 20, 160);
   });
+  /** The pixels of a word in a font: two fonts, or two weights, that differ draw it differently. */
+  const word = (font: string) =>
+    drawn((context) => {
+      context.font = font;
+      context.fillText("Hamburg", 10, 80);
+    });
+  const differs = (a: Uint8ClampedArray, b: Uint8ClampedArray) =>
+    a.length > 0 && a.some((value, index) => value !== b[index]);
+  const bold = Object.fromEntries(
+    TEXT_FAMILIES.map((family) => [
+      family,
+      differs(word(`60px ${family}`), word(`bold 60px ${family}`)),
+    ]),
+  ) as TextOutcome["bold"];
   return {
+    serifDiffers: differs(word("60px serif"), word("60px sans-serif")),
+    bold,
     fills,
     strokes,
     measures,

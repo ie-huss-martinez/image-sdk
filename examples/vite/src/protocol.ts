@@ -47,6 +47,10 @@ export interface TextOutcome {
    * same text drawn at 80: `same` when every pixel is equal.
    */
   readonly scaled: "same" | "differs" | "nothing";
+  /** Whether `serif` draws other pixels than `sans-serif`: whether they're two fonts here. */
+  readonly serifDiffers: boolean;
+  /** Whether `bold` draws other pixels than regular, in each generic family. */
+  readonly bold: Readonly<Record<(typeof TEXT_FAMILIES)[number], boolean>>;
 }
 
 /** What one frame of a GIF showed, as a browser composes it (docs/adr/0011). */

@@ -2,7 +2,7 @@
   "format": "hm-conformance",
   "version": 1,
   "subject": "hm-image-geometry",
-  "description": "image-sdk's geometry (docs/formats/hm-image-plan.md): input.operation names a function and the other fields are its arguments, with null for a missing ratio; expected is its result, exactly. Sizes, crops and points are in pixels of the oriented source or of the composition. Results are rounded as JavaScript's Math.round does, halves toward positive infinity. Generated cases come from fixed-seed generators.",
+  "description": "image-sdk's geometry (docs/formats/hm-image-plan.md): input.operation names a function and the other fields are its arguments, with null for a missing ratio; expected is its result, exactly, or within the case's tolerance where it states one. Sizes, crops and points are in pixels of the oriented source or of the composition. Results are rounded as JavaScript's Math.round does, halves toward positive infinity. Generated cases come from fixed-seed generators.",
   "cases": [
     {
       "name": "swaps an EXIF-6 image's width and height",
@@ -1749,6 +1749,361 @@
         }
       },
       "expected": []
+    },
+    {
+      "name": "places an unturned layer's box in the scene",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 12,
+          "y": -7,
+          "width": 40,
+          "height": 20,
+          "rotation": 0
+        }
+      },
+      "expected": [
+        1,
+        0,
+        0,
+        1,
+        12,
+        -7
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "turns a layer a quarter clockwise about its centre, exactly",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 10,
+          "y": 20,
+          "width": 40,
+          "height": 20,
+          "rotation": 900
+        }
+      },
+      "expected": [
+        0,
+        1,
+        -1,
+        0,
+        40,
+        10
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "turns a layer by 33.3 degrees",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 10,
+          "y": 20,
+          "width": 40,
+          "height": 20,
+          "rotation": 333
+        }
+      },
+      "expected": [
+        0.8358073613682703,
+        0.5490228179981317,
+        -0.5490228179981317,
+        0.8358073613682703,
+        18.77408095261591,
+        10.661470026354664
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "maps the scene to an output at the composition's own size",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 400,
+          "height": 300
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 400,
+          "height": 300
+        }
+      },
+      "expected": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "maps the scene through a crop, a quarter turn and a mirror, to half size",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 50,
+          "height": 100
+        }
+      },
+      "expected": [
+        0,
+        -0.5,
+        -0.5,
+        0,
+        65,
+        120
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "maps a turned layer's box to a turned, cropped output",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": 60,
+          "y": 40,
+          "width": 80,
+          "height": 30,
+          "rotation": 450
+        },
+        "crop": {
+          "x": 40,
+          "y": 30,
+          "width": 200,
+          "height": 100
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "expected": [
+        -0.7071067811865475,
+        0.7071067811865476,
+        -0.7071067811865476,
+        -0.7071067811865475,
+        113.89087296526012,
+        42.32233047033631
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "maps the scene to the pixels of a layer's cropped source",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": 60,
+          "y": 40,
+          "width": 80,
+          "height": 60,
+          "rotation": 300
+        },
+        "crop": {
+          "x": 4,
+          "y": 3,
+          "width": 30,
+          "height": 24
+        }
+      },
+      "expected": [
+        0.3247595264191645,
+        -0.19999999999999998,
+        0.18749999999999997,
+        0.3464101615137755,
+        -26.60095264191645,
+        10.751288694035711
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "fits one line to a box's width, centred down it",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 300
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 150,
+          "height": 200
+        },
+        "align": "start",
+        "rightToLeft": false
+      },
+      "expected": {
+        "scale": 0.5,
+        "lines": [
+          {
+            "x": 0,
+            "baseline": 115
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "fits three lines to a box's height, each aligned to the end",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 300
+          },
+          {
+            "width": 120
+          },
+          {
+            "width": 0
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 400,
+          "height": 90
+        },
+        "align": "end",
+        "rightToLeft": false
+      },
+      "expected": {
+        "scale": 0.25,
+        "lines": [
+          {
+            "x": 325,
+            "baseline": 22.5
+          },
+          {
+            "x": 370,
+            "baseline": 52.5
+          },
+          {
+            "x": 400,
+            "baseline": 82.5
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "puts the start of right-to-left text at the box's right edge",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 100
+          },
+          {
+            "width": 50
+          }
+        ],
+        "lineHeight": 100,
+        "ascent": 80,
+        "size": {
+          "width": 400,
+          "height": 100
+        },
+        "align": "start",
+        "rightToLeft": true
+      },
+      "expected": {
+        "scale": 0.5,
+        "lines": [
+          {
+            "x": 350,
+            "baseline": 40
+          },
+          {
+            "x": 375,
+            "baseline": 90
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "gives null for text whose lines are all empty",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 0
+          },
+          {
+            "width": 0
+          }
+        ],
+        "lineHeight": 100,
+        "ascent": 80,
+        "size": {
+          "width": 400,
+          "height": 100
+        },
+        "align": "center",
+        "rightToLeft": false
+      },
+      "expected": null,
+      "tolerance": 1e-9
+    },
+    {
+      "name": "reads Latin text left to right",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "Hello"
+      },
+      "expected": false
+    },
+    {
+      "name": "reads Hebrew text right to left",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "שלום"
+      },
+      "expected": true
+    },
+    {
+      "name": "takes the direction of the first letter that has one, after digits and emoji",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "123 📷 مرحبا abc"
+      },
+      "expected": true
+    },
+    {
+      "name": "reads text with no letters left to right",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "42 📷"
+      },
+      "expected": false
     },
     {
       "name": "shows a region where the crop puts it",
@@ -5670,6 +6025,1350 @@
         "width": 500,
         "height": 2
       }
+    },
+    {
+      "name": "generated sceneToOutput 1",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 397,
+          "y": 44,
+          "width": 2,
+          "height": 166
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 6854,
+          "height": 2583
+        }
+      },
+      "expected": [
+        0,
+        -1291.5,
+        -41.289156626506156,
+        0,
+        8670.722891566264,
+        515308.5
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToOutput 2",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 295,
+          "y": 78,
+          "width": 4,
+          "height": 8
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 9,
+          "height": 12
+        }
+      },
+      "expected": [
+        2.25,
+        0,
+        0,
+        -1.5,
+        -663.75,
+        129
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToOutput 3",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 271,
+          "y": 1,
+          "width": 102,
+          "height": 5
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 13,
+          "height": 5
+        }
+      },
+      "expected": [
+        -0.12745098039216174,
+        0,
+        0,
+        1,
+        47.53921568627451,
+        -1
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToOutput 4",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 391,
+          "y": 5,
+          "width": 6,
+          "height": 4
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 478,
+          "height": 6
+        }
+      },
+      "expected": [
+        -79.66666666666424,
+        0,
+        0,
+        1.5,
+        31627.666666666668,
+        -7.5
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToOutput 5",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 46,
+          "y": 0,
+          "width": 349,
+          "height": 6
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 2025,
+          "height": 453
+        }
+      },
+      "expected": [
+        0,
+        1.2979942693409754,
+        -337.5,
+        0,
+        2025,
+        -59.70773638968482
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToOutput 6",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 357,
+          "y": 81,
+          "width": 41,
+          "height": 1
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": true
+        },
+        "size": {
+          "width": 7,
+          "height": 4237
+        }
+      },
+      "expected": [
+        0,
+        103.34146341463929,
+        -7,
+        0,
+        574,
+        -36892.902439024394
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToOutput 7",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 103,
+          "y": 8,
+          "width": 260,
+          "height": 69
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 8,
+          "height": 6656
+        }
+      },
+      "expected": [
+        0.03076923076923066,
+        0,
+        0,
+        -96.463768115942,
+        -3.1692307692307695,
+        7427.710144927536
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToOutput 8",
+      "input": {
+        "operation": "sceneToOutput",
+        "crop": {
+          "x": 55,
+          "y": 186,
+          "width": 271,
+          "height": 1
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 6,
+          "height": 6
+        }
+      },
+      "expected": [
+        0,
+        0.022140221402213944,
+        -6,
+        0,
+        1122,
+        -1.2177121771217712
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 1",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 6,
+          "y": 152,
+          "width": 157,
+          "height": 253,
+          "rotation": 2181
+        }
+      },
+      "expected": [
+        -0.7869350219613375,
+        -0.6170358751407485,
+        0.6170358751407485,
+        -0.7869350219613375,
+        68.21936101866031,
+        426.4845964766579
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 2",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": -34,
+          "y": 0,
+          "width": 147,
+          "height": 90,
+          "rotation": 11
+        }
+      },
+      "expected": [
+        0.9998157121216442,
+        0.019197442399689665,
+        -0.019197442399689665,
+        0.9998157121216442,
+        -33.12256993295482,
+        -1.4027190618511796
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 3",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 280,
+          "y": 8,
+          "width": 294,
+          "height": 5,
+          "rotation": 1432
+        }
+      },
+      "expected": [
+        -0.8007313709487334,
+        0.599023598515586,
+        -0.599023598515586,
+        -0.8007313709487334,
+        546.2050705257527,
+        -75.55464055441931
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 4",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": -5,
+          "y": -4,
+          "width": 6,
+          "height": 4,
+          "rotation": 10
+        }
+      },
+      "expected": [
+        0.9998476951563913,
+        0.01745240643728351,
+        -0.01745240643728351,
+        0.9998476951563913,
+        -4.964638272594607,
+        -4.052052609624633
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 5",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 188,
+          "y": 6,
+          "width": 201,
+          "height": 280,
+          "rotation": 3005
+        }
+      },
+      "expected": [
+        0.5075383629607038,
+        -0.8616291604415259,
+        0.8616291604415259,
+        0.5075383629607038,
+        116.86431206063564,
+        161.5383598098748
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 6",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": 315,
+          "y": -48,
+          "width": 9,
+          "height": 2,
+          "rotation": 3589
+        }
+      },
+      "expected": [
+        0.9998157121216442,
+        -0.019197442399689603,
+        0.019197442399689603,
+        0.9998157121216442,
+        314.98163185305293,
+        -47.91342722132304
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 7",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": -23,
+          "y": 0,
+          "width": 299,
+          "height": 177,
+          "rotation": 0
+        }
+      },
+      "expected": [
+        1,
+        0,
+        0,
+        1,
+        -23,
+        0
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToScene 8",
+      "input": {
+        "operation": "layerToScene",
+        "box": {
+          "x": -35,
+          "y": 123,
+          "width": 298,
+          "height": 4,
+          "rotation": 8
+        }
+      },
+      "expected": [
+        0.9999025240093042,
+        0.013962180339145272,
+        -0.013962180339145272,
+        0.9999025240093042,
+        -34.95755171670803,
+        120.91983008144874
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 1",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": 6,
+          "y": 152,
+          "width": 157,
+          "height": 253,
+          "rotation": 2181
+        },
+        "crop": {
+          "x": 181,
+          "y": 2,
+          "width": 76,
+          "height": 261
+        },
+        "orientation": {
+          "rotate": 270,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 3699,
+          "height": 2882
+        }
+      },
+      "expected": [
+        8.744887747684567,
+        29.841404385428085,
+        11.152768759521233,
+        -23.39864989678429,
+        -2316.9713500658513,
+        7158.760546634531
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 2",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": -34,
+          "y": 0,
+          "width": 147,
+          "height": 90,
+          "rotation": 11
+        },
+        "crop": {
+          "x": 0,
+          "y": 295,
+          "width": 3,
+          "height": 1
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": true,
+          "flipY": false
+        },
+        "size": {
+          "width": 427,
+          "height": 7306
+        }
+      },
+      "expected": [
+        142.30710302531403,
+        -140.25651417213268,
+        -2.7324359682224957,
+        -7304.653592760733,
+        -4714.445787123903,
+        2172824.265465885
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 3",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": 280,
+          "y": 8,
+          "width": 294,
+          "height": 5,
+          "rotation": 1432
+        },
+        "crop": {
+          "x": 1,
+          "y": 36,
+          "width": 357,
+          "height": 7
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": true,
+          "flipY": true
+        },
+        "size": {
+          "width": 7994,
+          "height": 4
+        }
+      },
+      "expected": [
+        17.930102463205415,
+        -0.3422991991517622,
+        13.413430382447373,
+        0.4575607833992746,
+        -4214.31746157696,
+        67.74550888823944
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 4",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": -5,
+          "y": -4,
+          "width": 6,
+          "height": 4,
+          "rotation": 10
+        },
+        "crop": {
+          "x": 17,
+          "y": 64,
+          "width": 355,
+          "height": 185
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": true,
+          "flipY": true
+        },
+        "size": {
+          "width": 5863,
+          "height": 4
+        }
+      },
+      "expected": [
+        0.5530997780637461,
+        -0.0112658895228889,
+        31.68706506325357,
+        0.000196646833096152,
+        -2156.698294325563,
+        4.2474888819447285
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 5",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": 188,
+          "y": 6,
+          "width": 201,
+          "height": 280,
+          "rotation": 3005
+        },
+        "crop": {
+          "x": 314,
+          "y": 2,
+          "width": 29,
+          "height": 58
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": true,
+          "flipY": true
+        },
+        "size": {
+          "width": 7998,
+          "height": 1911
+        }
+      },
+      "expected": [
+        139.9755802399897,
+        -28.389195269030278,
+        237.63138017970041,
+        16.722513993412154,
+        -54368.663177208204,
+        5256.5138895977725
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 6",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": 315,
+          "y": -48,
+          "width": 9,
+          "height": 2,
+          "rotation": 3589
+        },
+        "crop": {
+          "x": 395,
+          "y": 227,
+          "width": 5,
+          "height": 6
+        },
+        "orientation": {
+          "rotate": 180,
+          "flipX": false,
+          "flipY": true
+        },
+        "size": {
+          "width": 11,
+          "height": 4
+        }
+      },
+      "expected": [
+        -2.199594566667663,
+        -0.01279829493312622,
+        -0.042234373279318,
+        0.6665438080810867,
+        187.0404099232693,
+        -183.27561814754822
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 7",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": -23,
+          "y": 0,
+          "width": 299,
+          "height": 177,
+          "rotation": 0
+        },
+        "crop": {
+          "x": 4,
+          "y": 297,
+          "width": 9,
+          "height": 3
+        },
+        "orientation": {
+          "rotate": 0,
+          "flipX": false,
+          "flipY": false
+        },
+        "size": {
+          "width": 6305,
+          "height": 5
+        }
+      },
+      "expected": [
+        700.5555555555557,
+        0,
+        0,
+        1.6666666666666288,
+        -18915.000000000004,
+        -495
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated layerToOutput 8",
+      "input": {
+        "operation": "layerToOutput",
+        "box": {
+          "x": -35,
+          "y": 123,
+          "width": 298,
+          "height": 4,
+          "rotation": 8
+        },
+        "crop": {
+          "x": 0,
+          "y": 4,
+          "width": 395,
+          "height": 207
+        },
+        "orientation": {
+          "rotate": 90,
+          "flipX": true,
+          "flipY": true
+        },
+        "size": {
+          "width": 7992,
+          "height": 6
+        }
+      },
+      "expected": [
+        0.539061571354826,
+        -0.015188392769761664,
+        38.60493223131574,
+        0.0002120837519870179,
+        4514.122135318541,
+        6.531000785570251
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 1",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": 6,
+          "y": 152,
+          "width": 157,
+          "height": 253,
+          "rotation": 2181
+        },
+        "crop": {
+          "x": 181,
+          "y": 2,
+          "width": 76,
+          "height": 261
+        }
+      },
+      "expected": [
+        -0.3809366985290551,
+        0.6365468909554758,
+        -0.2986925255458401,
+        -0.8118183428138699,
+        334.3750193902216,
+        304.803196187925
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 2",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": -34,
+          "y": 0,
+          "width": 147,
+          "height": 90,
+          "rotation": 11
+        },
+        "crop": {
+          "x": 0,
+          "y": 295,
+          "width": 3,
+          "height": 1
+        }
+      },
+      "expected": [
+        0.020404402288196823,
+        -0.00021330491555210745,
+        0.0003917845387691769,
+        0.01110906346801827,
+        0.6763958053716127,
+        295.0085176881035
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 3",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": 280,
+          "y": 8,
+          "width": 294,
+          "height": 5,
+          "rotation": 1432
+        },
+        "crop": {
+          "x": 1,
+          "y": 36,
+          "width": 357,
+          "height": 7
+        }
+      },
+      "expected": [
+        -0.9723166647234619,
+        -0.8386330379218203,
+        0.7273857981974972,
+        -1.1210239193282265,
+        587.0416649558445,
+        409.3670583455636
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 4",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": -5,
+          "y": -4,
+          "width": 6,
+          "height": 4,
+          "rotation": 10
+        },
+        "crop": {
+          "x": 17,
+          "y": 64,
+          "width": 355,
+          "height": 185
+        }
+      },
+      "expected": [
+        59.15765529675315,
+        -0.8071737977243624,
+        1.032600714205941,
+        46.2429559009831,
+        314.8805120219182,
+        247.3715642065175
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 5",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": 188,
+          "y": 6,
+          "width": 201,
+          "height": 280,
+          "rotation": 3005
+        },
+        "crop": {
+          "x": 314,
+          "y": 2,
+          "width": 29,
+          "height": 58
+        }
+      },
+      "expected": [
+        0.07322692798935529,
+        0.17848032609145897,
+        -0.1243146549890759,
+        0.10513294661328866,
+        325.5239709034761,
+        -35.84098428292605
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 6",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": 315,
+          "y": -48,
+          "width": 9,
+          "height": 2,
+          "rotation": 3589
+        },
+        "crop": {
+          "x": 395,
+          "y": 227,
+          "width": 5,
+          "height": 6
+        }
+      },
+      "expected": [
+        0.5554531734009135,
+        0.057592327199068816,
+        -0.010665245777605338,
+        2.999447136364933,
+        219.53144454686063,
+        352.57326686904935
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 7",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": -23,
+          "y": 0,
+          "width": 299,
+          "height": 177,
+          "rotation": 0
+        },
+        "crop": {
+          "x": 4,
+          "y": 297,
+          "width": 9,
+          "height": 3
+        }
+      },
+      "expected": [
+        0.030100334448160536,
+        0,
+        0,
+        0.01694915254237288,
+        4.6923076923076925,
+        297
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated sceneToLayerSource 8",
+      "input": {
+        "operation": "sceneToLayerSource",
+        "box": {
+          "x": -35,
+          "y": 123,
+          "width": 298,
+          "height": 4,
+          "rotation": 8
+        },
+        "crop": {
+          "x": 0,
+          "y": 4,
+          "width": 395,
+          "height": 207
+        }
+      },
+      "expected": [
+        1.3253741509519301,
+        -0.7225428325507678,
+        0.018506916892491218,
+        51.744955617481494,
+        44.09398217991856,
+        -6278.249569274399
+      ],
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 1",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 897
+          },
+          {
+            "width": 893
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 4193,
+          "height": 4582
+        },
+        "align": "center",
+        "rightToLeft": true
+      },
+      "expected": {
+        "scale": 4.674470457079153,
+        "lines": [
+          {
+            "x": 0,
+            "baseline": 2150.7658862876256
+          },
+          {
+            "x": 9.348940914158447,
+            "baseline": 2711.7023411371238
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 2",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 581
+          },
+          {
+            "width": 312
+          },
+          {
+            "width": 452
+          },
+          {
+            "width": 767
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 6563,
+          "height": 7
+        },
+        "align": "end",
+        "rightToLeft": true
+      },
+      "expected": {
+        "scale": 0.014583333333333334,
+        "lines": [
+          {
+            "x": 0,
+            "baseline": 1.3125
+          },
+          {
+            "x": 0,
+            "baseline": 3.0625
+          },
+          {
+            "x": 0,
+            "baseline": 4.8125
+          },
+          {
+            "x": 0,
+            "baseline": 6.5625
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 3",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 622
+          },
+          {
+            "width": 555
+          },
+          {
+            "width": 710
+          },
+          {
+            "width": 147
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 7999,
+          "height": 381
+        },
+        "align": "center",
+        "rightToLeft": true
+      },
+      "expected": {
+        "scale": 0.79375,
+        "lines": [
+          {
+            "x": 3752.64375,
+            "baseline": 71.4375
+          },
+          {
+            "x": 3779.234375,
+            "baseline": 166.6875
+          },
+          {
+            "x": 3717.71875,
+            "baseline": 261.9375
+          },
+          {
+            "x": 3941.159375,
+            "baseline": 357.1875
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 4",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 1
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 7227,
+          "height": 3
+        },
+        "align": "start",
+        "rightToLeft": false
+      },
+      "expected": {
+        "scale": 0.025,
+        "lines": [
+          {
+            "x": 0,
+            "baseline": 2.25
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 5",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 9
+          },
+          {
+            "width": 805
+          },
+          {
+            "width": 98
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 2528,
+          "height": 6706
+        },
+        "align": "center",
+        "rightToLeft": false
+      },
+      "expected": {
+        "scale": 3.1403726708074533,
+        "lines": [
+          {
+            "x": 1249.8683229813664,
+            "baseline": 3070.3664596273293
+          },
+          {
+            "x": 0,
+            "baseline": 3447.2111801242236
+          },
+          {
+            "x": 1110.121739130435,
+            "baseline": 3824.055900621118
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 6",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 1
+          },
+          {
+            "width": 685
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 5911,
+          "height": 3041
+        },
+        "align": "end",
+        "rightToLeft": true
+      },
+      "expected": {
+        "scale": 8.62919708029197,
+        "lines": [
+          {
+            "x": 0,
+            "baseline": 1261.6240875912408
+          },
+          {
+            "x": 0,
+            "baseline": 2297.1277372262775
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 7",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 42
+          },
+          {
+            "width": 856
+          },
+          {
+            "width": 599
+          },
+          {
+            "width": 457
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 9,
+          "height": 3189
+        },
+        "align": "center",
+        "rightToLeft": false
+      },
+      "expected": {
+        "scale": 0.010514018691588784,
+        "lines": [
+          {
+            "x": 4.279205607476635,
+            "baseline": 1592.9228971962616
+          },
+          {
+            "x": 0,
+            "baseline": 1594.1845794392523
+          },
+          {
+            "x": 1.3510514018691588,
+            "baseline": 1595.446261682243
+          },
+          {
+            "x": 2.0975467289719627,
+            "baseline": 1596.7079439252336
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated fitTextLines 8",
+      "input": {
+        "operation": "fitTextLines",
+        "lines": [
+          {
+            "width": 732
+          },
+          {
+            "width": 524
+          },
+          {
+            "width": 601
+          },
+          {
+            "width": 494
+          }
+        ],
+        "lineHeight": 120,
+        "ascent": 90,
+        "size": {
+          "width": 7,
+          "height": 7989
+        },
+        "align": "center",
+        "rightToLeft": false
+      },
+      "expected": {
+        "scale": 0.009562841530054645,
+        "lines": [
+          {
+            "x": 0,
+            "baseline": 3993.0655737704915
+          },
+          {
+            "x": 0.9945355191256828,
+            "baseline": 3994.213114754098
+          },
+          {
+            "x": 0.6263661202185791,
+            "baseline": 3995.3606557377047
+          },
+          {
+            "x": 1.1379781420765025,
+            "baseline": 3996.5081967213114
+          }
+        ]
+      },
+      "tolerance": 1e-9
+    },
+    {
+      "name": "generated isRightToLeft 1",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": ""
+      },
+      "expected": false
+    },
+    {
+      "name": "generated isRightToLeft 2",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "שaع… "
+      },
+      "expected": true
+    },
+    {
+      "name": "generated isRightToLeft 3",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "ש Zש…"
+      },
+      "expected": true
+    },
+    {
+      "name": "generated isRightToLeft 4",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": ""
+      },
+      "expected": false
+    },
+    {
+      "name": "generated isRightToLeft 5",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "中a"
+      },
+      "expected": false
+    },
+    {
+      "name": "generated isRightToLeft 6",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "aa📷ع…"
+      },
+      "expected": false
+    },
+    {
+      "name": "generated isRightToLeft 7",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "中ع…中ש"
+      },
+      "expected": false
+    },
+    {
+      "name": "generated isRightToLeft 8",
+      "input": {
+        "operation": "isRightToLeft",
+        "text": "…عש"
+      },
+      "expected": true
     }
   ]
 }

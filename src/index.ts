@@ -63,6 +63,17 @@ export {
   sourceToComposition,
 } from "./core/model/geometry.js";
 export { createImageKey } from "./core/model/keys.js";
+export type { ImageMatrix, ImageTextLine } from "./core/model/layer-geometry.js";
+export {
+  applyMatrix,
+  fitTextLines,
+  invertMatrix,
+  isRightToLeft,
+  layerToOutput,
+  layerToScene,
+  sceneToLayerSource,
+  sceneToOutput,
+} from "./core/model/layer-geometry.js";
 export type {
   ImageBase,
   ImageCrop,

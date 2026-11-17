@@ -23,6 +23,7 @@ export async function drawPreview(
   plan: ImagePlan,
   view: ImageView,
   signal?: AbortSignal,
+  sources?: (id: string) => ImageBitmap | undefined,
 ): Promise<void> {
   const composition = compositionSize(plan, source);
   const { width, height } = backingSize(view);
@@ -36,6 +37,7 @@ export async function drawPreview(
     { ...plan, output: { kind: "scale", scale } },
     false,
     signal,
+    sources,
   );
   if (signal?.aborted) {
     rendered.width = 0;

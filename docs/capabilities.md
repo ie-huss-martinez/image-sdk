@@ -62,6 +62,7 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 - **Longest side:** the longest one-pixel-high canvas that draws, found by binary search up to 131,071 pixels; an engine that reaches that shows `at least`.
 - **Text:** drawn on a 2D `OffscreenCanvas` in the worker, where the text renderer draws it (ADR 0009). `fillText` and `strokeText` must leave ink, in each of the three generic families the plan offers, and `measureText` must give a width. The emoji is U+1F600, and **draws in colour** means some pixel isn't grey. The right-to-left text is Hebrew.
 - **Text through a transform:** the renderer lays text out at one size and scales it with the context's transform. **same pixels** means text at 160 pixels through a half-scale transform equals the same text at 80, pixel for pixel.
+- **serif against sans-serif, and bold:** the word "Hamburg" drawn in each. The plan's three families and its `bold` are requests, which the browser answers with the fonts it finds (ADR 0009): **another font** and **bolder** mean the pixels differ, **the same font** and **no change** that they don't. Bold may be a real bold face or one the browser makes from the regular. These rows follow from the fonts below.
 
 | Feature | Chromium | Firefox | WebKit |
 |---|---|---|---|
@@ -82,6 +83,23 @@ The SDK's probe refuses **GIF, frame outside the screen**, so the engine never d
 | Emoji with fillText | draws in colour | draws in colour | draws in colour |
 | Right-to-left text with fillText | draws | draws | draws |
 | Text at twice the size through a half-scale transform | same pixels | same pixels | same pixels |
+| serif against sans-serif | another font | the same font | the same font |
+| bold in sans-serif | bolder | bolder | bolder |
+| bold in serif | bolder | bolder | bolder |
+| bold in monospace | no change | bolder | bolder |
+
+## The fonts behind the generic names
+
+What fontconfig resolves each generic name to in the image, as `fc-match` prints it: the file, the family and the style. It's the image's answer, the same for each engine, though each engine may still choose its own fallbacks and make its own bold. The text rows above depend on these: when the image's fonts change, these rows change with them and say why.
+
+| Generic name | Chromium | Firefox | WebKit |
+|---|---|---|---|
+| Font for sans-serif | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular |
+| Font for sans-serif, bold | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular |
+| Font for serif | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular |
+| Font for serif, bold | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Regular |
+| Font for monospace | wqy-zenhei.ttc: WenQuanYi Zen Hei Mono Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Mono Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Mono Regular |
+| Font for monospace, bold | wqy-zenhei.ttc: WenQuanYi Zen Hei Mono Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Mono Regular | wqy-zenhei.ttc: WenQuanYi Zen Hei Mono Regular |
 
 ## How browsers compose a GIF
 
