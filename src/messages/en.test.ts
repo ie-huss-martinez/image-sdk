@@ -96,35 +96,24 @@ describe("imageMessages", () => {
   });
 });
 
-describe("the message catalogue (sdk-core ADR 0046)", () => {
-  const shared = new Set([...Object.keys(sdkCoreMessages), ...Object.keys(uiMessages)]);
-  const own = Object.keys(imageMessages).filter((key) => !shared.has(key));
-
-  it("includes every sdk-core and ui message, unchanged", () => {
-    for (const [key, value] of [
-      ...Object.entries(sdkCoreMessages),
-      ...Object.entries(uiMessages),
-    ]) {
+describe("the server-safe catalogue (docs/adr/0012)", () => {
+  it("holds sdk-core's messages unchanged, and of its own only errors and warnings", () => {
+    for (const [key, value] of Object.entries(sdkCoreMessages)) {
       expect(imageMessages[key as keyof typeof imageMessages], key).toEqual(value);
+    }
+    // Interface text belongs to the React entry's catalogue: a key added
+    // here that isn't an error's or a warning's fails.
+    const own = Object.keys(imageMessages).filter((key) => !Object.hasOwn(sdkCoreMessages, key));
+    expect(own.length).toBeGreaterThan(0);
+    for (const key of own) {
+      expect(key.startsWith("errors.") || key.startsWith("warnings."), key).toBe(true);
     }
   });
 
-  it("has keys of its own that collide with neither sdk-core's nor ui's", () => {
-    // Spreading catalogues lets a later key silently replace an earlier one,
-    // so a bump of sdk-core or ui that would take one of ours fails here.
-    expect(Object.keys(sdkCoreMessages).filter((key) => Object.hasOwn(uiMessages, key))).toEqual(
-      [],
-    );
-    expect(own.length).toBeGreaterThan(0);
-    const source = Object.keys(imageMessages);
-    expect(new Set(source).size).toBe(source.length);
-  });
-
-  it("names its own keys by surface, never by one of ui's component prefixes", () => {
-    const uiPrefixes = new Set(Object.keys(uiMessages).map((key) => key.split(".")[0]));
-    uiPrefixes.delete("errors");
-    for (const key of own) {
-      expect(uiPrefixes.has(key.split(".")[0]), key).toBe(false);
+  it("has no key of ui's that sdk-core doesn't share with it", () => {
+    for (const key of Object.keys(imageMessages)) {
+      if (Object.hasOwn(sdkCoreMessages, key)) continue;
+      expect(Object.hasOwn(uiMessages, key), key).toBe(false);
     }
   });
 });

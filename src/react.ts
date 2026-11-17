@@ -25,6 +25,8 @@ export type {
   ImageEditorProps,
   ImageEditorTheme,
 } from "./react/editor/types.js";
+export type { ImageEditorMessageCatalogue } from "./react/editor-messages.js";
+export { imageEditorMessages } from "./react/editor-messages.js";
 export type { ImageExportDialogProps } from "./react/export/ExportDialog.js";
 export { ImageExportDialog } from "./react/export/ExportDialog.js";
 export {
