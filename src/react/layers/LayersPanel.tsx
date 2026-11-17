@@ -9,10 +9,12 @@ import {
   MoveDownIcon,
   MoveUpIcon,
   NumberField,
+  ReorderableList,
+  ReorderableListItem,
   TextField,
   VisibleIcon,
 } from "@hussmartinez/ui/react";
-import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { MAX_SCENE_COORDINATE } from "../../core/model/plan.js";
 import {
   useImageDocument,
@@ -71,15 +73,16 @@ function NameField(props: {
 
 /**
  * The layers panel (docs/adr/0013), shown while the layers tool is on: the
- * list of layers, the top one first, each with a button that selects it and
- * one that shows or hides it; buttons that move the selected layer up and
- * down the stack, copy it and delete it; and its name, place, size, turn and
- * opacity as fields. Everything a frame on the stage does with a drag, the
- * panel does with a button or a field (WCAG 2.5.7).
+ * list of layers, the top one first, each with a button that shows or hides
+ * it; buttons that move the selected layer up and down the stack, mirror
+ * it, copy it and delete it; and its name, place, size, turn and opacity as
+ * fields, with its own kind's under them. Everything a frame on the stage
+ * does with a drag, the panel does with a button or a field (WCAG 2.5.7).
  *
- * While focus is in the list, `Alt` (`Option` on macOS) with the Up and
- * Down arrows moves the focused layer up and down the stack, and `Delete`
- * removes it: pdf-sdk's keys for its pages.
+ * The list is ui's `ReorderableList`: one tab stop, the Up and Down arrows
+ * between layers, `Alt` (`Option` on macOS) with them to move the focused
+ * layer up and down the stack, and `Delete` to remove it: pdf-sdk's keys
+ * for its pages.
  *
  * The panel keeps its size, whatever is selected: with no layer selected its
  * fields are disabled, and keep their place. Where the inspector sits under
@@ -94,28 +97,9 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
   const messages = useImageMessages();
   const actions = useLayerActions();
   const session = useImageSession();
-  const list = useRef<HTMLUListElement>(null);
   const panel = useRef<HTMLElement>(null);
   /** What the session refused, such as a copy over the limit, until the next action. */
   const [problem, setProblem] = useState<unknown>(null);
-  /** The row's button that takes focus back once the list has rendered: moving a row can drop it. */
-  const focusNext = useRef<{ key: string; visibility: boolean } | null>(null);
-  useEffect(() => {
-    const next = focusNext.current;
-    if (!next) return;
-    focusNext.current = null;
-    // Only when the move dropped focus, or left it in the list: never taken
-    // from somewhere else it has gone since.
-    const active = document.activeElement;
-    if (active && active !== document.body && !list.current?.contains(active)) return;
-    list.current
-      ?.querySelector<HTMLElement>(
-        `[data-hm-layer="${CSS.escape(next.key)}"] ${
-          next.visibility ? ".hm-image-layer-visibility" : ".hm-image-layer-select"
-        }`,
-      )
-      ?.focus();
-  });
 
   // A focus the tool asked for, once: the selected layer in the list when
   // the layers start, or the text field of a text layer just added.
@@ -126,7 +110,7 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
       ?.querySelector<HTMLElement>(
         focus === "text"
           ? ".hm-image-layers-text textarea"
-          : '.hm-image-layers-list [aria-pressed="true"], .hm-image-layers-list button',
+          : ".hm-image-layers-list [data-hm-tab-stop]",
       )
       ?.focus();
     editor.set((current) =>
@@ -156,40 +140,23 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
     }
   };
 
-  const onListKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
-    const target = event.target instanceof HTMLElement ? event.target : null;
-    const key = target?.closest<HTMLElement>("[data-hm-layer]")?.dataset["hmLayer"];
-    if (key === undefined || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    const visibility = target?.closest(".hm-image-layer-visibility") != null;
-    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-      // Taken even at the top and the bottom, where there's nowhere to move:
-      // the page behind never scrolls instead.
-      event.preventDefault();
-      event.stopPropagation();
-      actions.select(key);
-      const by = event.key === "ArrowUp" ? 1 : -1;
-      const to = layers.findIndex((layer) => layer.key === key) + by;
-      if (to < 0 || to >= count) return;
-      focusNext.current = { key, visibility };
-      run(() => actions.shift(key, by));
-      return;
-    }
-    if (!event.altKey && (event.key === "Delete" || event.key === "Backspace")) {
-      event.preventDefault();
-      event.stopPropagation();
-      run(() => {
-        const next = actions.remove(key);
-        // Focus goes to the layer now in its place, or to Done when none is left.
-        if (next !== null) focusNext.current = { key: next, visibility: false };
-        else {
-          list.current
-            ?.closest(".hm-image-layers-panel")
-            ?.querySelector<HTMLElement>(".hm-image-layers-done")
-            ?.focus();
-        }
-      });
-    }
+  /** The list shows the top layer first: a place in it, as a place in the plan. */
+  const moveTo = (key: string, toIndex: number) => {
+    const from = layers.findIndex((layer) => layer.key === key);
+    const to = count - 1 - toIndex;
+    if (from < 0) return;
+    // The layer that's moved is the one that's selected, as with the buttons.
+    actions.select(key);
+    // One place at a time, as the keys and the buttons move it.
+    if (Math.abs(to - from) === 1) run(() => actions.shift(key, to > from ? 1 : -1));
   };
+  const removeFromList = (key: string) =>
+    run(() => {
+      // The list keeps focus on the layer now in its place; with none left, it goes to Done.
+      if (actions.remove(key) === null) {
+        panel.current?.querySelector<HTMLElement>(".hm-image-layers-done")?.focus();
+      }
+    });
 
   // The fields are always there, so the panel keeps its size, and the stage
   // with it: with no layer selected they're disabled, and their place is kept.
@@ -239,33 +206,43 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
         {count === 0 ? (
           <p className="hm-image-layers-none">{messages.t("layers.none")}</p>
         ) : (
-          // The keys act on the row that holds focus, on its buttons.
-          <ul ref={list} onKeyDown={onListKeyDown}>
+          // ui's list: one tab stop, the arrows between rows, Alt or Option
+          // with Up and Down to move a layer, Delete to remove it.
+          <ReorderableList
+            label={messages.t("layers.list")}
+            selectedId={selected?.key ?? null}
+            onSelectedChange={(key) => actions.select(key)}
+            onMove={moveTo}
+            onRemove={removeFromList}
+            // A move is announced in the editor's own words, for the keys and the buttons alike.
+            announceMoves={false}
+          >
             {/* The top layer first, as it's seen. */}
             {[...layers].reverse().map((layer) => {
               const name = layerLabel(layer, messages);
               return (
-                <li key={layer.key} data-hm-layer={layer.key}>
-                  <Button
-                    variant="secondary"
-                    className="hm-image-layer-select"
-                    pressed={layer.key === selected?.key}
-                    aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Delete"
-                    onClick={() => actions.select(layer.key)}
-                  >
-                    {name}
-                  </Button>
-                  <IconButton
-                    className="hm-image-layer-visibility"
-                    label={messages.t("layers.visible", { name })}
-                    icon={layer.visible ? <VisibleIcon /> : <HiddenIcon />}
-                    pressed={layer.visible}
-                    onClick={() => run(() => actions.set(layer.key, { visible: !layer.visible }))}
-                  />
-                </li>
+                <ReorderableListItem
+                  key={layer.key}
+                  id={layer.key}
+                  label={name}
+                  data-hm-layer={layer.key}
+                  classNames={{ item: "hm-image-layer-select" }}
+                  controls={[
+                    <IconButton
+                      key="visibility"
+                      className="hm-image-layer-visibility"
+                      label={messages.t("layers.visible", { name })}
+                      icon={layer.visible ? <VisibleIcon /> : <HiddenIcon />}
+                      pressed={layer.visible}
+                      onClick={() => run(() => actions.set(layer.key, { visible: !layer.visible }))}
+                    />,
+                  ]}
+                >
+                  {name}
+                </ReorderableListItem>
               );
             })}
-          </ul>
+          </ReorderableList>
         )}
       </section>
       {/* biome-ignore lint/a11y/useSemanticElements: a named group of buttons, not a form's fieldset */}
@@ -279,6 +256,8 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
           icon={<MoveUpIcon />}
           disabled={!selected || selectedIndex === count - 1}
           focusableWhenDisabled
+          // The list's own key for it, while focus is in the list.
+          aria-keyshortcuts="Alt+ArrowUp"
           onClick={() => selected && run(() => actions.shift(selected.key, 1))}
         />
         <IconButton
@@ -286,6 +265,7 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
           icon={<MoveDownIcon />}
           disabled={!selected || selectedIndex === 0}
           focusableWhenDisabled
+          aria-keyshortcuts="Alt+ArrowDown"
           onClick={() => selected && run(() => actions.shift(selected.key, -1))}
         />
         <IconButton

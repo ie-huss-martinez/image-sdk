@@ -371,6 +371,7 @@ export const imageEditorMessages: {
     readonly "fileDropZone.hint": "or drop it here";
     readonly "fileDropZone.hintMultiple": "or drop them here";
     readonly "progress.label": "Progress";
+    readonly "reorderableList.moved": "{label} moved to position {position} of {count}";
     readonly "spinner.label": "Loading";
     readonly "errors.INVALID_THEME_TOKEN": "The theme setting {token} has a value that can't be used.";
     readonly "errors.INVALID_THEME_SELECTOR": "The theme can't be applied to the selector {selector}.";

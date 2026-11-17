@@ -438,9 +438,10 @@ describe("drawing (docs/adr/0015)", () => {
     // From the layers, with the drawing selected, the pen adds to it.
     await click(tool("layers"));
     await until(() => document.querySelector(".hm-image-layers-panel") !== null, "the layers");
-    expect(document.querySelector('.hm-image-layer-select[aria-pressed="true"]')?.textContent).toBe(
-      "Drawing",
-    );
+    expect(
+      document.querySelector('.hm-image-layers-list [aria-selected="true"] .hm-image-layer-select')
+        ?.textContent,
+    ).toBe("Drawing");
     await click(tool("draw"));
     await until(() => overlay() !== null, "drawing again");
     for (let i = 0; i < 4; i += 1) await rendered();

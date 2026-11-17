@@ -131,7 +131,7 @@ The editor adds text, rectangles, ellipses and other images over an image as lay
 
 - **In the panel:** the layers, the top one first, each with a button that selects it and one that shows or hides it; buttons that move the selected layer up and down, duplicate it and delete it; fields for its name, position, size, turn and opacity; and its own fields: a text layer's text, font, alignment, weight and colour, or a shape's fill and outline.
 - **On the image:** each layer has a frame. Press one to select the top layer under the pointer, drag it to move the layer, and drag a handle of the selected one to resize it.
-- **With the keyboard:** on a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it, or moves an arrow's tip, and `Delete` removes it. In the list, `Alt` (`Option` on macOS) with the Up or Down arrow moves the focused layer up or down the stack, and `Delete` removes it.
+- **With the keyboard:** on a focused frame, the arrow keys move the layer by a pixel, `Shift` with an arrow resizes it, or moves an arrow's tip, and `Delete` removes it. The list is one tab stop: the Up and Down arrows move between layers, `Alt` (`Option` on macOS) with them moves the focused layer up or down the stack, and `Delete` removes it.
 
 Text is drawn with the device's own fonts, in one of three generic families, so the same plan can look different on another device; the preview and the export of one session always agree ([ADR 0009](docs/adr/0009-scene-space-layers-and-plan-versions.md)). A new layer is set against the image's rotation and flips, so text added to a turned or mirrored image reads as text; "Mirror" in the panel flips a layer about its own box.
 

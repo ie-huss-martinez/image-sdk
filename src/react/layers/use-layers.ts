@@ -57,8 +57,9 @@ export interface LayerActions {
   /** Selects a layer, or none. */
   select(key: string | null): void;
   /**
-   * Removes a layer, as one step, and selects the one now in its place, or
-   * the new top one. Returns the key selected, if any.
+   * Removes a layer, as one step, and selects the one now in its place in
+   * the list, which shows the top layer first: the one that was under it,
+   * or the new bottom one. Returns the key selected, if any.
    */
   remove(key: string): string | null;
   /** Adds a copy over the layer, as one step, and selects it. Throws what the session refuses. */
@@ -113,7 +114,9 @@ export function useLayerActions(): LayerActions {
         const layer = layers()[index];
         if (!layer) return null;
         session.execute({ type: "image.removeLayers", keys: [key] });
-        const next = (layers()[index] ?? layers().at(-1))?.key ?? null;
+        // As the list shows them, the top one first: the layer now in the
+        // removed one's place there, which was under it, or the new last one.
+        const next = (layers()[index - 1] ?? layers()[0])?.key ?? null;
         select(next);
         announce(messages.t("layers.removed", { name: layerLabel(layer, messages) }));
         return next;
