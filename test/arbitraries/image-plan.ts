@@ -3,6 +3,7 @@ import {
   createPlan,
   DEVELOP_ADJUSTMENTS,
   FILTER_PRESETS,
+  type ImageFrame,
   type ImageLayer,
   type ImagePlan,
   type ImageRedaction,
@@ -20,8 +21,8 @@ import { createImageReducer, type ImageCommand } from "../../src/core/operations
  * for a plan.
  */
 
-/** The oriented size of source `s`. */
-export const SIZE = { width: 40, height: 30 };
+/** The oriented size of source `s`, and how many frames it has. */
+export const SIZE = { width: 40, height: 30, frames: 5 };
 export const reducer = createImageReducer((id) => (id === "s" ? SIZE : undefined));
 
 const crop = fc.oneof(
@@ -278,7 +279,8 @@ export function commandOn(state: ImagePlan): fc.Arbitrary<ImageCommand> {
   const keys = state.redactions.map((redaction) => redaction.key);
   const layerKeys = state.layers.map((layer) => layer.key);
   // A new item's key is free in the whole plan, not only in its own list.
-  const taken = [...keys, ...layerKeys];
+  const frameKeys = state.animation?.frames.map((frame) => frame.key) ?? [];
+  const taken = [...keys, ...layerKeys, ...frameKeys];
   const fresh = fc.uniqueArray(
     key.filter((value) => !taken.includes(value)),
     { minLength: 1, maxLength: 3 },
@@ -351,7 +353,8 @@ export function commandOn(state: ImagePlan): fc.Arbitrary<ImageCommand> {
       redactions: fc.tuple(...names.map(redactionWith)),
     }),
   );
-  if (keys.length === 0) return fc.oneof(command, insert, ...onLayers);
+  const onFrames = framesOn(state, fresh);
+  if (keys.length === 0) return fc.oneof(command, insert, ...onLayers, ...onFrames);
   const remove = someOf(keys).map((chosen) => ({
     type: "image.removeRedactions" as const,
     keys: chosen,
@@ -378,7 +381,56 @@ export function commandOn(state: ImagePlan): fc.Arbitrary<ImageCommand> {
       ),
     }),
   );
-  return fc.oneof(command, insert, remove, move, update, ...onLayers);
+  return fc.oneof(command, insert, remove, move, update, ...onLayers, ...onFrames);
+}
+
+const delay = fc.oneof(fc.constantFrom(0, 1, 10, 65_535), fc.integer({ min: 0, max: 65_535 }));
+const loop = fc.option(fc.oneof(fc.constantFrom(0, 1, 65_535), fc.nat(65_535)), { nil: null });
+
+const frameWith = (itemKey: string): fc.Arbitrary<ImageFrame> =>
+  fc.record({ key: fc.constant(itemKey), frame: fc.nat(SIZE.frames - 1), delay });
+
+/** The valid frame commands for this plan: none for a still. */
+function framesOn(state: ImagePlan, fresh: fc.Arbitrary<string[]>): fc.Arbitrary<ImageCommand>[] {
+  if (state.animation === null) return [];
+  const frames = state.animation.frames.map((frame) => frame.key);
+  const commands: fc.Arbitrary<ImageCommand>[] = [
+    fresh.chain((names) =>
+      fc.record({
+        type: fc.constant("image.insertFrames" as const),
+        at: fc.nat(frames.length),
+        frames: fc.tuple(...names.map(frameWith)),
+      }),
+    ),
+    someOf(frames).chain((chosen) =>
+      fc.record({
+        type: fc.constant("image.moveFrames" as const),
+        keys: fc.constant(chosen),
+        to: fc.nat(frames.length - chosen.length),
+      }),
+    ),
+    fc.constant({ type: "image.reverseFrames" as const }),
+    someOf(frames).chain((chosen) =>
+      fc.record({
+        type: fc.constant("image.updateFrames" as const),
+        updates: fc.tuple(
+          ...chosen.map((itemKey) =>
+            fc.record({ key: fc.constant(itemKey), props: fc.record({ delay }) }),
+          ),
+        ),
+      }),
+    ),
+    loop.map((value) => ({ type: "image.setLoop" as const, loop: value })),
+  ];
+  // An animation keeps a frame, so there's one to remove only past the first.
+  if (frames.length > 1) {
+    commands.push(
+      fc
+        .shuffledSubarray(frames, { minLength: 1, maxLength: frames.length - 1 })
+        .map((chosen) => ({ type: "image.removeFrames" as const, keys: chosen })),
+    );
+  }
+  return commands;
 }
 
 /** A plan and a sequence of commands, each valid on the plan the one before it gives. */
@@ -396,9 +448,30 @@ function sequenceFrom(
 }
 
 /** A plan reached by applying valid commands to a new one. */
+/** A new plan of source `s`: a still, or an animation of its first frames. */
+const start: fc.Arbitrary<ImagePlan> = fc.oneof(
+  { weight: 2, arbitrary: fc.constant(createPlan("s")) },
+  {
+    weight: 1,
+    arbitrary: fc.tuple(loop, fc.integer({ min: 1, max: 3 }), delay).map(
+      ([repeats, count, shown]): ImagePlan => ({
+        ...createPlan("s"),
+        animation: {
+          loop: repeats,
+          frames: Array.from({ length: count }, (_, frame) => ({
+            key: `frame-${frame}`,
+            frame,
+            delay: shown,
+          })),
+        },
+      }),
+    ),
+  },
+);
+
 export const plan: fc.Arbitrary<ImagePlan> = fc
-  .nat(6)
-  .chain((count) => sequenceFrom(createPlan("s"), count))
+  .tuple(start, fc.nat(6))
+  .chain(([state, count]) => sequenceFrom(state, count))
   .map(({ state }) => state);
 
 /** A plan, and a command that's valid for it. */

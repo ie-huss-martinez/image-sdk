@@ -1,6 +1,6 @@
 import type { Reducer } from "@hussmartinez/sdk-core";
 import { ImageError } from "../errors/image-error.js";
-import type { ImageLayer, ImageStroke } from "../model/plan.js";
+import type { ImageFrame, ImageLayer, ImageStroke } from "../model/plan.js";
 import {
   DEVELOP_ADJUSTMENTS,
   FILTER_PRESETS,
@@ -28,6 +28,17 @@ import {
   isRecord,
   isWhole,
 } from "./checks.js";
+import {
+  type ImageFrameProps,
+  insertFrames,
+  moveFrames,
+  removeFrames,
+  restoreFrames,
+  reverseFrames,
+  setFrameOrder,
+  setLoop,
+  updateFrames,
+} from "./frames.js";
 import {
   insertItems,
   type KeyedEntry,
@@ -292,6 +303,93 @@ export interface RestoreStrokesCommand {
 }
 
 /**
+ * Inserts frames into the animation, such as duplicates (docs/adr/0011).
+ * Each shows a frame the base's source has.
+ *
+ * @public
+ */
+export interface InsertFramesCommand {
+  readonly type: "image.insertFrames";
+  /** The index, from 0 to the number of frames. */
+  readonly at: number;
+  readonly frames: readonly ImageFrame[];
+}
+
+/**
+ * Removes frames from the animation, which keeps at least one.
+ *
+ * @public
+ */
+export interface RemoveFramesCommand {
+  readonly type: "image.removeFrames";
+  readonly keys: readonly string[];
+}
+
+/**
+ * Moves frames to an index of the list without them, keeping their order.
+ *
+ * @public
+ */
+export interface MoveFramesCommand {
+  readonly type: "image.moveFrames";
+  readonly keys: readonly string[];
+  readonly to: number;
+}
+
+/**
+ * Reverses the order the frames play in. It undoes itself.
+ *
+ * @public
+ */
+export interface ReverseFramesCommand {
+  readonly type: "image.reverseFrames";
+}
+
+/**
+ * Sets some frames' delays: one command for one frame or for all of them.
+ *
+ * @public
+ */
+export interface UpdateFramesCommand {
+  readonly type: "image.updateFrames";
+  readonly updates: readonly { readonly key: string; readonly props: ImageFrameProps }[];
+}
+
+/**
+ * Sets how many times the animation repeats: `null` for once, 0 for ever.
+ *
+ * @public
+ */
+export interface SetLoopCommand {
+  readonly type: "image.setLoop";
+  readonly loop: number | null;
+}
+
+/**
+ * Puts removed frames back, each at its index, by rising index. It's what
+ * undoes {@link RemoveFramesCommand}: the reducer applies it, but it isn't
+ * part of the portable command format (ADR 0009).
+ *
+ * @public
+ */
+export interface RestoreFramesCommand {
+  readonly type: "image.restoreFrames";
+  readonly entries: readonly { readonly at: number; readonly frame: ImageFrame }[];
+}
+
+/**
+ * Sets the whole order of the frames: every key, once. It's what undoes
+ * {@link MoveFramesCommand}: the reducer applies it, but it isn't part of
+ * the portable command format (ADR 0009).
+ *
+ * @public
+ */
+export interface SetFrameOrderCommand {
+  readonly type: "image.setFrameOrder";
+  readonly keys: readonly string[];
+}
+
+/**
  * The commands that exist only to undo others. The reducer applies them, and
  * they're plain data like every command, but the `hm-image-command` format
  * doesn't include them: an inverse's shape may change between releases
@@ -304,7 +402,9 @@ export type ImageInverseCommand =
   | RestoreLayersCommand
   | SetLayerOrderCommand
   | RestoreRedactionsCommand
-  | SetRedactionOrderCommand;
+  | SetRedactionOrderCommand
+  | RestoreFramesCommand
+  | SetFrameOrderCommand;
 
 /**
  * Every edit to an {@link ImagePlan}: plain, structured-cloneable data
@@ -329,6 +429,12 @@ export type ImageCommand =
   | RemoveRedactionsCommand
   | MoveRedactionsCommand
   | UpdateRedactionsCommand
+  | InsertFramesCommand
+  | RemoveFramesCommand
+  | MoveFramesCommand
+  | ReverseFramesCommand
+  | UpdateFramesCommand
+  | SetLoopCommand
   | ImageInverseCommand;
 
 /**
@@ -380,6 +486,17 @@ export type ImageCommand =
  * - `too-many-layers`: more layers and redactions than `MAX_PLAN_ITEMS`,
  *   the format's ceiling. The file policy's `maxLayers` is checked by the
  *   session, with its own error code.
+ * - `not-animated`: a frame command for a plan whose `animation` is `null`.
+ * - `unknown-frame`: a key no frame has.
+ * - `invalid-frame`: a frame of the source that the source doesn't have.
+ * - `invalid-delay`: a delay that isn't a whole number from 0 to
+ *   `MAX_FRAME_DELAY`.
+ * - `invalid-loop`: a loop count that isn't `null` or a whole number from 0
+ *   to `MAX_FRAME_DELAY`.
+ * - `no-frames`: removing every frame. An animation keeps at least one.
+ * - `too-many-frames`: more frames than `MAX_ANIMATION_FRAMES`, the
+ *   format's ceiling. The file policy's `maxFrames` is checked by the
+ *   session, with its own error code.
  *
  * @public
  */
@@ -418,7 +535,14 @@ export type ImageCommandRejection =
   | "invalid-colour"
   | "unexpected-colour"
   | "missing-colour"
-  | "too-many-layers";
+  | "too-many-layers"
+  | "not-animated"
+  | "unknown-frame"
+  | "invalid-frame"
+  | "invalid-delay"
+  | "invalid-loop"
+  | "no-frames"
+  | "too-many-frames";
 
 /** @internal */
 export function checkOrientation(value: unknown): ImageOrientation {
@@ -556,11 +680,23 @@ const COMMAND_FIELDS: Readonly<Record<ImageCommand["type"], readonly string[]>> 
   "image.updateRedactions": ["type", "updates"],
   "image.restoreRedactions": ["type", "entries"],
   "image.setRedactionOrder": ["type", "keys"],
+  "image.insertFrames": ["type", "at", "frames"],
+  "image.removeFrames": ["type", "keys"],
+  "image.moveFrames": ["type", "keys", "to"],
+  "image.reverseFrames": ["type"],
+  "image.updateFrames": ["type", "updates"],
+  "image.setLoop": ["type", "loop"],
+  "image.restoreFrames": ["type", "entries"],
+  "image.setFrameOrder": ["type", "keys"],
 };
 
 /** Every key the plan uses: a new item needs one that isn't among them. */
 function planKeys(plan: ImagePlan): Set<string> {
-  return new Set([...plan.layers, ...plan.redactions].map((item: { key: string }) => item.key));
+  return new Set(
+    [...plan.layers, ...plan.redactions, ...(plan.animation?.frames ?? [])].map(
+      (item: { key: string }) => item.key,
+    ),
+  );
 }
 
 /** Refuses more layers and redactions than the format holds. */
@@ -573,7 +709,25 @@ function checkRoom(plan: ImagePlan, added: number): void {
   }
 }
 
-type SourceSize = (id: string) => ImageSize | undefined;
+/**
+ * What the reducer needs to know of a source: its oriented size, to check
+ * crops, and how many frames it has, to check an animation's. A source
+ * that gives no count has one frame.
+ *
+ * @public
+ */
+export interface ImageReducerSource extends ImageSize {
+  readonly frames?: number;
+}
+
+type SourceSize = (id: string) => ImageReducerSource | undefined;
+
+/** How many frames the base's source has, for a command that names one. */
+function sourceFrames(plan: ImagePlan, sourceSize: SourceSize): number {
+  const source = sourceSize(plan.base.source);
+  if (source === undefined) invalid("unknown-source", `unknown source "${plan.base.source}"`);
+  return source.frames ?? 1;
+}
 
 /** A list of at least one layer. */
 function checkLayers(value: unknown, sourceSize: SourceSize): ImageLayer[] {
@@ -618,7 +772,7 @@ function checkRedactionEntries(value: unknown): KeyedEntry<ImageRedaction>[] {
 function apply(
   plan: ImagePlan,
   input: unknown,
-  sourceSize: (id: string) => ImageSize | undefined,
+  sourceSize: SourceSize,
 ): { state: ImagePlan; inverse: ImageCommand } {
   if (!isRecord<{ type: unknown }>(input)) invalid("malformed-command", "a command is an object");
   const { type } = input;
@@ -793,6 +947,33 @@ function apply(
         inverse: { type: "image.updateRedactions", updates: previous },
       };
     }
+    case "image.insertFrames":
+      return insertFrames(
+        plan,
+        command.at,
+        command.frames,
+        planKeys(plan),
+        plan.animation === null ? 1 : sourceFrames(plan, sourceSize),
+      );
+    case "image.removeFrames":
+      return removeFrames(plan, command.keys);
+    case "image.restoreFrames":
+      return restoreFrames(
+        plan,
+        command.entries,
+        planKeys(plan),
+        plan.animation === null ? 1 : sourceFrames(plan, sourceSize),
+      );
+    case "image.moveFrames":
+      return moveFrames(plan, command.keys, command.to);
+    case "image.setFrameOrder":
+      return setFrameOrder(plan, command.keys);
+    case "image.reverseFrames":
+      return reverseFrames(plan);
+    case "image.updateFrames":
+      return updateFrames(plan, command.updates);
+    case "image.setLoop":
+      return setLoop(plan, command.loop);
   }
 }
 
@@ -810,7 +991,7 @@ function apply(
  * @public
  */
 export function createImageReducer(
-  sourceSize: (id: string) => ImageSize | undefined,
+  sourceSize: (id: string) => ImageReducerSource | undefined,
 ): Reducer<ImagePlan, ImageCommand> {
   return (plan, command) => {
     try {

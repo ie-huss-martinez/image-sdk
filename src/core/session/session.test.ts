@@ -3,7 +3,7 @@ import type { TestImageSpec } from "../../../test/contracts/harness-types.js";
 import { createFakeEngine, type FakeEngine } from "../../../test/fakes/fake-engine.js";
 import { createFakeProcessor } from "../../../test/fakes/fake-processor.js";
 import { fakeEngineHarness } from "../../../test/fakes/harness.js";
-import { isImageError } from "../errors/image-error.js";
+import { type ImageError, isImageError } from "../errors/image-error.js";
 import type { ImagePlan } from "../model/plan.js";
 import type { ImageEngine } from "../ports/image-engine.js";
 import type { ImageProcessor } from "../ports/image-processor.js";
@@ -248,6 +248,41 @@ describe("the image session (ADR 0003)", () => {
         base: { ...target.base, develop: { ...target.base.develop, tint: 500 } },
       }),
     ).toThrow();
+  });
+
+  it("refuses frame commands and a host's animation for a still (docs/adr/0011)", async () => {
+    const { session } = setup();
+    await session.open(await file());
+    const start = session.getSnapshot().plan;
+    if (!start) throw new Error("no plan");
+    expect(start.animation).toBeNull();
+    const refused = (run: () => unknown) => {
+      try {
+        run();
+      } catch (error) {
+        return [(error as ImageError).code, (error as ImageError).details?.["reason"]];
+      }
+      throw new Error("expected a refusal");
+    };
+    expect(refused(() => session.execute({ type: "image.setLoop", loop: 0 }))).toEqual([
+      "INVALID_COMMAND",
+      "not-animated",
+    ]);
+    expect(refused(() => session.execute({ type: "image.reverseFrames" }))).toEqual([
+      "INVALID_COMMAND",
+      "not-animated",
+    ]);
+    expect(
+      refused(() =>
+        session.applyPlan({
+          ...start,
+          animation: { loop: 0, frames: [{ key: "f", frame: 0, delay: 10 }] },
+        }),
+      ),
+    ).toEqual(["INVALID_COMMAND", "not-animated"]);
+    // Nothing changed, and nothing can be undone.
+    expect(session.getSnapshot().plan).toEqual(start);
+    expect(session.undo()).toBe(false);
   });
 
   it("applies a host's redactions as one step, and refuses a plan from before they existed", async () => {

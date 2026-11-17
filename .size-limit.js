@@ -14,7 +14,10 @@ export default [
     name: "Server-safe core (.), with the shared code it loads",
     // The core never loads the React editor's chunks, nor the interface's
     // text, which the React entry holds (docs/adr/0012). Measured at
-    // 23.6 kB with the plan's format version 3: the keyed-list reducer; the
+    // 24.8 kB (19.0 kB minified) with the plan's format version 4: the
+    // animation's frames and loop count, their commands and the document's
+    // frame counts (docs/adr/0011), 1.3 kB over version 3's 23.6 kB; the
+    // keyed-list reducer; the
     // layer model, its checks, commands and geometry, with text fitting and
     // new layers' placement; drawings, strokes and arrows, with the exact
     // stroke simplifier, the arrow's outline and their bounds
@@ -23,25 +26,26 @@ export default [
     // text of errors and warnings.
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
-    limit: "24 kB",
+    limit: "25 kB",
   },
   {
-    // The core's 23.6 kB and the editor. Measured at 46.5 kB (35.6 kB
+    // The core's 24.8 kB and the editor. Measured at 47.4 kB (36.5 kB
     // minified) with the editor's tools up to drawing (docs/adr/0013,
-    // docs/adr/0015):
+    // docs/adr/0015) and the names of the frame commands for undo:
     // crop, redact, the layers' list and frames, the tools that add text,
     // shapes and images with their fields, and the interface's text.
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "47 kB",
+    limit: "48 kB",
   },
   {
-    // The React entry and the element's own mount: measured at 47.5 kB.
+    // The React entry and the element's own mount: measured at 48.4 kB
+    // (37.2 kB minified).
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "48 kB",
+    limit: "49 kB",
   },
   {
     name: "Stylesheet (./styles.css)",

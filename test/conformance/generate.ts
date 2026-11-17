@@ -30,7 +30,7 @@ const GENERATED_PER_REFUSAL = 2;
 const GENERATED_PLANS = 20;
 
 /** Source `s` as the generators know it, and a second, larger one. */
-const sources = { s: { ...SIZE }, t: { width: 4_000, height: 3_000 } };
+const sources = { s: { ...SIZE }, t: { width: 4_000, height: 3_000, frames: 1 } };
 
 /** The value as JSON carries it: what a port reads from the file. */
 const asJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -134,9 +134,30 @@ const ARROW = {
   width: 2,
 };
 
+/** The sources as documents before version 4 had them: with no frame counts. */
+const SOURCES_V3 = {
+  s: { width: SIZE.width, height: SIZE.height },
+  t: { width: 4_000, height: 3_000 },
+};
+/** The plan as an earlier version wrote it: every source a still. */
+const OLDER = { ...BASE, sources: SOURCES_V3 };
+
 /** The same plan as version 1 had it: before redactions, so without them. */
-const { layers: _layers, redactions: _redactions, animation: _animation, ...V1_FIELDS } = BASE;
+const { layers: _layers, redactions: _redactions, animation: _animation, ...V1_FIELDS } = OLDER;
 const V1 = { ...V1_FIELDS, version: 1 };
+
+/** An animation of source `s`, which has five frames (docs/adr/0011). */
+const ANIMATION = {
+  loop: 0,
+  frames: [
+    { key: "first", frame: 0, delay: 10 },
+    { key: "second", frame: 1, delay: 0 },
+    { key: "again", frame: 0, delay: 65_535 },
+    { key: "last", frame: 4, delay: 7 },
+  ],
+};
+/** The plan with every part set, animated. */
+const ANIMATED = { ...BASE, animation: ANIMATION };
 
 /**
  * A plan whose source ids are the names of `Object.prototype`'s properties,
@@ -149,9 +170,9 @@ const PROTOTYPE_NAMED = JSON.parse(
   JSON.stringify({
     ...BASE,
     sources: {
-      PROTO: { width: 10, height: 8 },
-      constructor: { width: 20, height: 16 },
-      toString: { width: 30, height: 24 },
+      PROTO: { width: 10, height: 8, frames: 1 },
+      constructor: { width: 20, height: 16, frames: 1 },
+      toString: { width: 30, height: 24, frames: 1 },
     },
     base: { ...BASE.base, source: "PROTO", crop: null },
     // The image layer's source is one of them too, with a crop of its whole size.
@@ -311,6 +332,17 @@ export function commandCases(): ConformanceFile {
     crop: null,
     ...changes,
   });
+  const onAnimated = (cmd: unknown) => ({ plan: ANIMATED, command: cmd });
+  const frame = (key: unknown, index: unknown, delay: unknown) => ({ key, frame: index, delay });
+  const insertFrames = (at: unknown, ...frames: unknown[]) => ({
+    type: "image.insertFrames",
+    at,
+    frames,
+  });
+  const removeFrames = (...keys: unknown[]) => ({ type: "image.removeFrames", keys });
+  const moveFrames = (to: unknown, ...keys: unknown[]) => ({ type: "image.moveFrames", keys, to });
+  const updateFrames = (...updates: unknown[]) => ({ type: "image.updateFrames", updates });
+  const setLoop = (loop: unknown) => ({ type: "image.setLoop", loop });
   const insertLayers = (at: unknown, ...layers: unknown[]) => ({
     type: "image.insertLayers",
     at,
@@ -1146,6 +1178,130 @@ export function commandCases(): ConformanceFile {
       on(insertLayers(0, { ...sketch, rotation: 0 })),
       refused("malformed-command"),
     ],
+    // The animation's frames and its loop count (format version 4, docs/adr/0011).
+    [
+      "inserts a duplicate of a frame after it",
+      onAnimated(insertFrames(1, frame("copy", 0, 10))),
+      applied,
+    ],
+    [
+      "inserts two frames at the end",
+      onAnimated(insertFrames(4, frame("a", 2, 0), frame("b", 3, 65_535))),
+      applied,
+    ],
+    ["removes a frame", onAnimated(removeFrames("second")), applied],
+    ["removes all frames but one", onAnimated(removeFrames("first", "again", "last")), applied],
+    [
+      "refuses removing every frame: an animation keeps one",
+      onAnimated(removeFrames("first", "second", "again", "last")),
+      refused("no-frames"),
+    ],
+    [
+      "moves two frames to the start, in their order",
+      onAnimated(moveFrames(0, "last", "again")),
+      applied,
+    ],
+    ["reverses the frames", onAnimated({ type: "image.reverseFrames" }), applied],
+    [
+      "sets one frame's delay",
+      onAnimated(updateFrames({ key: "second", props: { delay: 25 } })),
+      applied,
+    ],
+    [
+      "sets every frame's delay at once",
+      onAnimated(
+        updateFrames(...ANIMATION.frames.map(({ key }) => ({ key, props: { delay: 4 } }))),
+      ),
+      applied,
+    ],
+    [
+      "updates a frame with nothing to set",
+      onAnimated(updateFrames({ key: "first", props: {} })),
+      applied,
+    ],
+    ["sets the animation to play once", onAnimated(setLoop(null)), applied],
+    ["sets the animation to repeat three times", onAnimated(setLoop(3)), applied],
+    [
+      "refuses a frame command on a still",
+      on(insertFrames(0, frame("f", 0, 10))),
+      refused("not-animated"),
+    ],
+    ["refuses reversing a still", on({ type: "image.reverseFrames" }), refused("not-animated")],
+    ["refuses a loop count for a still", on(setLoop(0)), refused("not-animated")],
+    [
+      "refuses a frame the source doesn't have",
+      onAnimated(insertFrames(0, frame("f", 5, 10))),
+      refused("invalid-frame"),
+    ],
+    [
+      "refuses a frame before the first",
+      onAnimated(insertFrames(0, frame("f", -1, 10))),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a delay of 65,536",
+      onAnimated(insertFrames(0, frame("f", 0, 65_536))),
+      refused("invalid-delay"),
+    ],
+    [
+      "refuses setting a delay below 0",
+      onAnimated(updateFrames({ key: "first", props: { delay: -1 } })),
+      refused("invalid-delay"),
+    ],
+    [
+      "refuses setting a frame's frame: only its delay can be set",
+      onAnimated(updateFrames({ key: "first", props: { frame: 1 } })),
+      refused("malformed-command"),
+    ],
+    ["refuses a frame no frame has", onAnimated(removeFrames("missing")), refused("unknown-frame")],
+    [
+      "refuses moving a layer's key among the frames",
+      onAnimated(moveFrames(0, BASE.layers[0]?.key)),
+      refused("unknown-frame"),
+    ],
+    [
+      "refuses a new frame with a key a frame has",
+      onAnimated(insertFrames(0, frame("last", 0, 10))),
+      refused("duplicate-key"),
+    ],
+    [
+      "refuses a new frame with a key a layer has",
+      onAnimated(insertFrames(0, frame(BASE.layers[0]?.key, 0, 10))),
+      refused("duplicate-key"),
+    ],
+    [
+      "refuses a new layer with a key a frame has",
+      onAnimated(insertLayers(0, { ...BASE.layers[0], key: "first" })),
+      refused("duplicate-key"),
+    ],
+    [
+      "refuses inserting past the end of the frames",
+      onAnimated(insertFrames(5, frame("f", 0, 10))),
+      refused("invalid-index"),
+    ],
+    ["refuses a loop count of 65,536", onAnimated(setLoop(65_536)), refused("invalid-loop")],
+    ["refuses a loop count that isn't whole", onAnimated(setLoop(1.5)), refused("invalid-loop")],
+    ["refuses a loop count as text", onAnimated(setLoop("0")), refused("malformed-command")],
+    [
+      "refuses reversing with a field it doesn't have",
+      onAnimated({ type: "image.reverseFrames", keys: ["first"] }),
+      refused("malformed-command"),
+    ],
+    [
+      "refuses a 4,097th frame",
+      {
+        plan: {
+          ...BASE,
+          sources: { ...BASE.sources, s: { ...SIZE, frames: 4_096 } },
+          animation: {
+            loop: 0,
+            frames: Array.from({ length: 4_096 }, (_, index) => frame(`f${index}`, index, 1)),
+          },
+        },
+        command: insertFrames(0, frame("one-more", 0, 1)),
+      },
+      refused("too-many-frames"),
+    ],
   ];
 
   // A balanced sample: commands that apply, and a few of each refusal, so
@@ -1201,6 +1357,11 @@ export function commandCases(): ConformanceFile {
 /** `hm-image-plan`: a document read, checked and written back. */
 export function planCases(): ConformanceFile {
   const document = (changes: Record<string, unknown>) => ({ ...BASE, ...changes });
+  /** The plan as a version before 4 wrote it. */
+  const older = (changes: Record<string, unknown>) => ({ ...OLDER, ...changes });
+  /** The plan with an animation, changed. */
+  const animated = (changes: Record<string, unknown>) =>
+    document({ animation: { ...ANIMATION, ...changes } });
   const withBase = (changes: Record<string, unknown>) =>
     document({ base: { ...BASE.base, ...changes } });
   const invalidDocument = (reason: string) => refused(reason, "INVALID_DOCUMENT");
@@ -1219,7 +1380,120 @@ export function planCases(): ConformanceFile {
       invalidDocument("malformed-document"),
     ],
     ["reads a plan with no redactions", document({ redactions: [] }), applied],
-    ["reads version 2 as it is: only the version changes", document({ version: 2 }), applied],
+    [
+      "reads version 2 as it is: only the version and the sources' frame counts change",
+      older({ version: 2 }),
+      applied,
+    ],
+    ["reads version 3 as a still: each source has one frame", older({ version: 3 }), applied],
+    [
+      "refuses a version 3 document whose source has a frame count, which version 4 added",
+      document({ version: 3 }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a version 3 document with an animation, which version 4 added",
+      older({ version: 3, animation: ANIMATION }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a source without its frame count",
+      document({ sources: SOURCES_V3 }),
+      invalidDocument("malformed-document"),
+    ],
+    ["reads an animation", ANIMATED, applied],
+    [
+      "reads an animation of one frame that plays once",
+      document({ animation: { loop: null, frames: [{ key: "only", frame: 3, delay: 0 }] } }),
+      applied,
+    ],
+    [
+      "reads frames keyed __proto__, constructor and toString",
+      animated({
+        loop: 65_535,
+        frames: [
+          { key: "__proto__", frame: 0, delay: 1 },
+          { key: "constructor", frame: 1, delay: 2 },
+          { key: "toString", frame: 2, delay: 3 },
+        ],
+      }),
+      applied,
+    ],
+    [
+      "refuses a frame the source doesn't have",
+      animated({ frames: [{ key: "f", frame: 5, delay: 1 }] }),
+      invalidDocument("invalid-frame"),
+    ],
+    [
+      "refuses a frame before the first",
+      animated({ frames: [{ key: "f", frame: -1, delay: 1 }] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a delay of 65,536 hundredths of a second",
+      animated({ frames: [{ key: "f", frame: 0, delay: 65_536 }] }),
+      invalidDocument("invalid-delay"),
+    ],
+    [
+      "refuses a delay that isn't a whole number",
+      animated({ frames: [{ key: "f", frame: 0, delay: 1.5 }] }),
+      invalidDocument("invalid-delay"),
+    ],
+    [
+      "refuses a delay as text",
+      animated({ frames: [{ key: "f", frame: 0, delay: "10" }] }),
+      invalidDocument("malformed-document"),
+    ],
+    ["refuses a loop count below 0", animated({ loop: -1 }), invalidDocument("invalid-loop")],
+    ["refuses a loop count of 65,536", animated({ loop: 65_536 }), invalidDocument("invalid-loop")],
+    [
+      "refuses an animation with no frames",
+      animated({ frames: [] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses an animation without its loop count",
+      document({ animation: { frames: ANIMATION.frames } }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a frame with a field it doesn't have",
+      animated({ frames: [{ key: "f", frame: 0, delay: 1, disposal: 2 }] }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses two frames with one key",
+      animated({
+        frames: [
+          { key: "f", frame: 0, delay: 1 },
+          { key: "f", frame: 1, delay: 1 },
+        ],
+      }),
+      invalidDocument("duplicate-key"),
+    ],
+    [
+      "refuses a frame with a layer's key",
+      animated({ frames: [{ key: BASE.layers[0]?.key, frame: 0, delay: 1 }] }),
+      invalidDocument("duplicate-key"),
+    ],
+    [
+      "refuses an animation over a source with one frame",
+      document({
+        sources: { ...BASE.sources, s: { ...SIZE, frames: 1 } },
+        animation: { loop: 0, frames: [{ key: "f", frame: 0, delay: 1 }] },
+      }),
+      invalidDocument("not-animated"),
+    ],
+    [
+      "refuses a source with no frames",
+      document({ sources: { ...BASE.sources, s: { ...SIZE, frames: 0 } } }),
+      invalidDocument("malformed-document"),
+    ],
+    [
+      "refuses a source with 4,097 frames",
+      document({ sources: { ...BASE.sources, s: { ...SIZE, frames: 4_097 } } }),
+      invalidDocument("malformed-document"),
+    ],
     [
       "reads a drawing and an arrow",
       document({ layers: [...BASE.layers, DRAWING, ARROW] }),
@@ -1227,12 +1501,12 @@ export function planCases(): ConformanceFile {
     ],
     [
       "refuses a drawing in a version 2 document, which has none",
-      document({ version: 2, layers: [DRAWING] }),
+      older({ version: 2, layers: [DRAWING] }),
       invalidDocument("unknown-layer-kind"),
     ],
     [
       "refuses an arrow in a version 2 document, which has none",
-      document({ version: 2, layers: [ARROW] }),
+      older({ version: 2, layers: [ARROW] }),
       invalidDocument("unknown-layer-kind"),
     ],
     [
@@ -1403,11 +1677,6 @@ export function planCases(): ConformanceFile {
       invalidDocument("too-many-layers"),
     ],
     [
-      "refuses an animation, which arrives in a later version",
-      document({ animation: { loop: 0, frames: [] } }),
-      invalidDocument("malformed-document"),
-    ],
-    [
       "reads a new plan: no crop, upright, neutral, unfiltered, full size",
       withBase({
         crop: null,
@@ -1448,7 +1717,7 @@ export function planCases(): ConformanceFile {
     ],
     [
       "refuses a later version",
-      document({ version: 4 }),
+      document({ version: 5 }),
       refused("unknown-format-version", "UNSUPPORTED_FORMAT"),
     ],
     ["refuses a list", [BASE], invalidDocument("malformed-document")],
@@ -1465,7 +1734,7 @@ export function planCases(): ConformanceFile {
     ],
     [
       "refuses a source of no pixels",
-      document({ sources: { s: { width: 0, height: 30 } } }),
+      document({ sources: { s: { width: 0, height: 30, frames: 1 } } }),
       invalidDocument("malformed-document"),
     ],
     [

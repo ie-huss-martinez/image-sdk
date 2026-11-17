@@ -84,7 +84,7 @@ export function createImageKey(used?: ReadonlySet<string>): string;
 export function createImageProcessor(engine: ImageEngine): ImageProcessor;
 
 // @public
-export function createImageReducer(sourceSize: (id: string) => ImageSize | undefined): Reducer<ImagePlan, ImageCommand>;
+export function createImageReducer(sourceSize: (id: string) => ImageReducerSource | undefined): Reducer<ImagePlan, ImageCommand>;
 
 // @public
 export function createImageRenderer(engine: ImageEngine): ImageRenderer;
@@ -153,7 +153,13 @@ export function handleInSource(handle: CropHandle, orientation: ImageOrientation
 export const IMAGE_PLAN_FORMAT = "hm-image-plan";
 
 // @public
-export const IMAGE_PLAN_VERSION = 3;
+export const IMAGE_PLAN_VERSION = 4;
+
+// @public
+export interface ImageAnimation {
+    readonly frames: readonly ImageFrame[];
+    readonly loop: number | null;
+}
 
 // @public
 export interface ImageArrowLayer extends ImageLayerCommon {
@@ -195,10 +201,10 @@ export interface ImageCallOptions {
 }
 
 // @public
-export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand | InsertLayersCommand | RemoveLayersCommand | MoveLayersCommand | UpdateLayersCommand | AddStrokesCommand | RemoveStrokesCommand | InsertRedactionsCommand | RemoveRedactionsCommand | MoveRedactionsCommand | UpdateRedactionsCommand | ImageInverseCommand;
+export type ImageCommand = SetCropCommand | SetOrientationCommand | SetOutputCommand | SetMetadataCommand | SetDevelopCommand | SetFilterCommand | InsertLayersCommand | RemoveLayersCommand | MoveLayersCommand | UpdateLayersCommand | AddStrokesCommand | RemoveStrokesCommand | InsertRedactionsCommand | RemoveRedactionsCommand | MoveRedactionsCommand | UpdateRedactionsCommand | InsertFramesCommand | RemoveFramesCommand | MoveFramesCommand | ReverseFramesCommand | UpdateFramesCommand | SetLoopCommand | ImageInverseCommand;
 
 // @public
-export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "invalid-key" | "duplicate-key" | "invalid-index" | "invalid-order" | "unknown-layer" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "empty-drawing" | "empty-arrow" | "invalid-points" | "too-many-strokes" | "wrong-kind" | "unknown-redaction" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unexpected-colour" | "missing-colour" | "too-many-layers";
+export type ImageCommandRejection = "malformed-command" | "unknown-command" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "unknown-metadata-field" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "invalid-key" | "duplicate-key" | "invalid-index" | "invalid-order" | "unknown-layer" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "empty-drawing" | "empty-arrow" | "invalid-points" | "too-many-strokes" | "wrong-kind" | "unknown-redaction" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unexpected-colour" | "missing-colour" | "too-many-layers" | "not-animated" | "unknown-frame" | "invalid-frame" | "invalid-delay" | "invalid-loop" | "no-frames" | "too-many-frames";
 
 // @public
 export interface ImageCrop {
@@ -229,7 +235,7 @@ export interface ImageDevelop {
 }
 
 // @public
-export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "duplicate-key" | "invalid-key" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "empty-drawing" | "empty-arrow" | "invalid-points" | "too-many-layers";
+export type ImageDocumentRejection = "unknown-format" | "unknown-format-version" | "malformed-document" | "unknown-source" | "crop-outside-source" | "invalid-orientation" | "invalid-output" | "metadata-too-long" | "unknown-adjustment" | "invalid-level" | "unknown-preset" | "invalid-strength" | "duplicate-key" | "invalid-key" | "unknown-redaction-mode" | "invalid-region" | "invalid-colour" | "unknown-layer-kind" | "invalid-box" | "invalid-opacity" | "invalid-text" | "text-too-long" | "empty-shape" | "empty-drawing" | "empty-arrow" | "invalid-points" | "too-many-layers" | "not-animated" | "invalid-frame" | "invalid-delay" | "invalid-loop";
 
 // @public
 export interface ImageDrawingLayer extends ImageLayerCommon {
@@ -308,6 +314,19 @@ export type ImageFilterPreset = (typeof FILTER_PRESETS)[number];
 export type ImageFormat = "png" | "jpeg" | "webp" | "gif" | "avif" | "heif" | "bmp";
 
 // @public
+export interface ImageFrame {
+    readonly delay: number;
+    readonly frame: number;
+    readonly key: string;
+}
+
+// @public
+export interface ImageFrameProps {
+    // (undocumented)
+    readonly delay?: number;
+}
+
+// @public
 export interface ImageImageLayer extends ImageLayerCommon, ImageLayerBox {
     readonly crop: ImageCrop | null;
     // (undocumented)
@@ -316,7 +335,7 @@ export interface ImageImageLayer extends ImageLayerCommon, ImageLayerBox {
 }
 
 // @public
-export type ImageInverseCommand = RestoreStrokesCommand | RestoreLayersCommand | SetLayerOrderCommand | RestoreRedactionsCommand | SetRedactionOrderCommand;
+export type ImageInverseCommand = RestoreStrokesCommand | RestoreLayersCommand | SetLayerOrderCommand | RestoreRedactionsCommand | SetRedactionOrderCommand | RestoreFramesCommand | SetFrameOrderCommand;
 
 // @public
 export interface ImageKeepableMetadata {
@@ -559,7 +578,7 @@ export type ImageOutput = {
 
 // @public
 export interface ImagePlan {
-    readonly animation: null;
+    readonly animation: ImageAnimation | null;
     // (undocumented)
     readonly base: ImageBase;
     readonly layers: readonly ImageLayer[];
@@ -583,6 +602,7 @@ export interface ImagePlanDocument extends ImagePlan {
 export interface ImagePlanDocumentSource extends ImageSize {
     // (undocumented)
     readonly asset?: ImageAssetReference;
+    readonly frames: number;
 }
 
 // @public
@@ -669,6 +689,12 @@ export interface ImageRedactionRegion {
     readonly width: number;
     readonly x: number;
     readonly y: number;
+}
+
+// @public
+export interface ImageReducerSource extends ImageSize {
+    // (undocumented)
+    readonly frames?: number;
 }
 
 // @public
@@ -870,6 +896,15 @@ export interface ImageView {
 }
 
 // @public
+export interface InsertFramesCommand {
+    readonly at: number;
+    // (undocumented)
+    readonly frames: readonly ImageFrame[];
+    // (undocumented)
+    readonly type: "image.insertFrames";
+}
+
+// @public
 export interface InsertLayersCommand {
     readonly at: number;
     // (undocumented)
@@ -917,7 +952,13 @@ export function layerToOutput(box: ImageLayerBox, crop: ImageCrop, orientation: 
 export function layerToScene(box: ImageLayerBox): ImageMatrix;
 
 // @public
+export const MAX_ANIMATION_FRAMES = 4096;
+
+// @public
 export const MAX_DRAWING_STROKES = 1024;
+
+// @public
+export const MAX_FRAME_DELAY = 65535;
 
 // @public
 export const MAX_KEY_LENGTH = 64;
@@ -951,6 +992,16 @@ export const MAX_STROKE_WIDTH = 1024;
 
 // @public
 export function moveCrop(crop: ImageCrop, dx: number, dy: number, source: ImageSize): ImageCrop;
+
+// @public
+export interface MoveFramesCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly to: number;
+    // (undocumented)
+    readonly type: "image.moveFrames";
+}
 
 // @public
 export interface MoveLayersCommand {
@@ -1027,6 +1078,14 @@ export function redactionBlockSize(region: ImageSize): number;
 export function redactionRectInOutput(region: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2, output: ImageSize): ImageRect | null;
 
 // @public
+export interface RemoveFramesCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly type: "image.removeFrames";
+}
+
+// @public
 export interface RemoveLayersCommand {
     // (undocumented)
     readonly keys: readonly string[];
@@ -1050,6 +1109,17 @@ export interface RemoveStrokesCommand {
     readonly key: string;
     // (undocumented)
     readonly type: "image.removeStrokes";
+}
+
+// @public
+export interface RestoreFramesCommand {
+    // (undocumented)
+    readonly entries: readonly {
+        readonly at: number;
+        readonly frame: ImageFrame;
+    }[];
+    // (undocumented)
+    readonly type: "image.restoreFrames";
 }
 
 // @public
@@ -1088,6 +1158,12 @@ export interface RestoreStrokesCommand {
 }
 
 // @public
+export interface ReverseFramesCommand {
+    // (undocumented)
+    readonly type: "image.reverseFrames";
+}
+
+// @public
 export function sceneRectToComposition(rect: ImageRect, crop: ImageCrop, orientation: ImageOrientation_2): ImageRect;
 
 // @public
@@ -1121,11 +1197,27 @@ export interface SetFilterCommand {
 }
 
 // @public
+export interface SetFrameOrderCommand {
+    // (undocumented)
+    readonly keys: readonly string[];
+    // (undocumented)
+    readonly type: "image.setFrameOrder";
+}
+
+// @public
 export interface SetLayerOrderCommand {
     // (undocumented)
     readonly keys: readonly string[];
     // (undocumented)
     readonly type: "image.setLayerOrder";
+}
+
+// @public
+export interface SetLoopCommand {
+    // (undocumented)
+    readonly loop: number | null;
+    // (undocumented)
+    readonly type: "image.setLoop";
 }
 
 // @public
@@ -1170,6 +1262,17 @@ export function sourceToComposition(point: ImagePoint, crop: ImageCrop, orientat
 
 // @public
 export function toImagePlanDocument(plan: ImagePlan, sources: Readonly<Record<string, ImagePlanDocumentSource>>): ImagePlanDocument;
+
+// @public
+export interface UpdateFramesCommand {
+    // (undocumented)
+    readonly type: "image.updateFrames";
+    // (undocumented)
+    readonly updates: readonly {
+        readonly key: string;
+        readonly props: ImageFrameProps;
+    }[];
+}
 
 // @public
 export interface UpdateLayersCommand {

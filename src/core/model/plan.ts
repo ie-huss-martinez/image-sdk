@@ -487,6 +487,55 @@ export type ImageLayer = ImageBoxedLayer | ImageDrawingLayer | ImageArrowLayer;
 export type ImageLayerKind = ImageLayer["kind"];
 
 /**
+ * The most frames an animation lists: the format's ceiling, which the file
+ * policy's `maxFrames` applies below (docs/adr/0011). It's the most frames
+ * the SDK's GIF decoder keeps a table of.
+ *
+ * @public
+ */
+export const MAX_ANIMATION_FRAMES = 4_096;
+
+/**
+ * The longest a frame is shown, and the most times an animation repeats:
+ * what a GIF's sixteen bits hold.
+ *
+ * @public
+ */
+export const MAX_FRAME_DELAY = 65_535;
+
+/**
+ * One frame of an animation (docs/adr/0011): which of the source's frames
+ * it shows, and for how long. It holds no pixels, so two frames may show
+ * the same one.
+ *
+ * @public
+ */
+export interface ImageFrame {
+  /**
+   * Its identity: 1 to {@link MAX_KEY_LENGTH} code points, unique among the
+   * plan's layers, redactions and frames.
+   */
+  readonly key: string;
+  /** A frame of the base's source, from 0. */
+  readonly frame: number;
+  /** How long it's shown, in hundredths of a second: 0 to {@link MAX_FRAME_DELAY}. */
+  readonly delay: number;
+}
+
+/**
+ * An animation (docs/adr/0011): the frames of the base's source, in the
+ * order they play. Everything else in the plan applies to every frame.
+ *
+ * @public
+ */
+export interface ImageAnimation {
+  /** `null`: play once. 0: for ever. Otherwise that many repeats, to {@link MAX_FRAME_DELAY}. */
+  readonly loop: number | null;
+  /** 1 to {@link MAX_ANIMATION_FRAMES} frames. */
+  readonly frames: readonly ImageFrame[];
+}
+
+/**
  * The session's document: a description of the edits over an immutable
  * source, rendered to pixels only for display and export (ADR 0003, ADR
  * 0009).
@@ -499,8 +548,8 @@ export interface ImagePlan {
   readonly layers: readonly ImageLayer[];
   /** The redactions, applied over every layer (ADR 0010). */
   readonly redactions: readonly ImageRedaction[];
-  /** The animation (ADR 0011). Always `null` until format version 4. */
-  readonly animation: null;
+  /** The animation, or `null` for a still (docs/adr/0011). */
+  readonly animation: ImageAnimation | null;
   readonly output: ImageOutput;
   /** The fields the user chose to keep on export. Never a location (ADR 0005). */
   readonly metadata: ImageKeepableMetadata;
