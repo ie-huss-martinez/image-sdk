@@ -23,16 +23,20 @@ export default [
     limit: "21 kB",
   },
   {
+    // Measured at 40.4 kB with the editor's tools up to layers (docs/adr/0013):
+    // crop, redact, the layers' list and frames, the tools that add text,
+    // shapes and images with their fields, and the interface's text.
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "40 kB",
+    limit: "41 kB",
   },
   {
+    // The React entry and the element's own mount: measured at 41.4 kB.
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "40 kB",
+    limit: "42 kB",
   },
   {
     name: "Stylesheet (./styles.css)",

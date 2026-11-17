@@ -20,7 +20,7 @@ export type ImageEditorElementEvent = "change" | "event" | "export" | "error";
 // Warning: (ae-forgotten-export) The symbol "ImageEditorHandle" needs to be exported by the entry point element.d.ts
 //
 // @public
-export type ImageEditorElementMethods = Pick<ImageEditorHandle, "open" | "execute" | "export" | "undo" | "redo">;
+export type ImageEditorElementMethods = Pick<ImageEditorHandle, "open" | "insertImage" | "execute" | "export" | "undo" | "redo">;
 
 // @public
 export interface ImageEditorElementProps {
@@ -152,11 +152,39 @@ export const imageEditorMessages: {
         readonly one: "Area removed. {count} area is redacted.";
         readonly other: "Area removed. {count, number} areas are redacted.";
     };
+    readonly "tools.add-text": "Add text";
+    readonly "tools.add-rectangle": "Add a rectangle";
+    readonly "tools.add-ellipse": "Add an ellipse";
+    readonly "tools.add-image": "Add an image";
+    readonly "toolbar.groups.add": "Add";
+    readonly "editor.inserting": "Adding the image…";
+    readonly "layers.text": "Text";
+    readonly "layers.font": "Font";
+    readonly "layers.fonts.sans-serif": "Sans";
+    readonly "layers.fonts.serif": "Serif";
+    readonly "layers.fonts.monospace": "Mono";
+    readonly "layers.align": "Alignment";
+    readonly "layers.alignments.start": "Start";
+    readonly "layers.alignments.center": "Centre";
+    readonly "layers.alignments.end": "End";
+    readonly "layers.bold": "Bold";
+    readonly "layers.colour": "Colour";
+    readonly "layers.fill": "Fill";
+    readonly "layers.outline": "Outline";
+    readonly "layers.fillColour": "Fill colour";
+    readonly "layers.outlineColour": "Outline colour";
+    readonly "layers.outlineWidth": "Outline width";
+    readonly "layers.colours.black": "Black";
+    readonly "layers.colours.white": "White";
+    readonly "layers.colours.red": "Red";
+    readonly "layers.colours.yellow": "Yellow";
+    readonly "layers.colours.green": "Green";
+    readonly "layers.colours.blue": "Blue";
     readonly "tools.layers": "Layers";
     readonly "toolbar.groups.layers": "Layers";
     readonly "layers.panel": "Layers";
     readonly "layers.list": "Layers, the top one first";
-    readonly "layers.none": "No layers yet.";
+    readonly "layers.none": "No layers yet. Add text, a shape or an image from the toolbar.";
     readonly "layers.kinds.text": "Text";
     readonly "layers.kinds.rectangle": "Rectangle";
     readonly "layers.kinds.ellipse": "Ellipse";
@@ -278,6 +306,7 @@ export const imageEditorMessages: {
     readonly "export.ready": "{width, number} × {height, number} pixels, {format}, {size, fileSize}";
     readonly "export.download": "Download";
     readonly "export.close": "Done";
+    readonly "colorField.swatches": "swatches";
     readonly "dialog.close": "Close";
     readonly "fileDropZone.choose": "Choose a file";
     readonly "fileDropZone.chooseMultiple": "Choose files";

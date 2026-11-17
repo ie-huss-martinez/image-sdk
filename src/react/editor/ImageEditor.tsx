@@ -48,11 +48,12 @@ interface BodyProps
 
 function ImageEditorBody(props: BodyProps): ReactNode {
   const { initialFile, onChange, classNames = {}, unstyled = false, handle, events } = props;
-  const { engine, session, messages, view, editor, opener } = useImageInternals();
+  const { engine, session, messages, view, editor, opener, inserter } = useImageInternals();
   const snapshot = useImageDocument();
   const announce = useAnnounce();
   const root = useRef<HTMLElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const layerInput = useRef<HTMLInputElement>(null);
   const latestOnChange = useRef(onChange);
   latestOnChange.current = onChange;
 
@@ -76,7 +77,13 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     [platform, registry],
   );
   const context: ImageToolContext = useMemo(
-    () => ({ session, view, editor, chooseFile: () => input.current?.click() }),
+    () => ({
+      session,
+      view,
+      editor,
+      chooseFile: () => input.current?.click(),
+      chooseLayerImage: () => layerInput.current?.click(),
+    }),
     [session, view, editor],
   );
   const icons = useMemo(() => ({ ...imageIcons, ...props.icons }), [props.icons]);
@@ -89,6 +96,10 @@ function ImageEditorBody(props: BodyProps): ReactNode {
         engineInternals(engine)?.check();
         await opener.open(file);
       },
+      insertImage: async (file) => {
+        engineInternals(engine)?.check();
+        await inserter.insert(file);
+      },
       execute: (commands) => session.execute(commands),
       export: (format) => session.export(format),
       undo: () => {
@@ -98,7 +109,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
         session.redo();
       },
     }),
-    [engine, session, opener],
+    [engine, session, opener, inserter],
   );
 
   // The host's first image opens on mount; a later one replaces it.
@@ -173,7 +184,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   useEffect(() => {
     if (sourceId === undefined) return;
     editor.set((state) =>
-      state.tool === null && state.dialog === null
+      state.tool === null && state.dialog === null && state.error === null
         ? state
         : {
             ...state,
@@ -183,6 +194,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
             layers: null,
             preview: null,
             dialog: null,
+            error: null,
           },
     );
   }, [editor, sourceId]);
@@ -214,16 +226,9 @@ function ImageEditorBody(props: BodyProps): ReactNode {
       root.current?.querySelector<HTMLElement>(".hm-image-redact-add")?.focus();
       return;
     }
-    if (tool === "layers") {
-      // The layers start on the list: the selected layer's button, which is
-      // the top one's. With no layers, focus stays where it was.
-      root.current
-        ?.querySelector<HTMLElement>(
-          '.hm-image-layers-list [aria-pressed="true"], .hm-image-layers-list button',
-        )
-        ?.focus();
-      return;
-    }
+    // The layers' panel takes focus itself, when its tool asks: adding a
+    // shape or an image leaves focus where it was.
+    if (tool === "layers") return;
     if (was === null || tool !== null) return;
     const target = returnTo.current?.isConnected
       ? returnTo.current
@@ -273,6 +278,18 @@ function ImageEditorBody(props: BodyProps): ReactNode {
             const file = event.currentTarget.files?.[0];
             event.currentTarget.value = "";
             if (file) void opener.open(file);
+          }}
+        />
+        <input
+          ref={layerInput}
+          type="file"
+          accept="image/*"
+          hidden
+          tabIndex={-1}
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (file) void inserter.insert(file);
           }}
         />
         <div className="hm-image-editor-layout">

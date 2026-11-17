@@ -105,6 +105,16 @@ describe("<hm-image-editor> (docs/adr/0007, sdk-core ADR 0040)", () => {
     expect(exported).toMatchObject({ width: 20, height: 30 });
     expect(exported.blob.type).toBe("image/png");
 
+    // insertImage() adds a layer, and the change carries it; never the file's name.
+    await editor.insertImage(await photo(6, 4));
+    const withLayer = events.filter((event) => event.name === "change").at(-1)?.detail as ImagePlan;
+    expect(withLayer.layers).toHaveLength(1);
+    expect(withLayer.layers[0]).toMatchObject({ kind: "image", width: 6, height: 4, name: "" });
+    await until(
+      () => editor.querySelector('section[aria-label="Layers"]') !== null,
+      "the layers to show",
+    );
+
     // A host's usage events: anonymous, and never the file's name.
     expect(events.some((event) => event.name === "event")).toBe(true);
     for (const event of events) expect(event.json).not.toContain("private-holiday");

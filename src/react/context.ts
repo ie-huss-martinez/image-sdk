@@ -1,8 +1,11 @@
 import type { Messages, Store } from "@hussmartinez/sdk-core";
 import { createContext } from "react";
+import { asImageError } from "../core/errors/error-helpers.js";
+import { isImageError } from "../core/errors/image-error.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageSession } from "../core/session/session.js";
 import type { ImageEditorState } from "../features/editor-state.js";
+import { insertOnTop, newImageLayer } from "../features/layers/new-layer.js";
 import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
 import type { ImageViewState } from "./view-store.js";
 
@@ -15,6 +18,66 @@ export interface ImageContextValue {
   readonly view: Store<ImageViewState>;
   readonly editor: Store<ImageEditorState>;
   readonly opener: ImageOpener;
+  readonly inserter: ImageInserter;
+}
+
+/**
+ * Adds images as layers for the editor's controls (docs/adr/0013): one at a
+ * time, placed in the middle of the image as it's shown, then selected with
+ * the layers showing. A failure goes to the editor's state, which the stage
+ * shows; a cancellation shows nothing.
+ */
+export interface ImageInserter {
+  insert(file: Blob): Promise<void>;
+  cancel(): void;
+}
+
+/** Creates an {@link ImageInserter} for a session and an editor's state. */
+export function createInserter(
+  session: ImageSession,
+  editor: Store<ImageEditorState>,
+): ImageInserter {
+  let controller: AbortController | undefined;
+  return {
+    async insert(file) {
+      controller?.abort();
+      const current = new AbortController();
+      controller = current;
+      let key: string | undefined;
+      try {
+        await session.insertImage(file, {
+          signal: current.signal,
+          place: (image, plan) => {
+            const base = session.getSnapshot().source;
+            // The session checked that an image is open before it called.
+            const layer = newImageLayer(plan, base ?? image, image);
+            key = layer.key;
+            return insertOnTop(plan, layer);
+          },
+        });
+        const selected = key ?? null;
+        editor.set((state) => ({
+          ...state,
+          tool: "layers",
+          crop: null,
+          redact: null,
+          preview: null,
+          error: null,
+          layers: { selected },
+        }));
+      } catch (reason) {
+        const error = isImageError(reason) ? reason : asImageError(reason);
+        // Cancelled, or another image was opened meanwhile: nothing to say.
+        if (error.code !== "ABORTED") editor.set((state) => ({ ...state, error }));
+      } finally {
+        if (controller === current) controller = undefined;
+      }
+    },
+    cancel() {
+      controller?.abort();
+      controller = undefined;
+    },
+  };
 }
 
 /**

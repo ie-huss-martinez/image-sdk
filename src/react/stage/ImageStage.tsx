@@ -91,7 +91,7 @@ function useStageSize(element: HTMLElement | null): StageSize | undefined {
  * @public
  */
 export function ImageStage(props: ImageStageProps): ReactNode {
-  const { engine, messages, opener } = useImageInternals();
+  const { engine, messages, opener, inserter } = useImageInternals();
   const snapshot = useImageDocument();
   const [view] = useImageView();
   const [frame, setFrame] = useState<HTMLDivElement | null>(null);
@@ -191,9 +191,11 @@ export function ImageStage(props: ImageStageProps): ReactNode {
 
   const className = ["hm-image-stage", props.className].filter(Boolean).join(" ");
   const empty = status === "empty" && !snapshot.opening;
-  const error = snapshot.error ? (
+  // The document's failure, or what an editor's own action failed with.
+  const failure = snapshot.error ?? editorState.error;
+  const error = failure ? (
     <p className="hm-image-stage-error" role="alert">
-      {messages.error(snapshot.error)}
+      {messages.error(failure)}
     </p>
   ) : null;
   return (
@@ -263,10 +265,13 @@ export function ImageStage(props: ImageStageProps): ReactNode {
           {error}
         </FileDropZone>
       ) : null}
-      {snapshot.opening ? (
+      {snapshot.opening || snapshot.inserting ? (
         <div className="hm-image-stage-opening">
-          <Spinner label={messages.t("editor.opening")} />
-          <Button variant="secondary" onClick={() => opener.cancel()}>
+          <Spinner label={messages.t(snapshot.opening ? "editor.opening" : "editor.inserting")} />
+          <Button
+            variant="secondary"
+            onClick={() => (snapshot.opening ? opener.cancel() : inserter.cancel())}
+          >
             {messages.t("editor.cancel")}
           </Button>
         </div>

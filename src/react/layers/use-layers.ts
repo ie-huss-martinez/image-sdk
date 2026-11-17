@@ -5,6 +5,7 @@ import {
   type ImageLayer,
   type ImageLayerBox,
   MAX_LAYER_NAME_LENGTH,
+  MAX_LAYER_TEXT_LENGTH,
   MAX_SCENE_COORDINATE,
 } from "../../core/model/plan.js";
 import { FORBIDDEN_IN_TEXT } from "../../core/operations/layers.js";
@@ -41,6 +42,16 @@ export function fitLayerName(name: string): string {
   return [...name.replace(EVERY_FORBIDDEN, "").trim()].slice(0, MAX_LAYER_NAME_LENGTH).join("");
 }
 
+/**
+ * Text as the plan takes it (docs/adr/0009): every line break a line feed,
+ * whatever it was where the text came from; a tab a space; without the
+ * characters text can't hold; within its length.
+ */
+export function fitLayerText(text: string): string {
+  const lines = text.replace(/\r\n?/g, "\n").replace(/\t/g, " ");
+  return [...lines.replace(EVERY_FORBIDDEN, "")].slice(0, MAX_LAYER_TEXT_LENGTH).join("");
+}
+
 /** What the layers' frames and panel do (docs/adr/0013). */
 export interface LayerActions {
   /** Selects a layer, or none. */
@@ -62,6 +73,11 @@ export interface LayerActions {
   cancel(): void;
   /** Sets some of a layer's fields at once, as one step: a field of the panel. */
   set(key: string, props: Readonly<Record<string, unknown>>): void;
+  /**
+   * Shows some of a layer's fields while they're typed, and sets them as
+   * one step once the typing stops: a text field.
+   */
+  typing(key: string, props: Readonly<Record<string, unknown>>): void;
   /** Stops showing the layers. */
   done(): void;
   /** The gesture these actions run. */
@@ -146,6 +162,10 @@ export function useLayerActions(): LayerActions {
       set(key, props) {
         gesture.commit();
         session.execute({ type: "image.updateLayers", updates: [{ key, props }] });
+      },
+      typing(key, props) {
+        gesture.preview([{ type: "image.updateLayers", updates: [{ key, props }] }]);
+        gesture.commitSoon();
       },
       done() {
         gesture.commit();

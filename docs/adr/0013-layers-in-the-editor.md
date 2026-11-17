@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Builds on:** [ADR 0007](0007-editor-shell.md) (the editor shell, gestures and the frames' keys) and [ADR 0009](0009-scene-space-layers-and-plan-versions.md) (layers and their commands); in sdk-core, [ADR 0009](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0009-features-as-tools.md) (features as tools), [ADR 0014](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0014-accessibility-and-translatable-text.md) (accessibility) and [ADR 0030](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0030-tools-and-keyboard-shortcuts.md) (tools and shortcuts)
+- **Amended:** 2026-11-17: the tools that add text, shapes and images, the fields of each kind, and where focus goes when a layer is added, under "Adding layers"
 - **Follows:** pdf-sdk's [ADR 0008](https://github.com/ie-huss-martinez/pdf-sdk/blob/main/docs/adr/0008-page-organisation-in-the-editor.md), for the keys that reorder a list
 
 ## Context
@@ -27,9 +28,38 @@ Three things need one answer across both:
 `image.layers` is a tool like Crop and Redact: a folder under `src/features/`, a button in the default toolbar after Redact, the icon `layers`, and the shortcut `L`, which works only while focus is inside the editor and never in a field (WCAG 2.1.4, sdk-core ADR 0030).
 
 - **While it's on,** the inspector shows the layers panel and the stage shows the frames. One tool has the stage at a time: starting Crop or Redact ends it, and it ends them.
-- **It starts with the top layer selected,** and focus on that layer's button in the list. With no layers, focus stays on the tool's button.
+- **It starts with the top layer selected,** and focus on that layer's button in the list. With no layers, focus stays on the tool's button. The tool asks the panel for that focus through the editor's state, once; nothing else moves focus to the list.
 - **It ends** with its button, `L`, the panel's Done, or `Escape` on a frame. Focus returns to where it was ([ADR 0007](0007-editor-shell.md)).
-- **Adding layers isn't here.** The text, shape and image tools come next; each will insert its layer and show the layers with it selected.
+
+### Adding layers
+
+Four tools, in one toolbar group before Layers: `image.add-text` (shortcut `T`), `image.add-rectangle`, `image.add-ellipse` and `image.add-image`. Each adds one layer over every other, as one undoable step, and shows the layers with it selected.
+
+- **A new layer is in the middle of the image as it's shown, the right way up.** Layers live in the scene, which the plan's rotation turns with the image ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). So a new layer's box is turned back by the plan's quarter turns: its top is up on screen, and it has the size it's given as it's seen.
+- **On a mirrored image, a new layer is mirrored too.** A flip mirrors the whole scene, and a layer has no flip of its own to undo it. Text added to a mirrored image reads mirrored, as the image does. A per-layer flip would be a change to the format, and isn't decided here.
+- **Text starts empty,** half the image wide and a fifth of it tall, black, centred. There's no placeholder: sample text in the plan would be in the export of anyone who forgot it. Focus moves to the layer's text field, so typing is the next thing that happens.
+- **A shape starts as a red outline with no fill,** a quarter of the image each way: something to put around a detail. The outline is a hundredth of the image's shorter side, at least 2 pixels.
+- **An image is chosen in the tool's own file picker** and added with `session.insertImage`: at its own size, or fitted in half of what's shown if that's smaller. While it's read, the stage shows a spinner with a cancel button, as it does for an open. `insertImage(file)` on the editor's handle and on `<hm-image-editor>` does the same for a file the host has.
+- **A file's name is never used.** An image layer is unnamed, and goes by "Image".
+- **Focus stays where it was when a shape or an image is added:** on the tool's button, to add another or move on from. Only text moves it, to its field. A host calling `insertImage` never has focus taken from its page.
+- **What can't be added is said on the stage,** as a failed open is: a file that isn't an image, a layer over `maxLayers`. It's the error's text from the catalogue by its code, in `error` on the editor's state, until a layer is added or another image opens. Nothing changes.
+
+### The fields of each kind
+
+Under the fields every layer has, the panel shows the selected layer's own:
+
+| Kind | Fields |
+|---|---|
+| Text | The text, in a multi-line field; the font, one of the three generic families; the alignment; bold; the colour |
+| Shape | Fill, on or off, and its colour; outline, on or off, its colour and its width |
+| Image | None of its own |
+
+- **Text is drawn as it's typed.** Each change is a transient plan, and the typing becomes one undoable step when it pauses or the field is left ([ADR 0007](0007-editor-shell.md)).
+- **The field takes what the plan takes.** Every line break becomes a line feed, whatever it was where the text came from; a tab becomes a space; the characters text can't hold are dropped; and anything past 1,000 code points is cut. So pasted text is never refused.
+- **A colour is any `#rrggbb`,** typed, or one of six swatches: black, white, red, yellow, green and blue. The control is `@hussmartinez/ui`'s.
+- **A shape always has a fill or an outline** ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). Turning off the only one turns on the other, in the same colour, as one step. Nothing is refused, and the shape never disappears.
+- **The two sets of fields share one place,** as tall as the taller, with the set that doesn't apply hidden from sight, focus and assistive technology. So the panel keeps its size whichever kind is selected, and the stage doesn't move.
+- **The panel is long.** Where the inspector is short it scrolls, and the list can scroll out of view while a layer's fields are used. Splitting it is left for later.
 
 ### Selection
 
@@ -144,7 +174,7 @@ A layer's box is whole scene pixels, turned about its centre by tenths of a degr
 ## Consequences
 
 - **Layers a host or a plan adds can be selected, moved, resized, turned, hidden, reordered, copied and deleted** from the editor, with a pointer or without one.
-- **`ImageEditorState` gains `layers`,** and `"layers"` as a value of `tool`. A host that builds its own shell renders `ImageLayersPanel`; `ImageStage` shows the frames whenever the tool is on.
+- **`ImageEditorState` gains `layers` and `error`,** and `"layers"` as a value of `tool`. `ImageToolContext` gains `chooseLayerImage`, which a host that builds its own tool context must provide. A host that builds its own shell renders `ImageLayersPanel`; `ImageStage` shows the frames whenever the tool is on.
 - **The default toolbar gains a button,** so every screenshot of the editor's toolbar changed with it.
 - **A long list costs two tab stops a layer** until ui has a control for it.
 - **A gesture's transient plan now resolves image layers' sources,** as the session's reducer does: moving an image layer is checked against its own source's size.
