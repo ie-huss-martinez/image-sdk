@@ -14,7 +14,7 @@ Releases up to 0.3.0 edit one image: the plan has a `base`, an `output` and `met
 
 The plan and its commands have a portable format, `hm-image-plan` and `hm-image-command` version 1 ([the format record](../formats/hm-image-plan.md)), with strict schemas and readers. Every release here changes what a plan can hold, so each needs a rule for versions.
 
-Two records follow this one: [ADR 0010](0010-redaction.md) decides how a redaction is rendered and proved, and ADR 0011 decides GIF decoding, animation and GIF export. This record decides the model they share.
+Two records follow this one: [ADR 0010](0010-redaction.md) decides how a redaction is rendered and proved, and [ADR 0011](0011-gif-and-animation.md) decides GIF decoding, animation and GIF export. This record decides the model they share.
 
 ## Decision
 
@@ -102,11 +102,11 @@ Layers, redactions and, later, frames are each a list of keyed items, and one re
 |---|---|---|
 | 2 | 0.4.0 | `layers` with `text`, `shape` and `image`; `redactions`; `animation`, always `null` |
 | 3 | 0.5.0 | The `drawing` and `arrow` kinds, and the stroke commands |
-| 4 | 0.6.0 | `animation` as an object, and the frame commands (ADR 0011) |
+| 4 | 0.6.0 | `animation` as an object, and the frame commands ([ADR 0011](0011-gif-and-animation.md)) |
 
 - **Each widening is a new version, never an addition to the last one.** Readers are strict. A 0.4 reader given a document with a drawing must refuse it as `UNSUPPORTED_FORMAT` with `unknown-format-version`, which a host can show as "update the application". If version 2 had grown a new kind instead, that reader would refuse the same document as `INVALID_DOCUMENT`, which a host shows as a damaged file. Filter presets are different: a preset is a value in a field, and they're only ever added ([ADR 0006](0006-develop-and-filters.md)).
 - **`hm-image-command` takes the same version numbers.** Version 1's commands are valid in every later version, unchanged.
-- **Each version has a pure migration from the one before:** version 1 to 2 adds `layers: []`, `redactions: []` and `animation: null`; 2 to 3 and 3 to 4 change only the version. A reader accepts every version up to its own, migrates step by step, and writes its own. Every earlier version stays readable.
+- **Each version has a pure migration from the one before:** version 1 to 2 adds `layers: []`, `redactions: []` and `animation: null`; 2 to 3 changes only the version; 3 to 4 also gives each source its `frames`, 1. A reader accepts every version up to its own, migrates step by step, and writes its own. Every earlier version stays readable.
 - **Strict, as version 1 is:** every object sets `additionalProperties: false`; kinds are told apart by `kind`; lists carry `maxItems` and text `maxLength`, in code points. A schema's ceilings are fixed: 1,024 layers and redactions together, and 2,000 points in a stroke. The file policy's limits apply below them.
 - **Keys are data.** Layers are a list, so a key is a string in a field, never a property name. The vectors use `__proto__`, `constructor` and `toString` as keys and as source ids. A key repeated anywhere in a document is `duplicate-key`.
 - **Beyond the schema,** a reader checks what depends on the whole document: an image layer's source is one the document lists, and its crop fits that source.
@@ -144,7 +144,7 @@ A plan can come from a file or a host, so its text is untrusted. Text and names 
 
 ### Size budgets
 
-Each pull request sets its budget from the measured size, as [ADR 0006](0006-develop-and-filters.md) did for develop. The model, reducers, readers and migrations are expected to take the server-safe core from 14 kB to about 22 kB, and the layer renderer the worker from 17 kB to about 28 kB with [ADR 0010](0010-redaction.md)'s and ADR 0011's parts. The React entry stays within its 40 kB: tools that most sessions never open load in their own chunks.
+Each pull request sets its budget from the measured size, as [ADR 0006](0006-develop-and-filters.md) did for develop. The model, reducers, readers and migrations are expected to take the server-safe core from 14 kB to about 22 kB, and the layer renderer the worker from 17 kB to about 28 kB with [ADR 0010](0010-redaction.md)'s and [ADR 0011](0011-gif-and-animation.md)'s parts. The React entry stays within its 40 kB: tools that most sessions never open load in their own chunks.
 
 ## Alternatives considered
 

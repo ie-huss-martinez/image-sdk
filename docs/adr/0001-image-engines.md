@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-12
 - **Partially superseded by:** [0010](0010-redaction.md), for the blurred redaction, which is deferred
+- **Amended by:** [0011](0011-gif-and-animation.md): every GIF is decoded by the SDK's own decoder, and opens as an animation from 0.6.0
 
 ## Context
 
