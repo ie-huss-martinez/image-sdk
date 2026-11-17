@@ -44,18 +44,21 @@ const schema = (path: string) =>
   JSON.parse(readFileSync(new URL(`../../formats/${path}`, import.meta.url), "utf8")) as object;
 const FORMATS = "https://github.com/ie-huss-martinez/image-sdk/blob/main/formats";
 // Every version's schemas: a reader reads them all, and writes the latest.
-for (const version of [1, 2, 3]) ajv.addSchema(schema(`hm-image-plan/v${version}.schema.json`));
+for (const version of [1, 2, 3, 4]) ajv.addSchema(schema(`hm-image-plan/v${version}.schema.json`));
 const planSchema = (version: number) =>
   ajv.getSchema(`${FORMATS}/hm-image-plan/v${version}.schema.json`) as (value: unknown) => boolean;
-const planValid = planSchema(3);
-const commandValid = ajv.compile(schema("hm-image-command/v3.schema.json"));
+const planValid = planSchema(4);
+const commandValid = ajv.compile(schema("hm-image-command/v4.schema.json"));
+const commandValidV3 = ajv.compile(schema("hm-image-command/v3.schema.json"));
 const commandValidV2 = ajv.compile(schema("hm-image-command/v2.schema.json"));
 const commandValidV1 = ajv.compile(schema("hm-image-command/v1.schema.json"));
 
 /** The schema of the version a document names, or the latest for one that names none. */
 const validForItsVersion = (document: unknown) => {
   const version = (document as { version?: unknown } | null)?.version;
-  return version === 1 || version === 2 ? planSchema(version)(document) : planValid(document);
+  return version === 1 || version === 2 || version === 3
+    ? planSchema(version)(document)
+    : planValid(document);
 };
 
 /** The commands that only undo others: the reducer applies them, the format leaves them out. */
@@ -65,6 +68,8 @@ const INVERSE_ONLY = new Set([
   "image.restoreStrokes",
   "image.restoreRedactions",
   "image.setRedactionOrder",
+  "image.restoreFrames",
+  "image.setFrameOrder",
 ]);
 
 /**
@@ -95,6 +100,8 @@ const STRUCTURAL = new Set([
   "invalid-opacity",
   "invalid-text",
   "text-too-long",
+  "invalid-delay",
+  "invalid-loop",
 ]);
 
 const refusal = ({ expected }: ConformanceCase) =>
@@ -123,7 +130,8 @@ describe("the format schemas agree with the readers", () => {
     for (const testCase of readConformance(COMMANDS).cases) {
       const { command: cmd } = testCase.input as { command: unknown };
       if (commandValidV1(cmd)) expect(commandValidV2(cmd), testCase.name).toBe(true);
-      if (commandValidV2(cmd)) expect(commandValid(cmd), testCase.name).toBe(true);
+      if (commandValidV2(cmd)) expect(commandValidV3(cmd), testCase.name).toBe(true);
+      if (commandValidV3(cmd)) expect(commandValid(cmd), testCase.name).toBe(true);
     }
   });
 
@@ -251,16 +259,46 @@ describe("the format schemas agree with the readers", () => {
             })),
           ),
     );
+    // The animation, or one of its frames, with a field replaced or added, where there is one.
+    const animated = document.chain((value) => {
+      const { animation } = value;
+      if (animation === null) return fc.constant(value as unknown);
+      return fc.oneof(
+        mutated(fc.constant(animation as object)).map((changed) => ({
+          ...value,
+          animation: changed,
+        })),
+        fc.nat(animation.frames.length - 1).chain((index) =>
+          mutated(fc.constant(animation.frames[index] as object)).map((changed) => ({
+            ...value,
+            animation: {
+              ...animation,
+              frames: animation.frames.map((item, at) => (at === index ? changed : item)),
+            },
+          })),
+        ),
+      );
+    });
+    // A source with a field replaced or added, such as its frame count.
+    const sourced = document.chain((value) =>
+      mutated(fc.constant(value.sources["s"] as object)).map((changed) => ({
+        ...value,
+        sources: { s: changed },
+      })),
+    );
     fc.assert(
-      fc.property(fc.oneof(mutated(document), nested, redacted, layered), (value) => {
-        let accepted = true;
-        try {
-          readAndWrite(value);
-        } catch {
-          accepted = false;
-        }
-        if (accepted) expect(planValid(value)).toBe(true);
-      }),
+      fc.property(
+        fc.oneof(mutated(document), nested, redacted, layered, animated, sourced),
+        (value) => {
+          let accepted = true;
+          try {
+            readAndWrite(value);
+          } catch {
+            accepted = false;
+          }
+          if (accepted) expect(planValid(value)).toBe(true);
+        },
+      ),
       { numRuns: 2_000 },
     );
   });

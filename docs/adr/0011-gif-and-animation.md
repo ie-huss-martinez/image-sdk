@@ -5,6 +5,7 @@
 - **Amends:** [ADR 0001](0001-image-engines.md), [ADR 0002](0002-workers-and-assets.md) and [ADR 0004](0004-image-limits.md), as "What this changes in earlier records" lists
 - **Amended:** 2026-11-17, as the decoder was put behind opening a file: it and the probe open what browsers open where that's safe, under "What a malformed file does". The decoder was strict before, and the probe refused any file it couldn't walk to its trailer
 - **Amended:** 2026-11-17, before the animation was built: it ships in 0.7.0, since 0.6.0 carried the decoder and the malformed-file fixes on their own; an animation ends at the frame before one that can't be decoded, decided when the file is opened, under "A later frame that can't be decoded"; and the reserved disposal methods' mapping is marked as read from decoders, not measured, until its test exists
+- **Amended:** 2026-11-17, as the model was built: the format's ceiling of 4,096 frames and `too-many-frames`, which refusals are the schema's, the two commands that only undo, and that no command gives a plan an animation, under "The animation in the plan"
 
 ## Context
 
@@ -113,9 +114,15 @@ interface ImageFrame {
   | `image.setLoop { loop }` | Sets the loop count |
 
 - **Trimming is removing frames,** and setting every delay is one `image.updateFrames`, so each is one undo step.
-- **Rejections** add `unknown-frame`, `invalid-frame` (an index the source doesn't have), `invalid-delay`, `invalid-loop`, `no-frames` and `not-animated` (frame commands on a plan whose `animation` is `null`, or an `animation` over a source with one frame).
+- **Two more commands exist only to undo:** `image.restoreFrames` puts removed frames back at their indexes, and `image.setFrameOrder` sets the whole order, as for layers and redactions ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)). They aren't in the portable format.
+- **`image.updateFrames` sets a frame's delay and nothing else.** Which frame of the source a frame shows is what it is: to show another, insert a frame.
+- **No command gives a plan an animation, or takes it away.** A plan is animated from the file it was opened from. So a host can't make a still play, and an animation trimmed to one frame is still an animation, which exports as a GIF of one frame.
+- **Rejections** add `unknown-frame`, `invalid-frame` (a frame the source doesn't have), `invalid-delay`, `invalid-loop`, `no-frames`, `too-many-frames` and `not-animated` (frame commands on a plan whose `animation` is `null`, or, in a document, an `animation` over a source with one frame).
+- **Which of those the schema sees:** `invalid-delay` and `invalid-loop`, as it sees a level out of range. An empty list of frames in a document, or one over the ceiling, is the schema's too, so it's `malformed-document`; `no-frames` is only for a command that would remove the last frame, which depends on the plan.
+- **An animation lists at most 4,096 frames,** the format's ceiling and the most the decoder keeps a table of: `MAX_ANIMATION_FRAMES`, with `too-many-frames` for a command that would pass it. The file policy's `maxFrames` applies below it.
+- **Keys are unique among layers, redactions and frames,** as ADR 0009 said they would be.
 - **`maxFrames` applies to the plan too,** on each command that adds frames, so duplicating can't pass what opening allows.
-- **In a document,** each source gains `frames`, and the migration from version 3 sets it to 1.
+- **In a document,** each source gains `frames`, from 1 to 4,096, and the migration from version 3 sets it to 1. A version 3 document is read with what version 3 had: a frame count or an animation in one is refused. The reducer learns a source's frame count the way it learns its size, from the function it's created with; a source that gives none has one frame.
 - **The frame being shown is view state,** like zoom: outside the plan and the history. The renderer's and the processor's calls take it.
 - **Making a GIF from several stills** isn't in this record. It needs frames from different sources, each fitted to one size, and comes after 0.7.0 with its own format version.
 

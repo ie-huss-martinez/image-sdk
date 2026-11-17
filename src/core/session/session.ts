@@ -801,7 +801,19 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
       // A plan from before format version 2 has no lists: it's read with
       // `readImagePlanDocument`, which migrates it, not applied as it is.
       const shaped =
-        Array.isArray(next.redactions) && Array.isArray(next.layers) && next.animation === null;
+        Array.isArray(next.redactions) &&
+        Array.isArray(next.layers) &&
+        (next.animation === null || typeof next.animation === "object");
+      // A still stays a still: no command gives a plan an animation
+      // (docs/adr/0011), so a plan with one isn't for this image.
+      if (plan !== null && shaped && next.animation !== null && plan.animation === null) {
+        const failure = new ImageError("INVALID_COMMAND", "The open image isn't an animation.", {
+          details: { reason: "not-animated" },
+        });
+        error = failure;
+        publish();
+        throw failure;
+      }
       if (plan === null || !shaped || next.base.source !== plan.base.source) {
         const failure = new ImageError(
           "INVALID_COMMAND",

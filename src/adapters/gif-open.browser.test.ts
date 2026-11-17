@@ -182,6 +182,36 @@ describe("opening a GIF with the SDK's own decoder (docs/adr/0011)", () => {
   }
 });
 
+describe("an animated plan, before anything plays one (docs/adr/0011)", () => {
+  it("is refused by the real worker, never exported as a still", async () => {
+    const own = engine();
+    const file = blobOf(writeGif(WRITTEN["an animation of three frames"] as GifFixture));
+    const probe = await own.probe(file);
+    expect(probe.frames).toBe(3);
+    await own.register("s", file, probe);
+    const plan = {
+      ...createPlan("s"),
+      animation: {
+        loop: 0,
+        frames: [
+          { key: "a", frame: 0, delay: 10 },
+          { key: "b", frame: 2, delay: 10 },
+        ],
+      },
+    };
+    // Format version 4 can say it; the renderer can't draw it yet, and says so
+    // instead of drawing the first frame as if it were the plan.
+    const error = await createImageProcessor(own)
+      .export({ plan, format: { type: "png" } })
+      .then(
+        () => undefined,
+        (thrown: unknown) => thrown,
+      );
+    expect(isImageError(error, "UNSUPPORTED_PLAN")).toBe(true);
+    expect((error as ImageError).details?.["reason"]).toBe("animation");
+  });
+});
+
 describe("a GIF with a defect browsers open (docs/adr/0011)", () => {
   const WIDTH = 12;
   const HEIGHT = 9;

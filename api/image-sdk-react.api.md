@@ -109,6 +109,14 @@ export const imageEditorMessages: {
     readonly "actions.image.moveRedactions": "redaction order";
     readonly "actions.image.setRedactionOrder": "redaction order";
     readonly "actions.image.updateRedactions": "redaction change";
+    readonly "actions.image.insertFrames": "frame";
+    readonly "actions.image.removeFrames": "frame";
+    readonly "actions.image.restoreFrames": "frame";
+    readonly "actions.image.moveFrames": "frame order";
+    readonly "actions.image.setFrameOrder": "frame order";
+    readonly "actions.image.reverseFrames": "frame order";
+    readonly "actions.image.updateFrames": "frame timing";
+    readonly "actions.image.setLoop": "repeat count";
     readonly "toolbar.label": "Image tools";
     readonly "toolbar.groups.file": "File";
     readonly "toolbar.groups.history": "History";

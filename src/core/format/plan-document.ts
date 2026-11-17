@@ -1,10 +1,11 @@
 import { ImageError } from "../errors/image-error.js";
-import type { ImageLayer } from "../model/plan.js";
+import type { ImageAnimation, ImageLayer } from "../model/plan.js";
 import {
   type ImageBase,
   type ImageDevelop,
   type ImagePlan,
   type ImageRedaction,
+  MAX_ANIMATION_FRAMES,
   MAX_PLAN_ITEMS,
 } from "../model/plan.js";
 import type { ImageSize } from "../model/source.js";
@@ -21,6 +22,7 @@ import {
   isRecord,
   onlyFields,
 } from "../operations/commands.js";
+import { checkAnimation } from "../operations/frames.js";
 import { checkLayer } from "../operations/layers.js";
 import { checkRedaction } from "../operations/redactions.js";
 
@@ -37,7 +39,7 @@ export const IMAGE_PLAN_FORMAT = "hm-image-plan";
  *
  * @public
  */
-export const IMAGE_PLAN_VERSION = 3;
+export const IMAGE_PLAN_VERSION = 4;
 
 /**
  * A content-addressed reference to binary data, such as a source's file
@@ -56,18 +58,21 @@ export interface ImageAssetReference {
 
 /**
  * A source, as a plan document records it: its oriented size in pixels,
- * which a crop must fit inside, and, once documents travel with their files,
- * its content.
+ * which a crop must fit inside; how many frames it has, which an
+ * animation's frames must be among; and, once documents travel with their
+ * files, its content.
  *
  * @public
  */
 export interface ImagePlanDocumentSource extends ImageSize {
+  /** 1 for a still. A document from before version 4 reads as 1. */
+  readonly frames: number;
   readonly asset?: ImageAssetReference;
 }
 
 /**
- * The plan as portable JSON: `hm-image-plan` version 3, which
- * `formats/hm-image-plan/v3.schema.json` describes
+ * The plan as portable JSON: `hm-image-plan` version 4, which
+ * `formats/hm-image-plan/v4.schema.json` describes
  * (docs/formats/hm-image-plan.md). Positions are whole pixels of the
  * oriented source, and the base names its source by an id the document
  * lists.
@@ -96,10 +101,12 @@ export interface ImagePlanDocument extends ImagePlan {
  *   `unknown-redaction-mode`, `invalid-region`, `invalid-colour`,
  *   `unknown-layer-kind`, `invalid-box`, `invalid-opacity`, `invalid-text`,
  *   `text-too-long`, `empty-shape`, `empty-drawing`, `empty-arrow`,
- *   `invalid-points` and `too-many-layers`. `unknown-source` and
+ *   `invalid-points`, `too-many-layers`, `invalid-frame`, `invalid-delay`
+ *   and `invalid-loop`. `unknown-source` and
  *   `crop-outside-source` apply to an image layer too. A drawing or an
  *   arrow in a document of version 2, which has neither, is
- *   `unknown-layer-kind`.
+ *   `unknown-layer-kind`. An animation over a source with one frame is
+ *   `not-animated`.
  *
  * @public
  */
@@ -130,7 +137,11 @@ export type ImageDocumentRejection =
   | "empty-drawing"
   | "empty-arrow"
   | "invalid-points"
-  | "too-many-layers";
+  | "too-many-layers"
+  | "not-animated"
+  | "invalid-frame"
+  | "invalid-delay"
+  | "invalid-loop";
 
 /** Version 1's fields: the plan before layers, redactions and animation. */
 const V1_FIELDS = ["format", "version", "sources", "base", "output", "metadata"];
@@ -146,7 +157,9 @@ const DOCUMENT_FIELDS = [
   "metadata",
 ];
 const BASE_FIELDS = ["source", "crop", "orientation", "develop", "filter"];
-const SOURCE_FIELDS = ["width", "height", "asset"];
+/** A source's fields before version 4, and from it: it gained its frame count. */
+const SOURCE_FIELDS_V3 = ["width", "height", "asset"];
+const SOURCE_FIELDS = ["width", "height", "frames", "asset"];
 const ASSET_FIELDS = ["asset", "mediaType", "size"];
 /** The patterns the schema uses too, so both accept the same documents. */
 const ASSET_ID = /^sha256:[0-9a-f]{64}$/;
@@ -178,25 +191,31 @@ function readAsset(value: unknown): ImageAssetReference {
   return { asset, mediaType, size };
 }
 
-function readSources(value: unknown): Record<string, ImagePlanDocumentSource> {
+function readSources(value: unknown, counted: boolean): Record<string, ImagePlanDocumentSource> {
   if (!isRecord<Record<string, unknown>>(value)) malformed("sources is an object");
   // Object.fromEntries keeps ids such as __proto__ as own, ordinary keys.
   return Object.fromEntries(
     Object.entries(value).map(([id, source]) => {
       if (id === "") malformed("a source id is a non-empty string");
       if (!isRecord<ImagePlanDocumentSource>(source)) malformed("a source is an object");
-      onlyFields(source, SOURCE_FIELDS, "a source");
-      for (const name of ["width", "height"]) {
+      // A source has its own version's fields: a frame count before version 4 is refused.
+      onlyFields(source, counted ? SOURCE_FIELDS : SOURCE_FIELDS_V3, "a source");
+      for (const name of counted ? ["width", "height", "frames"] : ["width", "height"]) {
         if (!Object.hasOwn(source, name)) malformed(`a source needs "${name}"`);
       }
       const { width, height } = source;
       if (!isCount(width, 1) || !isCount(height, 1)) {
         malformed("a source's size is whole pixels, at least 1 × 1");
       }
+      // Before version 4 every source was a still (docs/adr/0011).
+      const frames = counted ? source.frames : 1;
+      if (!isCount(frames, 1) || frames > MAX_ANIMATION_FRAMES) {
+        malformed(`a source has 1 to ${MAX_ANIMATION_FRAMES} frames`);
+      }
       const entry: ImagePlanDocumentSource =
         source.asset === undefined
-          ? { width, height }
-          : { width, height, asset: readAsset(source.asset) };
+          ? { width, height, frames }
+          : { width, height, frames, asset: readAsset(source.asset) };
       return [id, entry];
     }),
   );
@@ -254,14 +273,21 @@ function readRedactions(value: unknown): ImageRedaction[] {
   return value.map(checkRedaction);
 }
 
-/** What depends on both lists: no key twice, and no more items than the format holds. */
-function checkItems(layers: readonly ImageLayer[], redactions: readonly ImageRedaction[]): void {
+/**
+ * What depends on every list: no key twice, among layers, redactions and
+ * frames, and no more layers and redactions than the format holds.
+ */
+function checkItems(
+  layers: readonly ImageLayer[],
+  redactions: readonly ImageRedaction[],
+  animation: ImageAnimation | null,
+): void {
   const keys = new Set<string>();
-  for (const { key } of [...layers, ...redactions]) {
+  for (const { key } of [...layers, ...redactions, ...(animation?.frames ?? [])]) {
     if (keys.has(key)) invalid("duplicate-key", `two items have the key "${key}"`);
     keys.add(key);
   }
-  if (keys.size > MAX_PLAN_ITEMS) {
+  if (layers.length + redactions.length > MAX_PLAN_ITEMS) {
     invalid(
       "too-many-layers",
       `a document holds at most ${MAX_PLAN_ITEMS} layers and redactions together`,
@@ -288,26 +314,33 @@ function read(value: unknown): {
       { details: { format: IMAGE_PLAN_FORMAT, reason: "unknown-format-version" } },
     );
   }
-  if (version !== 1 && version !== 2 && version !== IMAGE_PLAN_VERSION) {
-    malformed("version is 1, 2 or 3");
+  if (version !== 1 && version !== 2 && version !== 3 && version !== IMAGE_PLAN_VERSION) {
+    malformed("version is 1, 2, 3 or 4");
   }
-  // Version 2 as version 3 changes only the version (ADR 0009): it's read
-  // with version 2's layer kinds, so it can't hold a later version's.
+  // Each version is read with what it had (ADR 0009): version 2 with its
+  // layer kinds, and a version before 4 with no animation and no frame
+  // counts, so it can't hold a later version's.
   const document = version === 1 ? migrateFromV1(value) : value;
   required(document, DOCUMENT_FIELDS, "a document");
-  const { layers, redactions, animation } = document;
-  const sources = readSources(document.sources);
-  // The animation arrives with its model, in a later version (ADR 0009).
-  if (animation !== null) malformed("animation is null");
-  const readLayerList = readLayers(layers, sources, version === IMAGE_PLAN_VERSION ? 3 : 2);
+  const { layers, redactions } = document;
+  const animated = version === IMAGE_PLAN_VERSION;
+  const sources = readSources(document.sources, animated);
+  const base = readBase(document.base, sources);
+  let animation: ImageAnimation | null = null;
+  if (document.animation !== null) {
+    if (!animated) malformed("animation is null before version 4");
+    // Its frames are frames of the base's source, which readBase found.
+    animation = checkAnimation(document.animation, sources[base.source]?.frames ?? 1);
+  }
+  const readLayerList = readLayers(layers, sources, version === 2 ? 2 : 3);
   const readRedactionList = readRedactions(redactions);
-  checkItems(readLayerList, readRedactionList);
+  checkItems(readLayerList, readRedactionList, animation);
   return {
     plan: {
-      base: readBase(document.base, sources),
+      base,
       layers: readLayerList,
       redactions: readRedactionList,
-      animation: null,
+      animation,
       output: checkOutput(document.output),
       metadata: checkMetadata(document.metadata),
     },
@@ -322,8 +355,9 @@ function read(value: unknown): {
  * inside them, and no two items share a key. Unknown fields are refused, never dropped.
  *
  * A document of an earlier version is migrated, so every version stays
- * readable: version 1 reads as a plan with no layers or redactions, and
- * version 2 as it is, with the kinds of layer it had.
+ * readable: version 1 reads as a plan with no layers or redactions, version
+ * 2 as it is, with the kinds of layer it had, and version 3 as a still,
+ * each of its sources with one frame.
  *
  * @param value - The parsed JSON.
  * @returns The plan, and its sources by id.
@@ -354,7 +388,8 @@ export function readImagePlanDocument(value: unknown): {
  *
  * @param plan - The plan.
  * @param sources - The sources by id, with at least the base's. They're
- *   written as given.
+ *   written as given: each with its size and its frame count, 1 for a
+ *   still.
  * @throws `TypeError` if the base's source is missing from `sources`.
  * @public
  */
@@ -370,9 +405,11 @@ export function toImagePlanDocument(
     format: IMAGE_PLAN_FORMAT,
     version: IMAGE_PLAN_VERSION,
     sources: Object.fromEntries(
-      Object.entries(sources).map(([id, { width, height, asset }]) => [
+      Object.entries(sources).map(([id, { width, height, frames, asset }]) => [
         id,
-        asset === undefined ? { width, height } : { width, height, asset: { ...asset } },
+        asset === undefined
+          ? { width, height, frames }
+          : { width, height, frames, asset: { ...asset } },
       ]),
     ),
     base: {
@@ -384,7 +421,13 @@ export function toImagePlanDocument(
     },
     layers: plan.layers.map((layer) => structuredClone(layer)),
     redactions: plan.redactions.map((redaction) => ({ ...redaction })),
-    animation: null,
+    animation:
+      plan.animation === null
+        ? null
+        : {
+            loop: plan.animation.loop,
+            frames: plan.animation.frames.map((frame) => ({ ...frame })),
+          },
     output: { ...output },
     metadata: {
       title: metadata.title,

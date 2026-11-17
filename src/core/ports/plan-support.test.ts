@@ -32,9 +32,16 @@ describe("checkPlanSupport (ADR 0009)", () => {
     expect(refusedFor(redacted, ["redactions"])).toBeUndefined();
   });
 
-  it("refuses layers and an animation the types don't allow yet", () => {
+  it("refuses layers the types don't allow, and an animation a renderer of stills doesn't play", () => {
     expect(refusedFor({ ...plan, layers: [{ key: "t" }] }, ["redactions"])).toBe("layers");
     expect(refusedFor({ ...plan, animation: { frames: [] } }, ["redactions"])).toBe("animation");
+    // A real animation, from format version 4 (docs/adr/0011).
+    const animated = {
+      ...plan,
+      animation: { loop: 0, frames: [{ key: "f", frame: 1, delay: 10 }] },
+    };
+    expect(refusedFor(animated, ["layers", "drawings", "redactions"])).toBe("animation");
+    expect(refusedFor(animated, ["animation"])).toBeUndefined();
   });
 
   it("refuses a drawing or an arrow a renderer of the other layers doesn't draw", () => {
