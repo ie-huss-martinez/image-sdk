@@ -90,7 +90,7 @@ export async function brighten(file: Blob): Promise<Blob> {
 }
 ```
 
-Commands set crop, orientation, develop adjustments, filter, redactions, output size and kept metadata. `subscribe()` and `getSnapshot()` expose state, errors and limit warnings; `export()` accepts an abort signal and progress callback. A caller-supplied engine, processor or session remains the caller's responsibility to destroy. See the [core API report](api/image-sdk.api.md) and [portable format schemas](formats).
+Commands set crop, orientation, develop adjustments, filter, layers, redactions, output size and kept metadata. `insertImage(file)` checks and decodes a second image and adds it as a layer, as one undoable step; the session holds its source while the plan, an undo or redo step, or an export in progress refers to it, and counts every source it holds against `maxFiles` and `maxSessionSize`. `subscribe()` and `getSnapshot()` expose state, errors and limit warnings; `export()` accepts an abort signal and progress callback. A caller-supplied engine, processor or session remains the caller's responsibility to destroy. See the [core API report](api/image-sdk.api.md) and [portable format schemas](formats).
 
 ## Redaction
 

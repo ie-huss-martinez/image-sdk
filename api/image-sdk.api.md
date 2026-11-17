@@ -832,6 +832,8 @@ export interface ImageSession {
     // (undocumented)
     getSnapshot(): ImageSessionSnapshot;
     group<T>(fn: () => T): T;
+    // Warning: (ae-forgotten-export) The symbol "ImageInsertOptions" needs to be exported by the entry point index.d.ts
+    insertImage(file: Blob, options?: ImageInsertOptions): Promise<ImageSessionSource>;
     open(file: Blob, options?: {
         readonly signal?: AbortSignal;
     }): Promise<ImageSessionSource>;
@@ -846,7 +848,7 @@ export interface ImageSessionEvent {
     // (undocumented)
     readonly outcome: "done" | "failed" | "cancelled";
     // (undocumented)
-    readonly type: "open" | "execute" | "undo" | "redo" | "export";
+    readonly type: "open" | "insert" | "execute" | "undo" | "redo" | "export";
 }
 
 // @public
@@ -878,9 +880,12 @@ export interface ImageSessionSnapshot {
     readonly canUndo: boolean;
     readonly error: ImageError | null;
     readonly exporting: boolean;
+    readonly historyTrimmed: boolean;
+    readonly inserting: boolean;
     readonly opening: boolean;
     readonly plan: ImagePlan | null;
     readonly source: ImageSessionSource | null;
+    readonly sources: readonly ImageSessionSource[];
     readonly status: "empty" | "opening" | "ready";
     readonly warnings: readonly ImageLimitName[];
 }
