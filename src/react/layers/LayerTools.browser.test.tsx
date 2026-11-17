@@ -209,9 +209,10 @@ describe("adding layers (docs/adr/0013)", () => {
       "ellipse",
     ]);
     expect(names()).toEqual(["Ellipse", "Rectangle"]);
-    expect(document.querySelector('.hm-image-layer-select[aria-pressed="true"]')?.textContent).toBe(
-      "Ellipse",
-    );
+    expect(
+      document.querySelector('.hm-image-layers-list [aria-selected="true"] .hm-image-layer-select')
+        ?.textContent,
+    ).toBe("Ellipse");
     expect(session().undo()).toBe(true);
     expect(layers()).toHaveLength(1);
   });
@@ -401,9 +402,10 @@ describe("adding layers (docs/adr/0013)", () => {
     expect(layers().at(-1)?.kind).toBe("image");
     expect(steps(session)).toBe(before + 1);
     expect(names()).toEqual(["Image", "Rectangle"]);
-    expect(document.querySelector('.hm-image-layer-select[aria-pressed="true"]')?.textContent).toBe(
-      "Image",
-    );
+    expect(
+      document.querySelector('.hm-image-layers-list [aria-selected="true"] .hm-image-layer-select')
+        ?.textContent,
+    ).toBe("Image");
     // A small one keeps its own size.
     await act(async () => handle.current?.insertImage(await photo(6, 4, "#000000")));
     expect(layers().at(-1)).toMatchObject({ kind: "image", width: 6, height: 4, x: 27, y: 18 });

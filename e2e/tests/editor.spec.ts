@@ -318,10 +318,10 @@ test.describe("the image editor", () => {
     await layers.focus();
     await page.keyboard.press("l");
     await expect(page.getByRole("region", { name: "Layers", exact: true })).toBeVisible();
-    // On the top layer's button in the list, which is selected.
-    const top = page.getByRole("button", { name: "Top", exact: true });
+    // On the top layer's row in the list, which is selected.
+    const top = page.getByRole("gridcell", { name: "Top", exact: true });
     await expect(top).toBeFocused();
-    await expect(top).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[role="row"][aria-selected="true"]')).toContainText("Top");
     await noViolations(page);
     const scrolled = () => page.evaluate(() => [window.scrollX, window.scrollY]);
     // Moving focus may scroll its target into view; a key must not scroll further.
@@ -394,11 +394,11 @@ test.describe("the image editor", () => {
     expect(await order()).toEqual(["a", "b"]);
     await expect(page.getByRole("group", { name: "Layer 1 of 2: Middle" })).toBeFocused();
     // Delete in the list, too.
-    await page.getByRole("button", { name: "Middle", exact: true }).focus();
+    await page.getByRole("gridcell", { name: "Middle", exact: true }).focus();
     await page.keyboard.press("Delete");
     expect(page.url()).toContain("/editor.html#layers");
     expect(await order()).toEqual(["a"]);
-    await expect(page.getByRole("button", { name: "Bottom", exact: true })).toBeFocused();
+    await expect(page.getByRole("gridcell", { name: "Bottom", exact: true })).toBeFocused();
   });
 
   test("adds text, a shape and an image with the keyboard and the file picker, with no violations", async ({
@@ -428,10 +428,7 @@ test.describe("the image editor", () => {
     await page.keyboard.press("Enter");
     await page.keyboard.type("there");
     await expect.poll(async () => (await layers())[0]?.["text"]).toBe("Hello\nthere");
-    await expect(page.getByRole("button", { name: "Hello", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(page.locator('[role="row"][aria-selected="true"]')).toContainText("Hello");
     await noViolations(page);
     // Its colour, from the swatches, with the arrow keys of a radio group.
     await page.getByRole("radio", { name: "Black" }).focus();
@@ -443,10 +440,7 @@ test.describe("the image editor", () => {
     await expect.poll(async () => (await layers()).length).toBe(2);
     // Focus stays on the button that added it; the new layer is the one selected.
     await expect(page.getByRole("button", { name: "Add a rectangle" })).toBeFocused();
-    await expect(page.getByRole("button", { name: "Rectangle", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(page.locator('[role="row"][aria-selected="true"]')).toContainText("Rectangle");
     await expect(page.getByRole("button", { name: "Outline", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -464,10 +458,7 @@ test.describe("the image editor", () => {
     const image = (await layers())[2];
     // 48 × 32 fits half of 48 × 32 at 24 × 16, in the middle.
     expect(image).toMatchObject({ kind: "image", x: 12, y: 8, width: 24, height: 16, name: "" });
-    await expect(page.getByRole("button", { name: "Image", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(page.locator('[role="row"][aria-selected="true"]')).toContainText("Image");
     await expect(page.locator("#editor")).not.toContainText("private-name");
     await noViolations(page);
     // The image is still the one that was opened: the layer didn't replace it.

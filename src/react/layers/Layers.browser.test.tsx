@@ -161,14 +161,16 @@ const overlay = () => document.querySelector<HTMLElement>(".hm-image-layers-over
 const frames = () => [...document.querySelectorAll<HTMLElement>(".hm-image-layer-frame")];
 const frame = (layerKey: string) =>
   document.querySelector<HTMLElement>(`.hm-image-layer-frame[data-hm-layer="${layerKey}"]`);
-const rows = () => [...document.querySelectorAll<HTMLElement>(".hm-image-layers-list li")];
+const rows = () => [...document.querySelectorAll<HTMLElement>(".hm-image-layers-list [role=row]")];
 const row = (layerKey: string) =>
-  document.querySelector<HTMLElement>(`.hm-image-layers-list li[data-hm-layer="${layerKey}"]`);
+  document.querySelector<HTMLElement>(
+    `.hm-image-layers-list [role=row][data-hm-layer="${layerKey}"]`,
+  );
 const select = (layerKey: string) =>
-  row(layerKey)?.querySelector<HTMLButtonElement>(".hm-image-layer-select");
+  row(layerKey)?.querySelector<HTMLElement>(".hm-image-layer-select");
 const visibility = (layerKey: string) =>
   row(layerKey)?.querySelector<HTMLButtonElement>(".hm-image-layer-visibility");
-const names = () => rows().map((item) => item.querySelector("button")?.textContent);
+const names = () => rows().map((item) => item.querySelector(".hm-image-layer-select")?.textContent);
 const fields = () => [
   ...document.querySelectorAll<HTMLInputElement>(".hm-image-layers-fields input"),
 ];
@@ -258,7 +260,7 @@ describe("the layers (docs/adr/0013)", () => {
     expect(tool()?.getAttribute("aria-pressed")).toBe("true");
     // The top layer first, each by its name, its text or its kind.
     expect(names()).toEqual(["Badge", "Hello", "Rectangle"]);
-    expect(select("over")?.getAttribute("aria-pressed")).toBe("true");
+    expect(row("over")?.getAttribute("aria-selected")).toBe("true");
     expect(document.activeElement).toBe(select("over"));
     expect(frame("over")?.hasAttribute("data-hm-selected")).toBe(true);
     // Run again, it hides them, and focus returns to its button.
@@ -359,8 +361,8 @@ describe("the layers (docs/adr/0013)", () => {
     const { session, layer } = await opened();
     await layering();
     await click(select("under"));
-    expect(select("under")?.getAttribute("aria-pressed")).toBe("true");
-    expect(select("over")?.getAttribute("aria-pressed")).toBe("false");
+    expect(row("under")?.getAttribute("aria-selected")).toBe("true");
+    expect(row("over")?.getAttribute("aria-selected")).toBe("false");
     expect(frame("under")?.hasAttribute("data-hm-selected")).toBe(true);
     expect(frames().map((item) => item.tabIndex)).toEqual([0, -1, -1]);
     // Selecting isn't an edit.
@@ -390,7 +392,7 @@ describe("the layers (docs/adr/0013)", () => {
     expect(keys()).toEqual(["middle", "under", "over"]);
     expect(names()).toEqual(["Badge", "Rectangle", "Hello"]);
     await until(() => document.activeElement === select("under"), "focus on the moved row");
-    expect(select("under")?.getAttribute("aria-pressed")).toBe("true");
+    expect(row("under")?.getAttribute("aria-selected")).toBe("true");
     await said("Moved Rectangle up. It's layer 2 of 3.");
     expect(await key(select("under"), { key: "ArrowUp", altKey: true })).toBe(true);
     expect(keys()).toEqual(["middle", "over", "under"]);
@@ -435,8 +437,10 @@ describe("the layers (docs/adr/0013)", () => {
       ).toBe(false);
       expect(await key(select("under"), { key: "Delete", [modifier]: true }), modifier).toBe(false);
     }
-    // The arrows alone are the page's.
-    expect(await key(select("under"), { key: "ArrowUp" })).toBe(false);
+    // The arrows alone are the list's own: they move between rows, and select.
+    expect(await key(select("under"), { key: "ArrowUp" })).toBe(true);
+    expect(document.activeElement).toBe(select("middle"));
+    expect(row("middle")?.getAttribute("aria-selected")).toBe("true");
     // In the name's field, the keys are the field's: nothing moves and nothing is deleted.
     const name = field("Name");
     expect(name).not.toBeNull();
@@ -456,13 +460,14 @@ describe("the layers (docs/adr/0013)", () => {
     expect(await key(select("middle"), { key: "Delete" })).toBe(true);
     expect(keys()).toEqual(["under", "over"]);
     await said("Deleted Hello.");
-    // The layer now in its place in the stack: the one that was over it.
-    await until(() => document.activeElement === select("over"), "focus on the next row");
-    expect(select("over")?.getAttribute("aria-pressed")).toBe("true");
-    expect(await key(select("over"), { key: "Backspace" })).toBe(true);
-    // The top one went: the new top one.
-    await until(() => document.activeElement === select("under"), "focus on the last row");
-    expect(await key(select("under"), { key: "Delete" })).toBe(true);
+    // The layer now in its place in the list: the one that was under it.
+    await until(() => document.activeElement === select("under"), "focus on the next row");
+    expect(row("under")?.getAttribute("aria-selected")).toBe("true");
+    expect(await key(select("under"), { key: "Backspace" })).toBe(true);
+    // The bottom one went: the new bottom one.
+    await until(() => document.activeElement === select("over"), "focus on the last row");
+    expect(row("over")?.getAttribute("aria-selected")).toBe("true");
+    expect(await key(select("over"), { key: "Delete" })).toBe(true);
     expect(keys()).toEqual([]);
     // None left: focus goes to Done, never to the page.
     expect(document.activeElement).toBe(button("Done"));
@@ -472,7 +477,7 @@ describe("the layers (docs/adr/0013)", () => {
       session().undo();
     });
     await until(() => rows().length === 1, "the layer to return");
-    expect(select("under")?.getAttribute("aria-pressed")).toBe("false");
+    expect(rows()[0]?.getAttribute("aria-selected")).toBe("false");
   });
 
   it("moves, copies and deletes the selected layer with the panel's buttons, which keep focus", async () => {
@@ -499,7 +504,7 @@ describe("the layers (docs/adr/0013)", () => {
     const copy = keys()[2] as string;
     expect(keys()).toEqual(["under", "over", copy, "middle"]);
     expect(layer(copy)).toEqual({ ...layer("over"), key: copy, x: 44, y: 28 });
-    expect(select(copy)?.getAttribute("aria-pressed")).toBe("true");
+    expect(row(copy)?.getAttribute("aria-selected")).toBe("true");
     await said("Duplicated Badge.");
     expect(session().undo()).toBe(true);
     expect(keys()).toEqual(["under", "over", "middle"]);
@@ -510,8 +515,9 @@ describe("the layers (docs/adr/0013)", () => {
     await act(async () => named("Delete")?.focus());
     await click(named("Delete"));
     expect(keys()).toEqual(["under", "over", "middle"]);
-    // The layer in its place is selected, and the button still has focus.
-    expect(select("middle")?.getAttribute("aria-pressed")).toBe("true");
+    // The layer in its place in the list, the one that was under it, is
+    // selected, and the button still has focus.
+    expect(row("over")?.getAttribute("aria-selected")).toBe("true");
     expect(document.activeElement).toBe(named("Delete"));
   });
 
@@ -608,7 +614,7 @@ describe("the layers (docs/adr/0013)", () => {
     await layering();
     // By their kinds, the top one first and selected.
     expect(names()).toEqual(["Arrow", "Drawing", "Badge", "Hello", "Rectangle"]);
-    expect(select("pointer")?.getAttribute("aria-pressed")).toBe("true");
+    expect(row("pointer")?.getAttribute("aria-selected")).toBe("true");
     expect(frames().map((item) => [item.dataset["hmLayer"], item.dataset["hmKind"]])).toEqual([
       ["under", "shape"],
       ["middle", "text"],
@@ -770,7 +776,7 @@ describe("the layers (docs/adr/0013)", () => {
       from: { x: 48, y: 38 },
       to: { x: 28, y: 18 },
     });
-    expect(select(copy)?.getAttribute("aria-pressed")).toBe("true");
+    expect(row(copy)?.getAttribute("aria-selected")).toBe("true");
     await click(select("sketch"));
     await click(named("Duplicate"));
     expect(
@@ -890,13 +896,14 @@ describe("the layers (docs/adr/0013)", () => {
     const { keys } = await opened();
     await layering();
     await act(async () => frame("middle")?.focus());
-    expect(select("middle")?.getAttribute("aria-pressed")).toBe("true");
+    expect(row("middle")?.getAttribute("aria-selected")).toBe("true");
     expect(await key(frame("middle"), { key: "Delete" })).toBe(true);
     expect(keys()).toEqual(["under", "over"]);
-    await until(() => document.activeElement === frame("over"), "focus on the next frame");
-    expect(await key(frame("over"), { key: "Backspace" })).toBe(true);
-    await until(() => document.activeElement === frame("under"), "focus on the last frame");
-    expect(await key(frame("under"), { key: "Delete" })).toBe(true);
+    // The layer that was under it, as the list orders them; then the one left.
+    await until(() => document.activeElement === frame("under"), "focus on the next frame");
+    expect(await key(frame("under"), { key: "Backspace" })).toBe(true);
+    await until(() => document.activeElement === frame("over"), "focus on the last frame");
+    expect(await key(frame("over"), { key: "Delete" })).toBe(true);
     expect(keys()).toEqual([]);
     expect(document.activeElement).toBe(button("Done"));
   });
@@ -909,7 +916,7 @@ describe("the layers (docs/adr/0013)", () => {
     const inside = screen.at(20, 13);
     expect(document.elementFromPoint(inside.x, inside.y)).toBe(frame("under"));
     await pointer(frame("under"), "pointerdown", inside.x, inside.y);
-    expect(select("under")?.getAttribute("aria-pressed")).toBe("true");
+    expect(row("under")?.getAttribute("aria-selected")).toBe("true");
     expect(document.activeElement).toBe(frame("under"));
     // Without a move, a press and release is no edit.
     await pointer(frame("under"), "pointerup", inside.x, inside.y);
@@ -960,11 +967,7 @@ describe("the layers (docs/adr/0013)", () => {
     const empty = screen.at(57, 3);
     expect(document.elementFromPoint(empty.x, empty.y)).toBe(overlay());
     await pointer(overlay(), "pointerdown", empty.x, empty.y);
-    expect(
-      rows().every(
-        (item) => item.querySelector('[aria-pressed="true"].hm-image-layer-select') === null,
-      ),
-    ).toBe(true);
+    expect(rows().every((item) => item.getAttribute("aria-selected") !== "true")).toBe(true);
     expect(fields().every((input) => input.disabled)).toBe(true);
   });
 

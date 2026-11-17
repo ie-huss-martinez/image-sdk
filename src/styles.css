@@ -457,7 +457,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    justify-content: start;
   }
 
   /*
@@ -579,8 +578,7 @@
     }
   }
 
-  .hm-image-redact-areas ul,
-  .hm-image-layers-list ul {
+  .hm-image-redact-areas ul {
     display: grid;
     gap: var(--hm-gap-tight);
     margin: 0;
@@ -589,8 +587,7 @@
   }
 
   /* An area's button takes the row, and its remove button the end. */
-  .hm-image-redact-areas li,
-  .hm-image-layers-list li {
+  .hm-image-redact-areas li {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--hm-gap-tight);

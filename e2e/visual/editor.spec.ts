@@ -137,10 +137,7 @@ const EDITOR: Readonly<Record<string, State>> = {
     await page.getByRole("button", { name: "Layers", exact: true }).click();
     // The top layer is selected; its frame takes focus, turned as it is.
     await page.getByRole("group", { name: "Layer 1 of 2: Badge" }).focus();
-    await expect(page.getByRole("button", { name: "Badge", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(page.locator('[role="row"][aria-selected="true"]')).toContainText("Badge");
   },
   "layers-text": async (page) => {
     await opened(page);
@@ -149,7 +146,7 @@ const EDITOR: Readonly<Record<string, State>> = {
     await expect(text).toBeFocused();
     await page.keyboard.type("Hello");
     await page.getByRole("radio", { name: "White" }).click();
-    await expect(page.getByRole("button", { name: "Hello", exact: true })).toBeVisible();
+    await expect(page.getByRole("gridcell", { name: "Hello", exact: true })).toBeVisible();
   },
   "layers-shape": async (page) => {
     await opened(page);
@@ -201,10 +198,7 @@ const EDITOR: Readonly<Record<string, State>> = {
     await opened(page);
     await page.getByRole("button", { name: "Add an arrow" }).click();
     await page.getByRole("group", { name: "Layer 1 of 1: Arrow" }).focus();
-    await expect(page.getByRole("button", { name: "Arrow", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(page.locator('[role="row"][aria-selected="true"]')).toContainText("Arrow");
   },
   filters: async (page) => {
     await opened(page);

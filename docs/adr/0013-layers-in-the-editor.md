@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Builds on:** [ADR 0007](0007-editor-shell.md) (the editor shell, gestures and the frames' keys) and [ADR 0009](0009-scene-space-layers-and-plan-versions.md) (layers and their commands); in sdk-core, [ADR 0009](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0009-features-as-tools.md) (features as tools), [ADR 0014](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0014-accessibility-and-translatable-text.md) (accessibility) and [ADR 0030](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0030-tools-and-keyboard-shortcuts.md) (tools and shortcuts)
+- **Amended:** 2026-11-17: the list is `@hussmartinez/ui`'s `ReorderableList`, with one tab stop, in place of a list of buttons; and after a delete, the layer now in its place in the list is selected. See "The list is ui's"
 - **Amended:** 2026-11-17, by [ADR 0015](0015-drawing-in-the-editor.md): a drawing and an arrow have frames too, and the "Add" group has an arrow
 - **Amended:** 2026-11-17: a new layer is mirrored back on a mirrored image, and the panel has a Mirror button, now that a layer's box has `flipX` ([ADR 0009](0009-scene-space-layers-and-plan-versions.md))
 - **Amended:** 2026-11-17: the tools that add text, shapes and images, the fields of each kind, and where focus goes when a layer is added, under "Adding layers"
@@ -73,7 +74,7 @@ Under the fields every layer has, the panel shows the selected layer's own:
 
 `ImageLayersPanel`, exported from `./react`:
 
-- **The list shows the top layer first,** as the image stacks them. Each row has a button that selects the layer, pressed when it's selected, and a button that shows or hides it, pressed while it's shown.
+- **The list shows the top layer first,** as the image stacks them. Each row is a layer, selected or not, with a button that shows or hides it, pressed while it's shown.
 - **A layer goes by its name.** Unnamed, a text layer goes by the start of its first line, and any other by its kind: "Rectangle", "Ellipse", "Image". Names and text come from a plan, so they're untrusted: they're shown as text nodes, never as HTML ([ADR 0009](0009-scene-space-layers-and-plan-versions.md)).
 - **Under the list, five buttons act on the selected layer:** move up, move down, mirror, duplicate and delete. Mirror is pressed while the layer is mirrored; it flips the layer left to right about its own box, where it is. They're the path that always works: with a pointer, with the keyboard, and with a screen reader in browse mode. A button that can't act is `aria-disabled` and keeps focus, so pressing "Move up" until the layer reaches the top never drops focus.
 - **Then the selected layer's fields:** its name, its left, top, width and height in scene pixels, its turn in degrees and its opacity in percent. Each change is one undoable step. They do everything a drag on the frame does, without dragging (WCAG 2.5.7).
@@ -82,7 +83,13 @@ Under the fields every layer has, the panel shows the selected layer's own:
 - **What the session refuses is said in the panel,** by the error's code through the catalogue: a duplicate over `maxLayers`, for example. Nothing changes.
 - **The panel keeps its size** whatever is selected, as the redact panel does: with no layer selected its fields are disabled and keep their place, and the list scrolls beyond three rows where the inspector sits under the stage. A panel that grew would shrink the stage and move the image under the pointer.
 
-**Why a list of buttons, not a listbox.** A listbox's options can't hold other controls, and each row needs its visibility button. `@hussmartinez/ui` has no listbox or reorderable list, and the editor doesn't hand-roll controls ui should own. A list of buttons is plain HTML that every screen reader reads as a list with positions. Its cost is two tab stops for each layer; a ui control with one tab stop is proposed for later.
+**The list is ui's.** It's `@hussmartinez/ui`'s `ReorderableList` (ui 0.10.0): a WAI-ARIA grid of one column of rows, with one tab stop for the whole list and a cell in each row for its visibility button.
+
+- **↑ and ↓ move between layers and select;** ← and → move between a row's name and its button. So a list of forty layers is one tab stop, not eighty.
+- **`Alt` or `Option` with ↑ and ↓ moves the focused layer,** and `Delete` or `Backspace` removes it: the keys this record chose, now the control's own. The control prevents their defaults, at the top and the bottom too, and keeps focus on a moved layer and on the next one after a removal.
+- **A layer that's moved with the keys is selected,** so the keys and the panel's buttons act on the same layer.
+- **Moves are announced in the editor's words,** for the keys and the buttons alike, so the control's own announcement is turned off.
+- **Before ui had it,** the list was a plain list of buttons, two tab stops a layer, because the editor doesn't hand-roll a control ui should own. A listbox wasn't an answer: its options can't hold a row's button.
 
 ### The frames
 
@@ -115,7 +122,7 @@ While focus is in the list, on either button of a row, pdf-sdk's keys for its pa
 | Delete the layer | Delete, or Backspace | Delete (⌫), or Fn+Delete (⌦) |
 
 - **Up the list is up the stack,** because the list shows the top layer first.
-- **The list's keys work only in the list,** where the order is shown, and act on the row that holds focus, which they also select. They aren't editor-wide shortcuts, and the frames don't take them: on a frame, `Alt` with an arrow stays the browser's, as it does on the crop frame, since `Alt`+← and `Alt`+→ are Back and Forward.
+- **The list's keys work only in the list,** where the order is shown, and act on the row that holds focus, which a move also selects. They aren't editor-wide shortcuts, and the frames don't take them: on a frame, `Alt` with an arrow stays the browser's, as it does on the crop frame, since `Alt`+← and `Alt`+→ are Back and Forward.
 - **Every key taken has its default prevented,** including a move key at the top or bottom of the list, where nothing moves, so the page behind never scrolls instead.
 - **No key is taken with another modifier, or in a field.** In the name's field, `Alt` with an arrow and `Delete` are the field's and the browser's.
 - **The buttons advertise the keys** with `aria-keyshortcuts`.
@@ -143,7 +150,7 @@ One thing was measured here: from a text field, Chromium on Linux scrolls the pa
 | After | Selected | Focus |
 |---|---|---|
 | Moving up or down | The moved layer | Where it was: the same button of the same row, or the panel's button |
-| Deleting | The layer now in its place in the stack, or the new top one | From the list, that layer's button; from a frame, that layer's frame; from the panel's Delete, the button itself |
+| Deleting | The layer now in its place in the list, which was under it, or the new bottom one | From the list, that layer's row; from a frame, that layer's frame; from the panel's Delete, the button itself |
 | Deleting the last layer | None | The panel's Done |
 | Duplicating | The copy | The Duplicate button |
 | Hiding the selected layer | The same layer, whose frame stays, dashed | The visibility button |
@@ -178,5 +185,5 @@ A layer's box is whole scene pixels, mirrored or not, turned about its centre by
 - **Layers a host or a plan adds can be selected, moved, resized, turned, hidden, reordered, copied and deleted** from the editor, with a pointer or without one.
 - **`ImageEditorState` gains `layers` and `error`,** and `"layers"` as a value of `tool`. `ImageToolContext` gains `chooseLayerImage`, which a host that builds its own tool context must provide. A host that builds its own shell renders `ImageLayersPanel`; `ImageStage` shows the frames whenever the tool is on.
 - **The default toolbar gains a button,** so every screenshot of the editor's toolbar changed with it.
-- **A long list costs two tab stops a layer** until ui has a control for it.
+- **The list is one tab stop,** however many layers there are.
 - **A gesture's transient plan now resolves image layers' sources,** as the session's reducer does: moving an image layer is checked against its own source's size.
