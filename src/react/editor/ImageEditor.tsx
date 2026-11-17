@@ -12,6 +12,7 @@ import {
 } from "react";
 import { engineInternals } from "../../adapters/image-engine.js";
 import type { ImageSessionEvent } from "../../core/session/session.js";
+import { NO_TOOL } from "../../features/editor-state.js";
 import type { ImageToolContext } from "../../features/tool-types.js";
 import { DEFAULT_TOOLBAR, imageTools } from "../../features/tools.js";
 import { EngineBoundary } from "../EngineBoundary.js";
@@ -188,10 +189,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
         ? state
         : {
             ...state,
-            tool: null,
-            crop: null,
-            redact: null,
-            layers: null,
+            ...NO_TOOL,
             preview: null,
             dialog: null,
             error: null,

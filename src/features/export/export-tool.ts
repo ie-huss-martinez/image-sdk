@@ -1,4 +1,5 @@
 import { defineTool } from "@hussmartinez/sdk-core";
+import { NO_TOOL } from "../editor-state.js";
 import type { ImageTool, ImageToolContext, ImageToolState } from "../tool-types.js";
 
 /**
@@ -22,9 +23,7 @@ export const exportTool: ImageTool = {
     isEnabled: ({ snapshot, editor }) => snapshot.plan !== null && editor.tool !== "crop",
     run: ({ editor }) =>
       editor.set((state) =>
-        state.tool === "crop"
-          ? state
-          : { ...state, tool: null, redact: null, layers: null, dialog: "export" },
+        state.tool === "crop" ? state : { ...state, ...NO_TOOL, dialog: "export" },
       ),
   }),
   unavailable: ({ snapshot, editor }) =>

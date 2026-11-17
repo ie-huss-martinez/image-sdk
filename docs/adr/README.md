@@ -22,3 +22,4 @@ Use [`template.md`](template.md) for new records. Name files `NNNN-short-title.m
 | [0012](0012-interface-text-outside-the-server-safe-entry.md) | Interface text stays out of the server-safe entry | Accepted |
 | [0013](0013-layers-in-the-editor.md) | Layers in the editor: the list, the frames and their keys | Accepted |
 | [0014](0014-drawing-strokes-and-arrows.md) | Drawing: how strokes are simplified, stored and drawn, and the arrow's shape | Accepted |
+| [0015](0015-drawing-in-the-editor.md) | Drawing in the editor: the draw tool, and frames for drawings and arrows | Accepted |

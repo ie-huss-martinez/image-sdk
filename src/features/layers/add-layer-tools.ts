@@ -3,8 +3,9 @@ import { asImageError } from "../../core/errors/error-helpers.js";
 import { isImageError } from "../../core/errors/image-error.js";
 import type { ImageLayer, ImagePlan } from "../../core/model/plan.js";
 import type { ImageSize } from "../../core/model/source.js";
+import { NO_TOOL } from "../editor-state.js";
 import { hasDocument, type ImageTool, type ImageToolContext } from "../tool-types.js";
-import { insertOnTop, newShapeLayer, newTextLayer } from "./new-layer.js";
+import { insertOnTop, newArrowLayer, newShapeLayer, newTextLayer } from "./new-layer.js";
 
 /**
  * Adds a layer over every other, as one step, and shows the layers with it
@@ -28,10 +29,9 @@ function add(
   }
   editor.set((state) => ({
     ...state,
-    tool: "layers",
     // One tool has the stage at a time.
-    crop: null,
-    redact: null,
+    ...NO_TOOL,
+    tool: "layers",
     preview: null,
     error: null,
     layers: edit ? { selected: layer.key, focus: "text" } : { selected: layer.key },
@@ -70,6 +70,21 @@ export const addEllipseTool: ImageTool = /* @__PURE__ */ defineTool({
   group: "add",
   isEnabled: hasDocument,
   run: (context) => add(context, (plan, source) => newShapeLayer(plan, source, "ellipse")),
+});
+
+/**
+ * Adds an arrow across the middle of the image, pointing right: the
+ * keyboard's way to point at something, since freehand drawing needs a
+ * pointer (docs/adr/0014). Its ends are then moved from its frame or the
+ * panel's fields.
+ */
+export const addArrowTool: ImageTool = /* @__PURE__ */ defineTool({
+  id: "image.add-arrow",
+  label: "tools.add-arrow",
+  icon: "arrow",
+  group: "add",
+  isEnabled: hasDocument,
+  run: (context) => add(context, newArrowLayer),
 });
 
 /**

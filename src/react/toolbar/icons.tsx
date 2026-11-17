@@ -1,5 +1,6 @@
 import {
   AddIcon,
+  ArrowIcon,
   CropIcon,
   DownloadIcon,
   EllipseIcon,
@@ -9,6 +10,7 @@ import {
   type IconComponent,
   LayersIcon,
   OpenIcon,
+  PenIcon,
   RectangleIcon,
   RedactIcon,
   RedoIcon,
@@ -43,6 +45,8 @@ export const imageIcons: Readonly<Record<string, IconComponent>> = {
   rectangle: RectangleIcon,
   ellipse: EllipseIcon,
   "add-image": AddIcon,
+  arrow: ArrowIcon,
+  pen: PenIcon,
   export: DownloadIcon,
   "flip-horizontal": FlipHorizontalIcon,
   "flip-vertical": FlipVerticalIcon,

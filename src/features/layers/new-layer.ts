@@ -1,7 +1,8 @@
-import { compositionSize } from "../../core/model/geometry.js";
+import { compositionSize, compositionToSource, cropRect } from "../../core/model/geometry.js";
 import { createImageKey } from "../../core/model/keys.js";
 import { newLayerBox } from "../../core/model/layer-placement.js";
 import {
+  type ImageArrowLayer,
   type ImageLayer,
   type ImagePlan,
   type ImageShapeLayer,
@@ -77,6 +78,37 @@ export function newShapeLayer(
       ),
     },
     ...box,
+  };
+}
+
+/**
+ * A new arrow (docs/adr/0014): across the middle quarter of the image as
+ * it's shown, pointing right on screen whatever the plan's rotation and
+ * flips, in a shape's red, as wide as a new shape's outline.
+ */
+export function newArrowLayer(plan: ImagePlan, source: ImageSize): ImageArrowLayer {
+  const composition = compositionSize(plan, source);
+  const crop = cropRect(plan.base.crop, source);
+  const { orientation } = plan.base;
+  const scene = (x: number, y: number) => {
+    const point = compositionToSource({ x, y }, crop, orientation);
+    return { x: Math.round(point.x) || 0, y: Math.round(point.y) || 0 };
+  };
+  const middle = composition.height / 2;
+  const from = scene((composition.width * 3) / 8, middle);
+  let to = scene((composition.width * 5) / 8, middle);
+  // On an image a pixel or two wide the ends round to one point: an arrow has two.
+  if (to.x === from.x && to.y === from.y) {
+    const beside = scene((composition.width * 3) / 8 + 1, middle);
+    to = beside.x === from.x && beside.y === from.y ? { x: from.x + 1, y: from.y } : beside;
+  }
+  return {
+    ...common(plan),
+    kind: "arrow",
+    from,
+    to,
+    colour: DEFAULT_SHAPE_COLOUR,
+    width: defaultStrokeWidth(plan, source),
   };
 }
 

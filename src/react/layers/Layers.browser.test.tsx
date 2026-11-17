@@ -3,7 +3,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
-import type { ImageBoxedLayer, ImagePlan } from "../../core/model/plan.js";
+import type {
+  ImageArrowLayer,
+  ImageBoxedLayer,
+  ImageDrawingLayer,
+  ImagePlan,
+} from "../../core/model/plan.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle, ImageEditorProps } from "../editor/types.js";
 import { KEYBOARD_COMMIT_DELAY } from "../gesture.js";
@@ -549,11 +554,12 @@ describe("the layers (docs/adr/0013)", () => {
     expect(layer("under")?.flipX).toBe(false);
   });
 
-  it("lists a drawing and an arrow, which have no box and no frame yet, and arranges them from the list", async () => {
-    const { session, keys, plan } = await opened();
+  /** A drawing and an arrow over the three boxed layers. */
+  async function withDrawn() {
+    const result = await opened();
     const shared = { name: "", visible: true, opacity: 100 };
     await act(async () =>
-      session().execute({
+      result.session().execute({
         type: "image.insertLayers",
         at: 3,
         layers: [
@@ -577,15 +583,113 @@ describe("the layers (docs/adr/0013)", () => {
         ],
       }),
     );
+    const arrowLayer = () =>
+      result.plan().layers.find((item) => item.key === "pointer") as ImageArrowLayer;
+    const drawingLayer = () =>
+      result.plan().layers.find((item) => item.key === "sketch") as ImageDrawingLayer;
+    return { ...result, arrowLayer, drawingLayer };
+  }
+  const ends = () =>
+    [...(frame("pointer")?.querySelectorAll<HTMLElement>("[data-hm-end]") ?? [])].map((end) => {
+      const box = end.getBoundingClientRect();
+      return {
+        end: end.dataset["hmEnd"],
+        x: box.left + box.width / 2,
+        y: box.top + box.height / 2,
+      };
+    });
+  const kinds = () =>
+    [...document.querySelectorAll<HTMLElement>(".hm-image-layer-kind")].map(
+      (kind) => getComputedStyle(kind).visibility === "visible",
+    );
+
+  it("gives a drawing and an arrow frames around what they draw, and an arrow a handle on each end", async () => {
+    const { layer } = await withDrawn();
     await layering();
     // By their kinds, the top one first and selected.
     expect(names()).toEqual(["Arrow", "Drawing", "Badge", "Hello", "Rectangle"]);
     expect(select("pointer")?.getAttribute("aria-pressed")).toBe("true");
-    // Only the layers with a box have frames: three.
-    expect(frames().map((item) => item.dataset["hmLayer"])).toEqual(["under", "middle", "over"]);
-    // A box's fields and Mirror keep their place, disabled; the name and opacity apply.
-    const inputs = fields();
-    expect(inputs.map((input) => input.disabled)).toEqual([
+    expect(frames().map((item) => [item.dataset["hmLayer"], item.dataset["hmKind"]])).toEqual([
+      ["under", "shape"],
+      ["middle", "text"],
+      ["over", "shape"],
+      ["sketch", "drawing"],
+      ["pointer", "arrow"],
+    ]);
+    const screen = screenOf(layer("under"));
+    // The drawing: its points from 5, 5 to 15, 11, and half its stroke's width around them.
+    const sketch = frame("sketch")?.getBoundingClientRect();
+    expect(sketch?.left).toBeCloseTo(screen.at(4, 4).x, 1);
+    expect(sketch?.top).toBeCloseTo(screen.at(4, 4).y, 1);
+    expect(sketch?.width).toBeCloseTo(12 * screen.scale, 1);
+    expect(sketch?.height).toBeCloseTo(8 * screen.scale, 1);
+    // The arrow: its outline's bounds, with its tip at the top-left corner's side.
+    const pointer = frame("pointer")?.getBoundingClientRect();
+    expect((pointer?.left ?? 0) / 1).toBeLessThanOrEqual(screen.at(20, 10).x + 0.5);
+    expect((pointer?.right ?? 0) / 1).toBeGreaterThanOrEqual(screen.at(40, 30).x - 0.5);
+    // Its two ends have handles on the points themselves; the drawing has none.
+    expect(frame("sketch")?.querySelectorAll(".hm-image-layer-handle")).toHaveLength(0);
+    const [tail, tip] = ends();
+    expect([tail?.end, tip?.end]).toEqual(["from", "to"]);
+    expect(tail?.x).toBeCloseTo(screen.at(40, 30).x, 0);
+    expect(tail?.y).toBeCloseTo(screen.at(40, 30).y, 0);
+    expect(tip?.x).toBeCloseTo(screen.at(20, 10).x, 0);
+    expect(tip?.y).toBeCloseTo(screen.at(20, 10).y, 0);
+    expect(frame("pointer")?.getAttribute("aria-label")).toBe("Layer 1 of 5: Arrow");
+    expect(description(frame("pointer"))).toBe(
+      "From 40, 30 to 20, 10. Arrow keys move it; with Shift, they move its tip; Delete removes it and Escape closes the layers.",
+    );
+    expect(description(frame("sketch"))).toBe(
+      "1 stroke, 12 × 8 pixels, from 4, 4. Arrow keys move it; Delete removes it and Escape closes the layers.",
+    );
+  });
+
+  it("moves an arrow and re-aims it with keys, its handles and its fields", async () => {
+    const { arrowLayer, session } = await withDrawn();
+    await layering();
+    const target = () => frame("pointer");
+    await act(async () => target()?.focus());
+    // The arrows move both ends; with Shift, the tip alone.
+    expect(await key(target(), { key: "ArrowRight" })).toBe(true);
+    expect(await key(target(), { key: "ArrowRight" })).toBe(true);
+    expect(await key(target(), { key: "ArrowDown", shiftKey: true })).toBe(true);
+    expect(await key(target(), { key: "ArrowLeft", altKey: true })).toBe(false);
+    expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 30 }, to: { x: 20, y: 10 } });
+    expect(description(target())).toContain("From 42, 30 to 22, 11.");
+    await afterKeys();
+    expect(arrowLayer()).toMatchObject({ from: { x: 42, y: 30 }, to: { x: 22, y: 11 } });
+    // One step for the burst.
+    await act(async () => {
+      expect(session().undo()).toBe(true);
+    });
+    expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 30 }, to: { x: 20, y: 10 } });
+    await rendered();
+    // The tip's handle, dragged: the tail stays.
+    const scale =
+      Math.hypot(
+        (ends()[0]?.x ?? 0) - (ends()[1]?.x ?? 0),
+        (ends()[0]?.y ?? 0) - (ends()[1]?.y ?? 0),
+      ) / Math.hypot(20, 20);
+    const tipHandle = target()?.querySelector('[data-hm-end="to"]') ?? null;
+    const tip = ends()[1] as { x: number; y: number };
+    expect(document.elementFromPoint(tip.x, tip.y)).toBe(tipHandle);
+    await pointer(tipHandle, "pointerdown", tip.x, tip.y);
+    await pointer(tipHandle, "pointermove", tip.x - 6 * scale, tip.y + 9 * scale);
+    await pointer(tipHandle, "pointerup", tip.x - 6 * scale, tip.y + 9 * scale);
+    expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 30 }, to: { x: 14, y: 19 } });
+    // Dragged onto the tail, it has no direction: nothing is set.
+    const tailHandle = target()?.querySelector('[data-hm-end="from"]') ?? null;
+    const [tailAt, tipAt] = ends() as unknown as [
+      { x: number; y: number },
+      { x: number; y: number },
+    ];
+    await pointer(tailHandle, "pointerdown", tailAt.x, tailAt.y);
+    await pointer(tailHandle, "pointermove", tipAt.x, tipAt.y);
+    await pointer(tailHandle, "pointerup", tipAt.x, tipAt.y);
+    expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 30 }, to: { x: 14, y: 19 } });
+    // Its fields: the box's are disabled, its own show, and re-aim it without a drag.
+    expect(kinds()).toEqual([false, false, true]);
+    expect(fields().map((input) => input.disabled)).toEqual([
       false,
       true,
       true,
@@ -595,9 +699,68 @@ describe("the layers (docs/adr/0013)", () => {
       false,
     ]);
     expect(named("Mirror")?.getAttribute("aria-disabled")).toBe("true");
-    // It's hidden, moved down, copied and deleted like any layer.
+    const own = () => [
+      ...document.querySelectorAll<HTMLInputElement>(".hm-image-layer-ends input"),
+    ];
+    expect(own().map((input) => input.value)).toEqual(["40", "30", "14", "19"]);
+    await type(own()[2], "25");
+    await type(own()[1], "33");
+    expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 33 }, to: { x: 25, y: 19 } });
+    // A value that would put the tip on the tail isn't set.
+    await type(own()[3], "33");
+    await type(own()[2], "40");
+    expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 33 }, to: { x: 25, y: 33 } });
+    expect(document.querySelector(".hm-image-layers-problem")).toBeNull();
+  });
+
+  it("moves a drawing by its origin, with keys, a drag and its place's fields, and never resizes it", async () => {
+    const { drawingLayer, session } = await withDrawn();
+    await layering();
+    await click(select("sketch"));
+    const target = () => frame("sketch");
+    await act(async () => target()?.focus());
+    expect(await key(target(), { key: "ArrowLeft" })).toBe(true);
+    expect(await key(target(), { key: "ArrowDown" })).toBe(true);
+    // Shift with an arrow has nothing to resize: the drawing stays as it is.
+    await key(target(), { key: "ArrowRight", shiftKey: true });
+    await afterKeys();
+    expect(drawingLayer()).toMatchObject({ x: 4, y: 6, strokes: [{ runs: [[0, 0, 10, 6]] }] });
+    // A drag moves it, as one step.
+    const box = target()?.getBoundingClientRect();
+    if (!box) throw new Error("no frame");
+    const scale = box.width / 12;
+    const middle = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+    await pointer(target(), "pointerdown", middle.x, middle.y);
+    await pointer(target(), "pointermove", middle.x + 7 * scale, middle.y - 2 * scale);
+    await pointer(target(), "pointerup", middle.x + 7 * scale, middle.y - 2 * scale);
+    expect(drawingLayer()).toMatchObject({ x: 11, y: 4 });
+    await act(async () => {
+      expect(session().undo()).toBe(true);
+    });
+    expect(drawingLayer()).toMatchObject({ x: 4, y: 6 });
+    // Its place is set from the fields; it has no size or turn to set, and no fields of its own.
+    expect(fields().map((input) => input.disabled)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(kinds()).toEqual([false, false, false]);
+    await type(fields()[1], "20");
+    await type(fields()[2], "-3");
+    expect(drawingLayer()).toMatchObject({ x: 20, y: -3 });
+  });
+
+  it("hides, moves, copies and deletes a drawing and an arrow like any layer", async () => {
+    const { keys, plan } = await withDrawn();
+    await layering();
     await click(visibility("pointer"));
     expect(plan().layers.at(-1)).toMatchObject({ key: "pointer", visible: false });
+    // Hidden and selected, its frame stays.
+    expect(frame("pointer")?.hasAttribute("data-hm-hidden")).toBe(true);
     await click(named("Move down"));
     expect(keys()).toEqual(["under", "middle", "over", "pointer", "sketch"]);
     await click(named("Duplicate"));
@@ -613,9 +776,10 @@ describe("the layers (docs/adr/0013)", () => {
     expect(
       plan().layers.find((item) => item.key !== "sketch" && item.kind === "drawing"),
     ).toMatchObject({ x: 13, y: 13, strokes: [{ runs: [[0, 0, 10, 6]] }] });
-    await act(async () => select("sketch")?.focus());
-    expect(await key(select("sketch"), { key: "Delete" })).toBe(true);
+    await act(async () => frame("sketch")?.focus());
+    expect(await key(frame("sketch"), { key: "Delete" })).toBe(true);
     expect(keys()).not.toContain("sketch");
+    expect(document.activeElement?.classList.contains("hm-image-layer-frame")).toBe(true);
     expect(document.querySelector(".hm-image-layers-problem")).toBeNull();
   });
 

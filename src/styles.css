@@ -380,6 +380,11 @@
     cursor: move;
   }
 
+  /* An arrow's two ends: handles at the points themselves, wherever its frame is. */
+  .hm-image-layer-handle[data-hm-end] {
+    cursor: crosshair;
+  }
+
   .hm-image-layer-frame:hover {
     outline: var(--hm-border-width) dashed var(--hm-color-accent);
   }
@@ -455,6 +460,38 @@
     justify-content: start;
   }
 
+  /*
+   * The surface a stroke is drawn on (docs/adr/0015): it takes every press
+   * on the stage, and no touch gesture scrolls or zooms the page under one.
+   */
+  .hm-image-draw-overlay {
+    position: absolute;
+    inset: 0;
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  .hm-image-draw-panel {
+    display: grid;
+    gap: var(--hm-gap-normal);
+  }
+
+  .hm-image-draw-intro {
+    margin: 0;
+  }
+
+  .hm-image-editor--styled .hm-image-draw-intro {
+    color: var(--hm-color-text-muted);
+  }
+
+  /* Remove at the start, Done at the end. */
+  .hm-image-draw-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--hm-gap-tight);
+  }
+
   .hm-image-editor-inspector:empty {
     display: none;
   }
@@ -469,7 +506,8 @@
   /* Left and top, then width and height: two columns that shrink with the inspector. */
   .hm-image-crop-fields,
   .hm-image-redact-fields,
-  .hm-image-layers-fields {
+  .hm-image-layers-fields,
+  .hm-image-layer-ends {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--hm-gap-tight);

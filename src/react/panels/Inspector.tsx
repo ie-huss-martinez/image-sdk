@@ -1,6 +1,7 @@
 import { SegmentedControl } from "@hussmartinez/ui/react";
 import { type ReactNode, useState } from "react";
 import { ImageCropPanel } from "../crop/CropPanel.js";
+import { ImageDrawPanel } from "../draw/DrawPanel.js";
 import type { ImageEditorFeatures } from "../editor/types.js";
 import { useImageDocument, useImageEditorState, useImageMessages } from "../hooks.js";
 import { ImageLayersPanel } from "../layers/LayersPanel.js";
@@ -26,6 +27,7 @@ export function ImageInspector(props: { readonly features?: ImageEditorFeatures 
   if (editor.tool === "crop") return <ImageCropPanel />;
   if (editor.tool === "redact") return <ImageRedactPanel />;
   if (editor.tool === "layers") return <ImageLayersPanel />;
+  if (editor.tool === "draw") return <ImageDrawPanel />;
   if (!plan) return null;
   // The panels the host turned on, in order; the choice falls to the first.
   const panels = PANELS.filter((name) => props.features?.[name] !== false);

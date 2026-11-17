@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Builds on:** [ADR 0007](0007-editor-shell.md) (the editor shell, gestures and the frames' keys) and [ADR 0009](0009-scene-space-layers-and-plan-versions.md) (layers and their commands); in sdk-core, [ADR 0009](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0009-features-as-tools.md) (features as tools), [ADR 0014](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0014-accessibility-and-translatable-text.md) (accessibility) and [ADR 0030](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0030-tools-and-keyboard-shortcuts.md) (tools and shortcuts)
+- **Amended:** 2026-11-17, by [ADR 0015](0015-drawing-in-the-editor.md): a drawing and an arrow have frames too, and the "Add" group has an arrow
 - **Amended:** 2026-11-17: a new layer is mirrored back on a mirrored image, and the panel has a Mirror button, now that a layer's box has `flipX` ([ADR 0009](0009-scene-space-layers-and-plan-versions.md))
 - **Amended:** 2026-11-17: the tools that add text, shapes and images, the fields of each kind, and where focus goes when a layer is added, under "Adding layers"
 - **Follows:** pdf-sdk's [ADR 0008](https://github.com/ie-huss-martinez/pdf-sdk/blob/main/docs/adr/0008-page-organisation-in-the-editor.md), for the keys that reorder a list

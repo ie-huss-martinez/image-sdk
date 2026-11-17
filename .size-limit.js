@@ -26,21 +26,22 @@ export default [
     limit: "24 kB",
   },
   {
-    // The core's 23.6 kB and the editor. Measured at 43.5 kB with the
-    // editor's tools up to layers (docs/adr/0013):
+    // The core's 23.6 kB and the editor. Measured at 46.5 kB (35.6 kB
+    // minified) with the editor's tools up to drawing (docs/adr/0013,
+    // docs/adr/0015):
     // crop, redact, the layers' list and frames, the tools that add text,
     // shapes and images with their fields, and the interface's text.
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "44 kB",
+    limit: "47 kB",
   },
   {
-    // The React entry and the element's own mount: measured at 44.5 kB.
+    // The React entry and the element's own mount: measured at 47.5 kB.
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "45 kB",
+    limit: "48 kB",
   },
   {
     name: "Stylesheet (./styles.css)",

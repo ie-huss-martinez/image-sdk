@@ -8,6 +8,7 @@ import {
   type ImageBoxedLayer,
   type ImageLayer,
   type ImageLayerBox,
+  type ImageScenePoint,
   MAX_SCENE_COORDINATE,
 } from "../../core/model/plan.js";
 
@@ -163,4 +164,26 @@ export function handleCursor(layerToComposition: ImageMatrix, handle: LayerHandl
   const seen = turned(layerToComposition, x, y);
   const eighths = Math.round(Math.atan2(seen.y, seen.x) / (Math.PI / 4));
   return CURSORS[((eighths % 4) + 4) % 4] as string;
+}
+
+/** A box's place and size: what a move or a resize sets. */
+export const placeOf = ({ x, y, width, height }: ImageLayerBox) => ({ x, y, width, height });
+
+/**
+ * A point of the scene moved by a distance on screen, in composition
+ * pixels, as {@link moveLayerBox} moves a box: a drawing's origin, or an
+ * arrow's end.
+ */
+export function moveScenePoint(
+  point: ImageScenePoint,
+  sceneToComposition: ImageMatrix,
+  dx: number,
+  dy: number,
+): ImageScenePoint {
+  const by = turned(invertMatrix(sceneToComposition), dx, dy);
+  const limit = MAX_SCENE_COORDINATE;
+  return {
+    x: clamp(point.x + whole(by.x), -limit, limit),
+    y: clamp(point.y + whole(by.y), -limit, limit),
+  };
 }

@@ -6,19 +6,27 @@ import {
   useId,
   useRef,
 } from "react";
+import { arrowBounds, drawingBounds } from "../../core/model/drawing-geometry.js";
 import { compositionSize, cropRect } from "../../core/model/geometry.js";
 import { invertMatrix, layerToOutput, sceneToOutput } from "../../core/model/layer-geometry.js";
-import type { ImageBoxedLayer, ImageLayerBox, ImagePlan } from "../../core/model/plan.js";
+import type {
+  ImageLayer,
+  ImageLayerBox,
+  ImagePlan,
+  ImageScenePoint,
+} from "../../core/model/plan.js";
+import { type ImageRect, sceneRectToComposition } from "../../core/model/redaction-geometry.js";
 import type { ImageSize } from "../../core/model/source.js";
 import { type ImageView, placement } from "../../core/ports/image-renderer.js";
 import { useImageEditorState, useImageMessages } from "../hooks.js";
 import {
   boxOf,
   handleCursor,
-  isBoxedLayer,
   LAYER_HANDLES,
   type LayerHandle,
   moveLayerBox,
+  moveScenePoint,
+  placeOf,
   resizeLayerBox,
   resizeLayerBoxOnScreen,
   turned,
@@ -40,18 +48,27 @@ export interface LayersOverlayProps {
   readonly view: ImageView;
 }
 
+/** Some of a layer's fields, as `image.updateLayers` takes them. */
+type Props = Readonly<Record<string, unknown>>;
+
 /**
- * The layers as frames over the canvas (docs/adr/0013), each placed and
- * turned with the transform the renderer draws its layer through. A press
- * on a frame selects its layer, the top one under the pointer, and a drag
- * moves it; the selected frame's handles resize it.
+ * The layers as frames over the canvas (docs/adr/0013, docs/adr/0015). A
+ * press on a frame selects its layer, the top one under the pointer, and a
+ * drag moves it.
+ *
+ * - **Text, a shape or an image** has its box as its frame, placed and
+ *   turned with the transform the renderer draws it through; the selected
+ *   one's handles resize it.
+ * - **A drawing** has the bounds of its strokes as its frame, and moves.
+ * - **An arrow** has the bounds of its outline, and a handle on each end
+ *   that re-aims it.
  *
  * Each frame is a focusable group, named by its place in the stack and what
- * the list calls it, and described by its size and place. Its keys are the
- * crop frame's (docs/adr/0007): the arrows move it by a pixel as it's seen,
- * `Shift` with them resizes it, `Delete` removes it. Handles are pointer
- * targets only, hidden from assistive technology: the keys and the panel's
- * fields do what they do.
+ * the list calls it, and described by where it is. Its keys are the crop
+ * frame's (docs/adr/0007): the arrows move it by a pixel as it's seen,
+ * `Shift` with them resizes a box or moves an arrow's tip, `Delete` removes
+ * it. Handles are pointer targets only, hidden from assistive technology:
+ * the keys and the panel's fields do what they do.
  *
  * Every gesture shows on the stage as a transient plan, and becomes one
  * undoable step when it ends. A hidden layer has a frame only while it's
@@ -70,8 +87,8 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
         x: number;
         y: number;
         key: string;
-        handle: LayerHandle | "move";
-        start: ImageLayerBox;
+        /** The fields a drag by this much on screen sets, in composition pixels, or none. */
+        at: (dx: number, dy: number) => Props | null;
         moved: boolean;
       }
     | undefined
@@ -100,6 +117,68 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
   const { orientation } = plan.base;
   const sceneToComposition = sceneToOutput(crop, orientation, composition);
   const seen = (box: ImageLayerBox) => layerToOutput(box, crop, orientation, composition);
+  /** A rectangle of the scene on the stage, in CSS pixels. */
+  const onStage = (rect: ImageRect) => {
+    const shown = sceneRectToComposition(rect, crop, orientation);
+    return {
+      left: placed.x + shown.x * placed.scale,
+      top: placed.y + shown.y * placed.scale,
+      width: shown.width * placed.scale,
+      height: shown.height * placed.scale,
+    };
+  };
+
+  /** An arrow's ends moved, when they still differ: an arrow has a direction. */
+  const aimed = (from: ImageScenePoint, to: ImageScenePoint, fields: Props): Props | null =>
+    from.x === to.x && from.y === to.y ? null : fields;
+
+  /** What a drag on a layer, or on one of its handles, sets. */
+  const dragOf = (
+    layer: ImageLayer,
+    part: LayerHandle | "move" | "from" | "to",
+  ): ((dx: number, dy: number) => Props | null) => {
+    if (layer.kind === "drawing") {
+      return (dx: number, dy: number): Props => ({
+        ...moveScenePoint(layer, sceneToComposition, dx, dy),
+      });
+    }
+    if (layer.kind === "arrow") {
+      return (dx: number, dy: number) => {
+        const from =
+          part === "to" ? layer.from : moveScenePoint(layer.from, sceneToComposition, dx, dy);
+        const to =
+          part === "from" ? layer.to : moveScenePoint(layer.to, sceneToComposition, dx, dy);
+        // Both ends, always: a gesture's latest change replaces its earlier
+        // ones, so a tip moved after the whole arrow must carry the tail too.
+        return aimed(from, to, { from, to });
+      };
+    }
+    const start = boxOf(layer);
+    return (dx: number, dy: number) => {
+      if (part === "move") return placeOf(moveLayerBox(start, sceneToComposition, dx, dy));
+      // Along the box's own axes, as its handles are.
+      const own = turned(invertMatrix(seen(start)), dx, dy);
+      return placeOf(resizeLayerBox(start, part as LayerHandle, own.x, own.y));
+    };
+  };
+
+  /** What an arrow key sets: a move by a pixel as it's seen, or with Shift a resize or a re-aim. */
+  const nudgeOf = (layer: ImageLayer, dx: number, dy: number, shift: boolean): Props | null => {
+    if (layer.kind === "drawing") {
+      // A drawing has no size to change.
+      return shift ? null : { ...moveScenePoint(layer, sceneToComposition, dx, dy) };
+    }
+    if (layer.kind === "arrow") return dragOf(layer, shift ? "to" : "move")(dx, dy);
+    const box = boxOf(layer);
+    // As seen on screen, whatever the layer's turn and the plan's rotation
+    // and flips: Shift moves the edge that faces right with Left and Right,
+    // and the one that faces down with Up and Down.
+    return placeOf(
+      shift
+        ? resizeLayerBoxOnScreen(box, seen(box), dx !== 0 ? "right" : "down", dx + dy)
+        : moveLayerBox(box, sceneToComposition, dx, dy),
+    );
+  };
 
   const capture = (event: PointerEvent<HTMLElement>) => {
     try {
@@ -110,7 +189,7 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
   };
 
   const onFramePointerDown =
-    (layer: ImageBoxedLayer, handle: LayerHandle | "move") =>
+    (layer: ImageLayer, part: LayerHandle | "move" | "from" | "to") =>
     (event: PointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
@@ -123,8 +202,7 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
         x: event.clientX,
         y: event.clientY,
         key: layer.key,
-        handle,
-        start: boxOf(layer),
+        at: dragOf(layer, part),
         moved: false,
       };
     };
@@ -133,16 +211,13 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
     const current = drag.current;
     if (!current || current.pointer !== event.pointerId) return;
     // In composition pixels: a move or a resize is by whole pixels of the scene.
-    const dx = (event.clientX - current.x) / placed.scale;
-    const dy = (event.clientY - current.y) / placed.scale;
+    const fields = current.at(
+      (event.clientX - current.x) / placed.scale,
+      (event.clientY - current.y) / placed.scale,
+    );
+    if (!fields) return;
     current.moved = true;
-    if (current.handle === "move") {
-      actions.moving(current.key, moveLayerBox(current.start, sceneToComposition, dx, dy));
-      return;
-    }
-    // Along the box's own axes, as its handles are.
-    const own = turned(invertMatrix(seen(current.start)), dx, dy);
-    actions.moving(current.key, resizeLayerBox(current.start, current.handle, own.x, own.y));
+    actions.moving(current.key, fields);
   };
 
   const onPointerEnd = (event: PointerEvent<HTMLElement>) => {
@@ -155,7 +230,7 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
   };
   const pointer = { onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
 
-  const onKeyDown = (layer: ImageBoxedLayer) => (event: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = (layer: ImageLayer) => (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
@@ -191,24 +266,14 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
     event.preventDefault();
     // Handled here, so the editor's shortcuts don't also take the arrows.
     event.stopPropagation();
-    const [dx, dy] = arrow;
-    const box = boxOf(layer);
-    // As seen on screen, whatever the layer's turn and the plan's rotation
-    // and flips: Shift moves the edge that faces right with Left and Right,
-    // and the one that faces down with Up and Down.
-    const moved = event.shiftKey
-      ? resizeLayerBoxOnScreen(box, seen(box), dx !== 0 ? "right" : "down", dx + dy)
-      : moveLayerBox(box, sceneToComposition, dx, dy);
-    actions.moving(layer.key, moved);
+    const fields = nudgeOf(layer, arrow[0], arrow[1], event.shiftKey);
+    if (!fields) return;
+    actions.moving(layer.key, fields);
     actions.commit(true);
   };
 
   const count = plan.layers.length;
-  // The layers that have a box. A drawing and an arrow have none, and no
-  // frame yet: they're selected, hidden, reordered and deleted from the list.
-  const shown = plan.layers
-    .filter(isBoxedLayer)
-    .filter((layer) => layer.visible || layer.key === selected);
+  const shown = plan.layers.filter((layer) => layer.visible || layer.key === selected);
   // One tab stop: the selected frame, or the top one when none is.
   const tabStop = shown.some((layer) => layer.key === selected) ? selected : shown.at(-1)?.key;
   return (
@@ -223,25 +288,83 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
       {shown.map((layer) => {
         const index = plan.layers.indexOf(layer);
         const isSelected = layer.key === selected;
+        // What every frame has: a positioned keyboard control over the
+        // canvas, not a form's fieldset (docs/adr/0007).
+        const frame = {
+          className: "hm-image-layer-frame",
+          "data-hm-layer": layer.key,
+          "data-hm-kind": layer.kind,
+          "data-hm-selected": isSelected ? "" : undefined,
+          "data-hm-hidden": layer.visible ? undefined : "",
+          role: "group",
+          "aria-label": messages.t("layers.frame", {
+            // As the list counts them: the top layer is the first.
+            index: count - index,
+            count,
+            name: layerLabel(layer, messages),
+          }),
+          "aria-describedby": `${describedBy}-${index}`,
+          tabIndex: layer.key === tabStop ? 0 : -1,
+          onFocus: () => actions.select(layer.key),
+          onKeyDown: onKeyDown(layer),
+          onPointerDown: onFramePointerDown(layer, "move"),
+          ...pointer,
+        };
+        if (layer.kind === "drawing" || layer.kind === "arrow") {
+          const bounds = layer.kind === "drawing" ? drawingBounds(layer) : arrowBounds(layer);
+          const box = onStage(bounds);
+          /** Where a point of the scene is inside the frame, in CSS pixels. */
+          const inFrame = (point: ImageScenePoint) => {
+            const at = onStage({ ...point, width: 0, height: 0 });
+            return { left: `${at.left - box.left}px`, top: `${at.top - box.top}px` };
+          };
+          return (
+            <div
+              key={layer.key}
+              {...frame}
+              style={{
+                width: `${box.width}px`,
+                height: `${box.height}px`,
+                transform: `translate(${box.left}px, ${box.top}px)`,
+              }}
+            >
+              <span id={`${describedBy}-${index}`} hidden>
+                {layer.kind === "drawing"
+                  ? messages.t("layers.drawingDescription", {
+                      count: layer.strokes.length,
+                      width: bounds.width,
+                      height: bounds.height,
+                      x: bounds.x,
+                      y: bounds.y,
+                    })
+                  : messages.t("layers.arrowDescription", {
+                      fromX: layer.from.x,
+                      fromY: layer.from.y,
+                      toX: layer.to.x,
+                      toY: layer.to.y,
+                    })}
+              </span>
+              {isSelected && layer.kind === "arrow"
+                ? (["from", "to"] as const).map((end) => (
+                    <span
+                      key={end}
+                      className="hm-image-layer-handle"
+                      data-hm-end={end}
+                      aria-hidden="true"
+                      style={inFrame(layer[end])}
+                      onPointerDown={onFramePointerDown(layer, end)}
+                      {...pointer}
+                    />
+                  ))
+                : null}
+            </div>
+          );
+        }
         const [a, b, c, d, e, f] = seen(layer);
         return (
-          // A positioned keyboard control over the canvas, not a form's fieldset (docs/adr/0007).
-          // biome-ignore lint/a11y/useSemanticElements: a focusable group, not a fieldset
           <div
             key={layer.key}
-            className="hm-image-layer-frame"
-            data-hm-layer={layer.key}
-            data-hm-selected={isSelected ? "" : undefined}
-            data-hm-hidden={layer.visible ? undefined : ""}
-            role="group"
-            aria-label={messages.t("layers.frame", {
-              // As the list counts them: the top layer is the first.
-              index: count - index,
-              count,
-              name: layerLabel(layer, messages),
-            })}
-            aria-describedby={`${describedBy}-${index}`}
-            tabIndex={layer.key === tabStop ? 0 : -1}
+            {...frame}
             style={{
               width: `${layer.width * placed.scale}px`,
               height: `${layer.height * placed.scale}px`,
@@ -251,10 +374,6 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
                 placed.y + f * placed.scale
               })`,
             }}
-            onFocus={() => actions.select(layer.key)}
-            onKeyDown={onKeyDown(layer)}
-            onPointerDown={onFramePointerDown(layer, "move")}
-            {...pointer}
           >
             <span id={`${describedBy}-${index}`} hidden>
               {messages.t("layers.frameDescription", {

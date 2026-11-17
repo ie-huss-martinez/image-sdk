@@ -5,7 +5,13 @@ import { createPlan, type ImagePlan } from "../../core/model/plan.js";
 import type { ImageCommand } from "../../core/operations/commands.js";
 import { IDLE, type ImageEditorState } from "../editor-state.js";
 import type { ImageToolContext, ImageToolState } from "../tool-types.js";
-import { addEllipseTool, addImageTool, addRectangleTool, addTextTool } from "./add-layer-tools.js";
+import {
+  addArrowTool,
+  addEllipseTool,
+  addImageTool,
+  addRectangleTool,
+  addTextTool,
+} from "./add-layer-tools.js";
 
 function context(start: ImageEditorState = IDLE, refuse?: ImageError) {
   const editor = createStore<ImageEditorState>(start);
@@ -30,7 +36,13 @@ const state = (open: boolean, inserting = false) =>
 
 describe("the tools that add layers (ADR 0013)", () => {
   it("are enabled with a document, and only text has a key", () => {
-    for (const tool of [addTextTool, addRectangleTool, addEllipseTool, addImageTool]) {
+    for (const tool of [
+      addTextTool,
+      addRectangleTool,
+      addEllipseTool,
+      addArrowTool,
+      addImageTool,
+    ]) {
       expect(tool.isEnabled?.(state(false)), tool.id).toBe(false);
       expect(tool.isEnabled?.(state(true)), tool.id).toBe(true);
       expect(tool.group, tool.id).toBe("add");
@@ -85,6 +97,24 @@ describe("the tools that add layers (ADR 0013)", () => {
     const { value, editor } = context({ ...IDLE, error: new ImageError("UNKNOWN", "x") });
     void addRectangleTool.run(value);
     expect(editor.getSnapshot().error).toBeNull();
+  });
+
+  it("add an arrow across the middle, pointing right, with no key of its own", () => {
+    const { value, editor, executed } = context();
+    void addArrowTool.run(value);
+    const [command] = executed;
+    if (command?.type !== "image.insertLayers") throw new Error("not an insert");
+    // The middle quarter of 400 × 200, along its middle.
+    expect(command.layers[0]).toMatchObject({
+      kind: "arrow",
+      from: { x: 150, y: 100 },
+      to: { x: 250, y: 100 },
+      colour: "#e02020",
+      width: 2,
+      opacity: 100,
+    });
+    expect(editor.getSnapshot().layers).toEqual({ selected: command.layers[0]?.key });
+    expect(addArrowTool.shortcuts).toBeUndefined();
   });
 
   it("ask for an image to add, and are off while one is being added", () => {

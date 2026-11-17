@@ -18,6 +18,8 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `layers` | Two shape layers, the top one turned and selected, with its frame and handles, and the layers panel |
  * | `layers-text` | A text layer just added and typed into, selected, with its text, font, alignment and colour fields |
  * | `layers-shape` | An ellipse just added, with a fill turned on beside its outline, and a shape's fields |
+ * | `draw` | The draw tool on, with a pen stroke and a highlighter stroke drawn, and the draw panel |
+ * | `layers-arrow` | An arrow just added, selected, with its frame, a handle on each end and an arrow's fields |
  * | `filters` | The Filters panel, with Sepia chosen |
  * | `export-summary` | The export dialog's choices and its summary of the metadata it removes |
  * | `export-done` | The export dialog's result, with Download focused |
@@ -159,6 +161,47 @@ const EDITOR: Readonly<Record<string, State>> = {
       .getByRole("radio", { name: "Yellow" })
       .click();
     await expect(page.getByRole("button", { name: "Fill", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  },
+  draw: async (page) => {
+    await opened(page);
+    // Strokes as a host adds them, so the picture doesn't depend on a pointer's timing.
+    await page.evaluate(() => {
+      const drawing = { kind: "drawing", name: "", visible: true, x: 6, y: 6 };
+      window.imageEditor.execute([
+        {
+          type: "image.insertLayers",
+          at: 0,
+          layers: [
+            {
+              ...drawing,
+              key: "marker",
+              opacity: 40,
+              strokes: [{ colour: "#f0c020", width: 6, runs: [[0, 12, 34, 12]] }],
+            },
+            {
+              ...drawing,
+              key: "pen",
+              opacity: 100,
+              strokes: [
+                { colour: "#ffffff", width: 2, runs: [[0, 0, 10, 8, 20, 2, 30, 10]] },
+                { colour: "#ffffff", width: 3, runs: [[34, 20]] },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+    await page.getByRole("button", { name: "Draw", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Draw", exact: true })).toBeVisible();
+  },
+  "layers-arrow": async (page) => {
+    await opened(page);
+    await page.getByRole("button", { name: "Add an arrow" }).click();
+    await page.getByRole("group", { name: "Layer 1 of 1: Arrow" }).focus();
+    await expect(page.getByRole("button", { name: "Arrow", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

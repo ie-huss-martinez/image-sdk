@@ -21,7 +21,7 @@ import {
   useImageSession,
 } from "../hooks.js";
 import { isBoxedLayer } from "./frame-geometry.js";
-import { ShapeLayerFields, TextLayerFields } from "./LayerFields.js";
+import { ArrowLayerFields, ShapeLayerFields, TextLayerFields } from "./LayerFields.js";
 import { fitLayerName, layerLabel, useLayerActions } from "./use-layers.js";
 
 /**
@@ -195,17 +195,27 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
   // with it: with no layer selected they're disabled, and their place is kept.
   const boxField = (name: BoxField) => {
     const length = name === "width" || name === "height";
+    // A drawing has a place, its origin, and no size; an arrow has its own fields.
+    const placedLayer = boxed ?? (!length && selected?.kind === "drawing" ? selected : undefined);
     return (
       <Field key={name} label={messages.t(`layers.${name}`)}>
         <NumberField
-          value={boxed ? boxed[name] : length ? 1 : 0}
+          value={
+            boxed
+              ? boxed[name]
+              : placedLayer?.kind === "drawing" && !length
+                ? placedLayer[name as "x" | "y"]
+                : length
+                  ? 1
+                  : 0
+          }
           min={length ? 1 : -MAX_SCENE_COORDINATE}
           max={MAX_SCENE_COORDINATE}
           step={1}
           largeStep={10}
-          disabled={!boxed}
+          disabled={!placedLayer}
           onValueChange={(value) => {
-            if (boxed) run(() => actions.set(boxed.key, { [name]: Math.round(value) }));
+            if (placedLayer) run(() => actions.set(placedLayer.key, { [name]: Math.round(value) }));
           }}
         />
       </Field>
@@ -348,10 +358,11 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
         </Field>
       </div>
       {/*
-        A text layer's fields and a shape's share one place, sized for the
-        taller, so selecting another kind of layer never moves the stage.
-        The ones that don't apply are hidden, from sight, focus and
-        assistive technology alike. An image layer has none of its own.
+        A text layer's fields, a shape's and an arrow's share one place,
+        sized for the tallest, so selecting another kind of layer never
+        moves the stage. The ones that don't apply are hidden, from sight,
+        focus and assistive technology alike. An image layer and a drawing
+        have none of their own.
       */}
       <div className="hm-image-layer-kinds">
         <TextLayerFields
@@ -361,6 +372,11 @@ export function ImageLayersPanel(props: ImageLayersPanelProps): ReactNode {
         />
         <ShapeLayerFields
           layer={selected?.kind === "shape" ? selected : null}
+          actions={actions}
+          run={run}
+        />
+        <ArrowLayerFields
+          layer={selected?.kind === "arrow" ? selected : null}
           actions={actions}
           run={run}
         />

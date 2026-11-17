@@ -4,6 +4,7 @@ import { createImageRenderer } from "../../adapters/image-renderer.js";
 import { compositionSize } from "../../core/model/geometry.js";
 import type { ImageRenderer } from "../../core/ports/image-renderer.js";
 import { CropFrame } from "../crop/CropFrame.js";
+import { DrawOverlay } from "../draw/DrawOverlay.js";
 import {
   useImageDocument,
   useImageEditorState,
@@ -106,7 +107,9 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   const redacting = editorState.tool === "redact";
   // Room around the image for the handles of a frame at its edge.
   const layering = editorState.tool === "layers";
-  const inset = cropping || redacting || layering ? CROP_INSET : 0;
+  const drawing = editorState.tool === "draw";
+  // The same room while drawing, so the image doesn't move between it and the layers.
+  const inset = cropping || redacting || layering || drawing ? CROP_INSET : 0;
   // What the stage shows: while cropping, the whole image under the plan's
   // other edits; during a gesture, its transient plan; otherwise the plan.
   const plan = useMemo(() => {
@@ -236,6 +239,22 @@ export function ImageStage(props: ImageStageProps): ReactNode {
       {layering && plan && source && size ? (
         <div className="hm-image-stage-overlay">
           <LayersOverlay
+            plan={plan}
+            source={source}
+            view={{
+              width: size.width,
+              height: size.height,
+              pixelRatio: 1,
+              zoom: view.zoom,
+              pan: view.pan,
+              inset,
+            }}
+          />
+        </div>
+      ) : null}
+      {drawing && plan && source && size ? (
+        <div className="hm-image-stage-overlay">
+          <DrawOverlay
             plan={plan}
             source={source}
             view={{
