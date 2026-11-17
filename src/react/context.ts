@@ -3,7 +3,7 @@ import { createContext } from "react";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageSession } from "../core/session/session.js";
 import type { ImageEditorState } from "../features/editor-state.js";
-import type { ImageMessageCatalogue } from "../messages/en.js";
+import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
 import type { ImageViewState } from "./view-store.js";
 
 /** What the provider shares with every image component below it. */
@@ -11,7 +11,7 @@ export interface ImageContextValue {
   readonly session: ImageSession;
   /** The engine the session decodes with, which the stage's renderer shares. */
   readonly engine: ImageEngine;
-  readonly messages: Messages<ImageMessageCatalogue>;
+  readonly messages: Messages<ImageEditorMessageCatalogue>;
   readonly view: Store<ImageViewState>;
   readonly editor: Store<ImageEditorState>;
   readonly opener: ImageOpener;

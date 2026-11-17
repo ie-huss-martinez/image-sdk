@@ -19,3 +19,4 @@ Use [`template.md`](template.md) for new records. Name files `NNNN-short-title.m
 | [0009](0009-scene-space-layers-and-plan-versions.md) | Scene space, layers and marks, and the plan's format versions | Accepted |
 | [0010](0010-redaction.md) | Redaction destroys pixels, and a test proves it | Accepted |
 | [0011](0011-gif-and-animation.md) | GIF: our own decoder, an animation in the plan, and export through a job worker | Accepted |
+| [0012](0012-interface-text-outside-the-server-safe-entry.md) | Interface text stays out of the server-safe entry | Accepted |

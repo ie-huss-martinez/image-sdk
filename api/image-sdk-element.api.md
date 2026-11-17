@@ -35,8 +35,7 @@ export interface ImageEditorElementProps {
     // (undocumented)
     filePolicy?: ImageFilePolicyOverrides;
     locale?: string;
-    // Warning: (ae-forgotten-export) The symbol "ImageMessageCatalogue" needs to be exported by the entry point element.d.ts
-    messages?: MessageOverrides<ImageMessageCatalogue>;
+    messages?: MessageOverrides<ImageEditorMessageCatalogue>;
     // Warning: (ae-forgotten-export) The symbol "ImagePlan" needs to be exported by the entry point element.d.ts
     plan?: ImagePlan;
     // Warning: (ae-forgotten-export) The symbol "ImageProcessor" needs to be exported by the entry point element.d.ts
@@ -46,6 +45,301 @@ export interface ImageEditorElementProps {
     theme?: string;
     tools?: readonly string[];
 }
+
+// @public
+export type ImageEditorMessageCatalogue = typeof imageEditorMessages;
+
+// @public
+export const imageEditorMessages: {
+    readonly "editor.engineUnavailable": "Image processing stopped. Reload this page or reopen the editor, then choose the image again. Unsaved edits will be lost unless your application has saved them.";
+    readonly "editor.label": "Image editor";
+    readonly "editor.preview": "Edited image preview, {width, number} × {height, number}";
+    readonly "editor.empty": "Open an image to start editing. It stays on this device.";
+    readonly "editor.choose": "Choose an image";
+    readonly "editor.dropHint": "or drop it here";
+    readonly "editor.opening": "Opening the image…";
+    readonly "editor.cancel": "Cancel";
+    readonly "editor.opened": "Image opened, {width, number} × {height, number}.";
+    readonly "editor.undid": "Undid {action}.";
+    readonly "editor.redid": "Redid {action}.";
+    readonly "actions.image.setCrop": "crop";
+    readonly "actions.image.setOrientation": "rotate or flip";
+    readonly "actions.image.setOutput": "size";
+    readonly "actions.image.setMetadata": "metadata";
+    readonly "actions.image.setDevelop": "adjustment";
+    readonly "actions.image.setFilter": "filter";
+    readonly "actions.image.insertLayers": "layer";
+    readonly "actions.image.removeLayers": "layer";
+    readonly "actions.image.restoreLayers": "layer";
+    readonly "actions.image.moveLayers": "layer order";
+    readonly "actions.image.setLayerOrder": "layer order";
+    readonly "actions.image.updateLayers": "layer change";
+    readonly "actions.image.insertRedactions": "redaction";
+    readonly "actions.image.removeRedactions": "redaction";
+    readonly "actions.image.restoreRedactions": "redaction";
+    readonly "actions.image.moveRedactions": "redaction order";
+    readonly "actions.image.setRedactionOrder": "redaction order";
+    readonly "actions.image.updateRedactions": "redaction change";
+    readonly "toolbar.label": "Image tools";
+    readonly "toolbar.groups.file": "File";
+    readonly "toolbar.groups.history": "History";
+    readonly "toolbar.groups.orientation": "Rotate";
+    readonly "toolbar.groups.zoom": "Zoom";
+    readonly "toolbar.groups.other": "More tools";
+    readonly "tools.open": "Open image";
+    readonly "tools.undo": "Undo";
+    readonly "tools.redo": "Redo";
+    readonly "tools.rotate-left": "Rotate left";
+    readonly "tools.rotate-right": "Rotate right";
+    readonly "tools.zoom-in": "Zoom in";
+    readonly "tools.zoom-out": "Zoom out";
+    readonly "tools.zoom-fit": "Fit to the stage";
+    readonly "tools.crop": "Crop";
+    readonly "tools.flip-horizontal": "Flip horizontally";
+    readonly "tools.flip-vertical": "Flip vertically";
+    readonly "toolbar.groups.crop": "Crop";
+    readonly "crop.frame": "Crop area";
+    readonly "crop.frameDescription": "{width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Shift, they resize it; Enter applies and Escape cancels.";
+    readonly "crop.size": "{width, number} × {height, number}, from {x, number}, {y, number}";
+    readonly "crop.panel": "Crop";
+    readonly "crop.x": "Left";
+    readonly "crop.y": "Top";
+    readonly "crop.width": "Width";
+    readonly "crop.height": "Height";
+    readonly "crop.aspect": "Aspect ratio";
+    readonly "crop.aspects.free": "Free";
+    readonly "crop.aspects.original": "Original";
+    readonly "crop.aspects.ratio": "{width}:{height}";
+    readonly "crop.apply": "Apply crop";
+    readonly "crop.cancel": "Cancel";
+    readonly "crop.reset": "Whole image";
+    readonly "crop.applied": "Cropped to {width, number} × {height, number}.";
+    readonly "tools.redact": "Redact";
+    readonly "toolbar.groups.redact": "Redact";
+    readonly "redact.panel": "Redact";
+    readonly "redact.intro": "Cover parts of the image. Only the exported image is redacted: the original stays in the editor.";
+    readonly "redact.add": "Add area";
+    readonly "redact.done": "Done";
+    readonly "redact.mode": "Cover with";
+    readonly "redact.modes.solid": "Solid colour";
+    readonly "redact.modes.pixelate": "Pixelation";
+    readonly "redact.pixelateHint": "Pixelation may not hide text. For text and numbers, use a solid colour.";
+    readonly "redact.colour": "Colour";
+    readonly "redact.colours.black": "Black";
+    readonly "redact.colours.white": "White";
+    readonly "redact.x": "Left";
+    readonly "redact.y": "Top";
+    readonly "redact.width": "Width";
+    readonly "redact.height": "Height";
+    readonly "redact.areas": "Redacted areas";
+    readonly "redact.none": "No areas yet. Drag across the image, or add one.";
+    readonly "redact.area": "Area {index, number}: {mode}, {width, number} × {height, number}";
+    readonly "redact.modeNames.solid": "solid colour";
+    readonly "redact.modeNames.pixelate": "pixelated";
+    readonly "redact.remove": "Remove area {index, number}";
+    readonly "redact.frame": "Redacted area {index, number} of {count, number}";
+    readonly "redact.frameDescription": "{mode}, {width, number} × {height, number} pixels, from {x, number}, {y, number}. Arrow keys move it; with Shift, they resize it; Delete removes it and Escape ends redacting.";
+    readonly "redact.added": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "Area added. {count} area is redacted.";
+        readonly other: "Area added. {count, number} areas are redacted.";
+    };
+    readonly "redact.removedLast": "Area removed. Nothing is redacted.";
+    readonly "redact.removed": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "Area removed. {count} area is redacted.";
+        readonly other: "Area removed. {count, number} areas are redacted.";
+    };
+    readonly "inspector.label": "Panels";
+    readonly "inspector.adjust": "Adjust";
+    readonly "inspector.filters": "Filters";
+    readonly "inspector.info": "Info";
+    readonly "notices.label": "Notices";
+    readonly "notices.dismiss": "Dismiss";
+    readonly "notices.colourProfile": "This image has a colour profile. Colours outside sRGB will be clipped in the exported file.";
+    readonly "info.panel": "Image info";
+    readonly "info.size": "Size";
+    readonly "info.sizeValue": "{width, number} × {height, number} pixels";
+    readonly "info.format": "Format";
+    readonly "info.formats.png": "PNG";
+    readonly "info.formats.jpeg": "JPEG";
+    readonly "info.formats.webp": "WebP";
+    readonly "info.formats.gif": "GIF";
+    readonly "info.formats.avif": "AVIF";
+    readonly "info.formats.heif": "HEIF";
+    readonly "info.formats.bmp": "BMP";
+    readonly "info.frames": "Frames";
+    readonly "info.fileSize": "File size";
+    readonly "info.fileSizeValue": "{size, fileSize}";
+    readonly "info.metadata": "Metadata in the file";
+    readonly "info.metadataNone": "None";
+    readonly "info.kept": "Kept on export";
+    readonly "info.keptNone": "Nothing";
+    readonly "develop.panel": "Adjust";
+    readonly "develop.temperature": "Temperature";
+    readonly "develop.tint": "Tint";
+    readonly "develop.exposure": "Exposure";
+    readonly "develop.highlights": "Highlights";
+    readonly "develop.shadows": "Shadows";
+    readonly "develop.contrast": "Contrast";
+    readonly "develop.saturation": "Saturation";
+    readonly "develop.vibrance": "Vibrance";
+    readonly "develop.reset": "Reset {name}";
+    readonly "develop.resetAll": "Reset all";
+    readonly "develop.wasReset": "All adjustments reset.";
+    readonly "filters.panel": "Filters";
+    readonly "filters.label": "Filter";
+    readonly "filters.none": "None";
+    readonly "filters.vivid": "Vivid";
+    readonly "filters.warm": "Warm";
+    readonly "filters.cool": "Cool";
+    readonly "filters.fade": "Fade";
+    readonly "filters.mono": "Mono";
+    readonly "filters.noir": "Noir";
+    readonly "filters.sepia": "Sepia";
+    readonly "filters.strength": "Strength";
+    readonly "toolbar.groups.export": "Export";
+    readonly "tools.export": "Export";
+    readonly "export.title": "Export image";
+    readonly "export.description": "The file is made on this device, and nothing is uploaded.";
+    readonly "export.format": "Format";
+    readonly "export.formats.png": "PNG";
+    readonly "export.formats.jpeg": "JPEG";
+    readonly "export.formats.webp": "WebP";
+    readonly "export.quality": "Quality";
+    readonly "export.qualityValue": "{quality, number}%";
+    readonly "export.size": "Size";
+    readonly "export.sizes.scale": "Scale";
+    readonly "export.sizes.fit": "Fit in a box";
+    readonly "export.scale": "Scale, in percent";
+    readonly "export.fitWidth": "Largest width";
+    readonly "export.fitHeight": "Largest height";
+    readonly "export.fields": "Details to include";
+    readonly "export.fieldsHint": "Only what you fill in is written to the file.";
+    readonly "export.field.title": "Title";
+    readonly "export.field.description": "Description";
+    readonly "export.field.artist": "Artist";
+    readonly "export.field.copyright": "Copyright";
+    readonly "export.summary": "Summary";
+    readonly "export.output": "{width, number} × {height, number} pixels, {format}";
+    readonly "export.removed": "Removed from the file";
+    readonly "export.removedNone": "The image had no other details to remove.";
+    readonly "export.redacted": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "{count} area is redacted.";
+        readonly other: "{count, number} areas are redacted.";
+    };
+    readonly "export.redactedPixelated": "Pixelated areas may not hide text.";
+    readonly "export.kind.location": "Location";
+    readonly "export.kind.camera": "Camera details";
+    readonly "export.kind.timestamps": "Dates and times";
+    readonly "export.kind.thumbnail": "Embedded thumbnail";
+    readonly "export.kind.colourProfile": "Colour profile: colours outside sRGB are clipped";
+    readonly "export.kind.other": "Other metadata";
+    readonly "export.kept": "Kept in the file";
+    readonly "export.confirm": "Export";
+    readonly "export.cancel": "Cancel";
+    readonly "export.progress": "Exporting the image";
+    readonly "export.stop": "Stop exporting";
+    readonly "export.cancelled": "Export stopped.";
+    readonly "export.done": "Exported a {format} of {size, fileSize}.";
+    readonly "export.ready": "{width, number} × {height, number} pixels, {format}, {size, fileSize}";
+    readonly "export.download": "Download";
+    readonly "export.close": "Done";
+    readonly "dialog.close": "Close";
+    readonly "fileDropZone.choose": "Choose a file";
+    readonly "fileDropZone.chooseMultiple": "Choose files";
+    readonly "fileDropZone.hint": "or drop it here";
+    readonly "fileDropZone.hintMultiple": "or drop them here";
+    readonly "progress.label": "Progress";
+    readonly "spinner.label": "Loading";
+    readonly "errors.INVALID_THEME_TOKEN": "The theme setting {token} has a value that can't be used.";
+    readonly "errors.INVALID_THEME_SELECTOR": "The theme can't be applied to the selector {selector}.";
+    readonly "errors.INVALID_IMAGE": "This file isn't a valid image, or it's too damaged to open.";
+    readonly "errors.UNSUPPORTED_FORMAT": "This image format isn't supported. Try converting the file to PNG or JPEG, then open it again.";
+    readonly "errors.DECODE_FAILED": "This browser can't open this kind of image. Try another browser, or convert the file to PNG or JPEG.";
+    readonly "errors.INVALID_COMMAND": "This edit couldn't be made. Please try again.";
+    readonly "errors.INVALID_DOCUMENT": "This project is damaged, or it isn't an image project.";
+    readonly "errors.UNSUPPORTED_PLAN": "This image has edits this version can't show. Update the application and try again.";
+    readonly "errors.IMAGE_TOO_LARGE": "This image has more pixels than the editor can handle. Try a smaller version of it.";
+    readonly "errors.IMAGE_DIMENSION_TOO_LARGE": "This image is {actual, number} pixels across, which is over the {maximum, number}-pixel limit.";
+    readonly "errors.TOO_MANY_FRAMES": {
+        readonly $plural: "maximum";
+    } & {
+        readonly one: "This animation has {actual, number} frames, which is over the {maximum}-frame limit.";
+        readonly other: "This animation has {actual, number} frames, which is over the {maximum, number}-frame limit.";
+    };
+    readonly "errors.SESSION_TOO_LARGE": "The open images would use {actual, fileSize} of memory, which is over the {maximum, fileSize} limit. Close an image, or clear the undo history, and try again.";
+    readonly "errors.TOO_MANY_LAYERS": {
+        readonly $plural: "maximum";
+    } & {
+        readonly one: "An image can have {maximum} layer. Merge or delete layers, and try again.";
+        readonly other: "An image can have up to {maximum, number} layers. Merge or delete layers, and try again.";
+    };
+    readonly "warnings.maxImagePixels": "This image is large, and may be slow to edit on some devices.";
+    readonly "warnings.maxImageDimension": "This image is very wide or tall, and may be slow to edit.";
+    readonly "warnings.maxFrames": {
+        readonly $plural: "actual";
+    } & {
+        readonly one: "This animation has {actual} frame.";
+        readonly other: "This animation has {actual, number} frames, and may be slow to edit and export.";
+    };
+    readonly "warnings.maxSessionSize": "The open images use {actual, fileSize} of memory. Clearing the undo history frees memory.";
+    readonly "warnings.maxLayers": {
+        readonly $plural: "actual";
+    } & {
+        readonly one: "This image has {actual} layer.";
+        readonly other: "This image has {actual, number} layers, and may be slow to edit and export.";
+    };
+    readonly "errors.UNKNOWN": "Something went wrong. Please try again.";
+    readonly "errors.ABORTED": "The operation was cancelled.";
+    readonly "errors.TIMEOUT": "The operation took too long and was stopped.";
+    readonly "errors.WORKER_START_FAILED": "The file processor couldn't start. Reload the page and try again.";
+    readonly "errors.WORKER_PROTOCOL_MISMATCH": "The file processor is out of date. Reload the page to update it.";
+    readonly "errors.WORKER_CRASHED": "The file processor stopped unexpectedly. Please try again.";
+    readonly "errors.WORKER_TERMINATED": "The operation was stopped before it finished. Please try again.";
+    readonly "errors.WORKER_METHOD_NOT_FOUND": "This operation isn't available. Reload the page and try again.";
+    readonly "errors.WORKER_DATA_NOT_CLONEABLE": "Something went wrong while processing the file. Please try again.";
+    readonly "errors.UNSUPPORTED_ENVIRONMENT": "This browser doesn't support a feature this tool needs. Update your browser, or try another one.";
+    readonly "errors.FILE_TOO_LARGE": "This file is {actual, fileSize}, which is over the {maximum, fileSize} limit.";
+    readonly "errors.TOO_MANY_FILES": {
+        readonly $plural: "maximum";
+    } & {
+        readonly one: "You can add {maximum} file at a time.";
+        readonly other: "You can add up to {maximum} files at a time.";
+    };
+    readonly "errors.DECODED_SIZE_TOO_LARGE": "This file expands to more than {maximum, fileSize} when opened, which is over the limit.";
+    readonly "errors.PROCESSING_TIME_EXCEEDED": "Processing this file took too long and was stopped.";
+    readonly "warnings.maxFileSize": "This file is {actual, fileSize}. Large files may be slow to process.";
+    readonly "warnings.maxFiles": "Adding {actual} files at once may be slow.";
+    readonly "warnings.maxDecodedSize": "This file is very large once opened and may be slow to process.";
+    readonly "warnings.maxProcessingTime": "This is taking longer than usual.";
+    readonly "keys.control": "Ctrl";
+    readonly "keys.alt": "Alt";
+    readonly "keys.shift": "Shift";
+    readonly "keys.meta": "Meta";
+    readonly "keys.apple.control": "\u2303";
+    readonly "keys.apple.alt": "\u2325";
+    readonly "keys.apple.shift": "\u21E7";
+    readonly "keys.apple.meta": "\u2318";
+    readonly "keys.space": "Space";
+    readonly "keys.enter": "Enter";
+    readonly "keys.escape": "Esc";
+    readonly "keys.tab": "Tab";
+    readonly "keys.delete": "Delete";
+    readonly "keys.backspace": "Backspace";
+    readonly "keys.arrowUp": "\u2191";
+    readonly "keys.arrowDown": "\u2193";
+    readonly "keys.arrowLeft": "\u2190";
+    readonly "keys.arrowRight": "\u2192";
+    readonly "keys.home": "Home";
+    readonly "keys.end": "End";
+    readonly "keys.pageUp": "Page Up";
+    readonly "keys.pageDown": "Page Down";
+};
 
 // @public
 export interface ImageExportReport {

@@ -2,8 +2,8 @@ import type { Messages, Store } from "@hussmartinez/sdk-core";
 import { useContext, useSyncExternalStore } from "react";
 import type { ImageSession, ImageSessionSnapshot } from "../core/session/session.js";
 import type { ImageEditorState } from "../features/editor-state.js";
-import type { ImageMessageCatalogue } from "../messages/en.js";
 import { ImageContext, type ImageContextValue } from "./context.js";
+import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
 import type { ImageViewState } from "./view-store.js";
 
 function useImageContext(hook: string): ImageContextValue {
@@ -61,7 +61,7 @@ export function useImageEditorState(): readonly [ImageEditorState, Store<ImageEd
  *
  * @public
  */
-export function useImageMessages(): Messages<ImageMessageCatalogue> {
+export function useImageMessages(): Messages<ImageEditorMessageCatalogue> {
   return useImageContext("useImageMessages").messages;
 }
 
