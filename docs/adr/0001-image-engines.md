@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-12
+- **Partially superseded by:** [0010](0010-redaction.md), for the blurred redaction, which is deferred
 
 ## Context
 
