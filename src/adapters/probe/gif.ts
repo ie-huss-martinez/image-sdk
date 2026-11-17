@@ -34,7 +34,8 @@ async function skipSubBlocks(reader: WindowReader, start: number): Promise<numbe
 
 /**
  * Probes a GIF file by walking its blocks (ADR 0001): the size from the
- * logical screen descriptor, and every image descriptor as a frame, which
+ * logical screen descriptor, or from the first frame when it's at the
+ * screen's corner and covers it, and every image descriptor as a frame, which
  * must fit inside the logical screen and declare an LZW minimum code size
  * from 1 to 8. Each frame is composited on the full
  * screen, so the bound is frames × the screen's pixels. Image data is never
@@ -53,8 +54,8 @@ async function skipSubBlocks(reader: WindowReader, start: number): Promise<numbe
  */
 export async function probeGif(reader: WindowReader): Promise<ImageProbe> {
   const screen = await exact(reader, "gif", 0, 13, "the logical screen descriptor");
-  const width = u16le(screen, 6);
-  const height = u16le(screen, 8);
+  let width = u16le(screen, 6);
+  let height = u16le(screen, 8);
   if (width < 1 || height < 1) {
     throw invalid("gif", "the logical screen has no pixels");
   }
@@ -108,6 +109,18 @@ export async function probeGif(reader: WindowReader): Promise<ImageProbe> {
         const top = u16le(descriptor, 3);
         const frameWidth = u16le(descriptor, 5);
         const frameHeight = u16le(descriptor, 7);
+        // A first frame at the screen's corner that covers it and more is
+        // the screen: every browser shows the frame alone (docs/adr/0011).
+        if (
+          frames === 0 &&
+          left === 0 &&
+          top === 0 &&
+          frameWidth >= width &&
+          frameHeight >= height
+        ) {
+          width = frameWidth;
+          height = frameHeight;
+        }
         if (
           frameWidth < 1 ||
           frameHeight < 1 ||

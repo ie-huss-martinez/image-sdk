@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   fixture,
   gifFrameOutsideScreen,
+  gifFramePastScreenEdge,
   gifWithBackground,
   jpegRotated,
   jpegUltraHdr,
@@ -55,8 +56,8 @@ const LARGE = { width: 96, height: 64 };
 /**
  * One file per format the SDK reads, and the files whose structure decides
  * how the decode is bounded (ADR 0001): JPEG secondary images and EXIF
- * thumbnails, HEIF thumbnails, orientation, and a GIF frame that overflows
- * its screen.
+ * thumbnails, HEIF thumbnails, orientation, and a GIF whose first frame is
+ * larger than its screen.
  */
 export const DECODE_CASES: readonly DecodeCase[] = [
   { name: "PNG", bytes: () => fixture("primary.png"), primary: SMALL, probe: "accepts" },
@@ -93,9 +94,16 @@ export const DECODE_CASES: readonly DecodeCase[] = [
   },
   { name: "GIF", bytes: () => fixture("primary.gif"), primary: SMALL, probe: "accepts" },
   {
-    name: "GIF, frame outside the screen",
+    name: "GIF, first frame larger than the screen",
     bytes: gifFrameOutsideScreen,
-    primary: SMALL,
+    // The frame's size, not the screen's: what the probe reads (docs/adr/0011).
+    primary: LARGE,
+    probe: "accepts",
+  },
+  {
+    name: "GIF, first frame past the screen's edge",
+    bytes: gifFramePastScreenEdge,
+    primary: LARGE,
     probe: "refuses",
   },
   { name: "BMP", bytes: () => fixture("primary.bmp"), primary: SMALL, probe: "accepts" },

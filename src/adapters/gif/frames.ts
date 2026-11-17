@@ -47,7 +47,7 @@ export interface GifFrame {
 
 /** A GIF's frame table (docs/adr/0011): what the decoder needs, bounded, with nothing decoded. */
 export interface GifFile {
-  /** The logical screen. */
+  /** The logical screen, or the first frame when it's at the screen's corner and covers it. */
   readonly width: number;
   readonly height: number;
   /** `null`: play once. 0: for ever. Otherwise that many repeats. */
@@ -109,8 +109,8 @@ export function readGifFrames(bytes: Uint8Array): GifFile {
   need(bytes, 0, 13, "the logical screen descriptor");
   const signature = ascii(bytes, 0, 6);
   if (signature !== "GIF87a" && signature !== "GIF89a") throw invalid("gif", "not a GIF");
-  const width = u16le(bytes, 6);
-  const height = u16le(bytes, 8);
+  let width = u16le(bytes, 6);
+  let height = u16le(bytes, 8);
   if (width < 1 || height < 1) throw invalid("gif", "the logical screen has no pixels");
   const packed = bytes[10] as number;
   let offset = 13;
@@ -170,6 +170,18 @@ export function readGifFrames(bytes: Uint8Array): GifFile {
       const y = u16le(bytes, offset + 3);
       const frameWidth = u16le(bytes, offset + 5);
       const frameHeight = u16le(bytes, offset + 7);
+      // A first frame at the screen's corner that covers it and more is the
+      // screen: every browser shows the frame alone (docs/adr/0011).
+      if (
+        frames.length === 0 &&
+        x === 0 &&
+        y === 0 &&
+        frameWidth >= width &&
+        frameHeight >= height
+      ) {
+        width = frameWidth;
+        height = frameHeight;
+      }
       if (frameWidth < 1 || frameHeight < 1 || x + frameWidth > width || y + frameHeight > height) {
         throw invalid("gif", "a frame doesn't fit inside the logical screen");
       }

@@ -79,6 +79,28 @@ const WRITTEN: Readonly<Record<string, GifFixture>> = {
     palette: FOUR,
     frames: [{ pixels: pattern(4, 4, 4), noEnd: true }],
   },
+  "a first frame larger than the screen, at its corner": {
+    width: 10,
+    height: 8,
+    palette: FOUR,
+    frames: [{ width: 16, height: 12, pixels: pattern(16, 12, 4) }],
+  },
+  "a first frame wider than the screen and as tall, with a transparent colour": {
+    width: 10,
+    height: 8,
+    palette: FOUR,
+    frames: [{ width: 16, height: 8, pixels: pattern(16, 8, 4), transparent: 1 }],
+  },
+  "a first frame larger than the screen, then one that fits the screen": {
+    width: 10,
+    height: 8,
+    palette: FOUR,
+    loop: 0,
+    frames: [
+      { width: 16, height: 12, pixels: pattern(16, 12, 4), delay: 10 },
+      { width: 10, height: 8, pixels: pattern(10, 8, 2), delay: 10 },
+    ],
+  },
 };
 
 /** The GIF files the repository keeps: what the capability matrix and the end-to-end tests open. */
@@ -228,6 +250,31 @@ describe("a GIF with a defect browsers open (docs/adr/0011)", () => {
     );
   });
 
+  it("refuses a first frame outside the screen that browsers size differently", async () => {
+    const first = (width: number, height: number, x = 0, y = 0) =>
+      writeGif({
+        width: 10,
+        height: 8,
+        palette: FOUR,
+        frames: [{ x, y, width, height, pixels: pattern(width, height, 4) }],
+      });
+    // Wider but not as tall, taller but not as wide, larger away from the
+    // corner, and past the edge: Chromium makes one size of each, Firefox
+    // and WebKit another.
+    for (const bytes of [first(16, 6), first(6, 12), first(16, 12, 2, 3), first(8, 6, 5, 5)]) {
+      const error = await engine()
+        .probe(blobOf(bytes))
+        .then(
+          () => undefined,
+          (thrown: unknown) => thrown,
+        );
+      expect(isImageError(error, "INVALID_IMAGE")).toBe(true);
+      expect((error as ImageError).details?.["problem"]).toBe(
+        "a frame doesn't fit inside the logical screen",
+      );
+    }
+  });
+
   it("doesn't draw a pixel that names a colour its table doesn't have, or a frame with no table", async () => {
     const outside = await opened(
       writeGif({
@@ -260,10 +307,10 @@ describe("the GIF corpus (docs/adr/0011)", () => {
 
   /** The files that are refused, each with why. Everything else opens. */
   const REFUSED: Readonly<Record<string, string>> = {
-    // The first frame is outside the logical screen. Browsers disagree on these:
-    // some refuse, and those that open don't agree on the image's size.
+    // The first frame is outside the logical screen, and isn't one at its corner
+    // that covers it. Browsers disagree on these: some refuse, and those that
+    // open don't agree on the image's size.
     "image/oob.gif": "a frame doesn't fit inside the logical screen",
-    "image/issue_1455_oversized.gif": "a frame doesn't fit inside the logical screen",
     "image-gif/issue-117-out-of-range.gif": "a frame doesn't fit inside the logical screen",
     "image-gif/issue-96-small-codesize-2.gif": "a frame doesn't fit inside the logical screen",
     "image-gif/issue-101-infinite-empty-loop.gif": "a frame doesn't fit inside the logical screen",

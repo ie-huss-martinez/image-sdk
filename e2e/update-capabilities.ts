@@ -72,7 +72,7 @@ Each file is a generated solid colour (\`tools/generate-capability-fixtures.sh\`
 - **doesn't decode:** \`createImageBitmap\` rejected the file. The engine reports that as \`DECODE_FAILED\`.
 - **never settles:** the decode didn't finish within 10 seconds.
 
-The SDK's probe refuses **GIF, frame outside the screen**, so the engine never decodes it. The row shows why: every engine grows the image to fit the frame, so a bound from the logical screen would be too small (ADR 0001).\n\n**HEIC** doesn't decode in any of these engines. Safari on Apple platforms may decode it with the system's decoder, which Playwright's WebKit doesn't have and only a device can check. Where it doesn't decode, the SDK reports \`DECODE_FAILED\` (ADR 0001).
+**GIF, first frame larger than the screen** is a frame of 96 × 64 at the corner of a 48 × 32 logical screen. Every engine shows the frame alone, at the frame's size, and so the SDK's probe reads that size and its decoder draws that frame (ADR 0011). The SDK's probe refuses **GIF, first frame past the screen's edge**, the same frame starting 8 pixels in from the left of a 96 × 64 screen, so the engine never decodes it. The row shows why: the engines don't agree on the image's size.\n\n**HEIC** doesn't decode in any of these engines. Safari on Apple platforms may decode it with the system's decoder, which Playwright's WebKit doesn't have and only a device can check. Where it doesn't decode, the SDK reports \`DECODE_FAILED\` (ADR 0001).
 
 | File | Chromium | Firefox | WebKit |
 |---|---|---|---|
