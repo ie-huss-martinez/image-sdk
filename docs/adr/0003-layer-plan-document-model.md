@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-12
+- **Partially superseded by:** [0009](0009-scene-space-layers-and-plan-versions.md), for the layer geometry (layers in canvas pixels), the list of layer kinds, the layer commands and `canvas`
 - **Amended:** 2026-11-13: the plan and the user-level commands have a portable JSON format, `hm-image-plan` and `hm-image-command` version 1 ([the format record](../formats/hm-image-plan.md), sdk-core ADR 0045), and the reducer refuses unknown fields, as their schemas do
 
 ## Context
