@@ -383,6 +383,47 @@
     color: var(--hm-color-text-muted);
   }
 
+  /*
+   * The redact panel keeps its size while the tool is on. Under a narrow
+   * stage, the inspector sits below it and takes its height from its
+   * content, so a panel that grew would shrink the stage and move the image
+   * under the pointer, in the middle of placing an area.
+   *
+   * What doesn't apply keeps its place and is hidden: visibility takes it
+   * out of sight, the tab order and the accessibility tree together.
+   */
+  .hm-image-redact-panel [data-hm-inactive] {
+    visibility: hidden;
+  }
+
+  /* The colour and pixelation's warning, in one cell as tall as the taller. */
+  .hm-image-redact-cover {
+    display: grid;
+    align-items: start;
+  }
+
+  .hm-image-redact-cover > * {
+    grid-area: 1 / 1;
+  }
+
+  /*
+   * The list holds three areas' rows and scrolls beyond them, so adding or
+   * removing one doesn't change the panel's height either.
+   */
+  .hm-image-redact-areas {
+    box-sizing: border-box;
+    block-size: calc(3 * var(--hm-control-height) + 2 * var(--hm-gap-tight));
+    overflow-y: auto;
+  }
+
+  /* Beside the stage, the inspector's height doesn't touch it: the list shows every area. */
+  @container (width >= 720px) {
+    .hm-image-redact-areas {
+      block-size: auto;
+      overflow-y: visible;
+    }
+  }
+
   .hm-image-redact-areas ul {
     display: grid;
     gap: var(--hm-gap-tight);

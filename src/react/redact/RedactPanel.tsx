@@ -34,6 +34,10 @@ export interface ImageRedactPanelProps {
  * every area, each with its mode, its size and a button to remove it, so
  * what's covered can be read without the preview.
  *
+ * The panel keeps its size while redacting, whatever is selected or chosen.
+ * Where the inspector sits under the stage, a panel that grew would shrink
+ * the stage, and move the image under the pointer.
+ *
  * @public
  */
 export function ImageRedactPanel(props: ImageRedactPanelProps): ReactNode {
@@ -46,18 +50,21 @@ export function ImageRedactPanel(props: ImageRedactPanelProps): ReactNode {
   // The stage may show a gesture's plan; the panel lists what's committed.
   const { redactions } = plan;
   const selected = redactions.find((redaction) => redaction.key === settings.selected);
+  // The fields are always there, so the panel keeps its size, and the stage
+  // with it: with no area selected they're disabled, and their place is kept.
   const field = (name: "x" | "y" | "width" | "height") => {
-    if (!selected) return null;
     const length = name === "width" || name === "height";
     return (
       <Field key={name} label={messages.t(`redact.${name}`)}>
         <NumberField
-          value={selected[name]}
+          value={selected ? selected[name] : length ? 1 : 0}
           min={length ? 1 : -MAX_SCENE_COORDINATE}
           max={MAX_SCENE_COORDINATE}
           step={1}
           largeStep={10}
+          disabled={!selected}
           onValueChange={(value) => {
+            if (!selected) return;
             const { x, y, width, height } = selected;
             actions.setRegion(selected.key, { x, y, width, height, [name]: Math.round(value) });
           }}
@@ -65,6 +72,7 @@ export function ImageRedactPanel(props: ImageRedactPanelProps): ReactNode {
       </Field>
     );
   };
+  const pixelating = settings.mode === "pixelate";
   return (
     <section
       className={["hm-image-redact-panel", props.className].filter(Boolean).join(" ")}
@@ -81,29 +89,36 @@ export function ImageRedactPanel(props: ImageRedactPanelProps): ReactNode {
         ]}
         onValueChange={(value) => actions.setMode(value === "pixelate" ? "pixelate" : "solid")}
       />
-      {settings.mode === "pixelate" ? (
-        <p className="hm-image-redact-hint">{messages.t("redact.pixelateHint")}</p>
-      ) : (
-        <SegmentedControl
-          label={messages.t("redact.colour")}
-          // A colour from a plan that isn't one of these shows neither chosen.
-          value={settings.colour}
-          size="small"
-          options={COLOURS.map(({ value, name }) => ({
-            value,
-            label: messages.t(`redact.colours.${name}`),
-          }))}
-          onValueChange={(value) => actions.setColour(value)}
-        />
-      )}
+      {/*
+        The colour and pixelation's warning share one place, sized for the
+        taller, so choosing a mode never moves what's below it or the stage.
+        The one that doesn't apply is hidden, from sight, focus and
+        assistive technology alike.
+      */}
+      <div className="hm-image-redact-cover">
+        <div data-hm-inactive={pixelating ? "" : undefined}>
+          <SegmentedControl
+            label={messages.t("redact.colour")}
+            // A colour from a plan that isn't one of these shows neither chosen.
+            value={settings.colour}
+            size="small"
+            options={COLOURS.map(({ value, name }) => ({
+              value,
+              label: messages.t(`redact.colours.${name}`),
+            }))}
+            onValueChange={(value) => actions.setColour(value)}
+          />
+        </div>
+        <p className="hm-image-redact-hint" data-hm-inactive={pixelating ? undefined : ""}>
+          {messages.t("redact.pixelateHint")}
+        </p>
+      </div>
       <Button variant="secondary" className="hm-image-redact-add" onClick={() => actions.add()}>
         {messages.t("redact.add")}
       </Button>
-      {selected ? (
-        <div className="hm-image-redact-fields">
-          {(["x", "y", "width", "height"] as const).map(field)}
-        </div>
-      ) : null}
+      <div className="hm-image-redact-fields" data-hm-inactive={selected ? undefined : ""}>
+        {(["x", "y", "width", "height"] as const).map(field)}
+      </div>
       <section className="hm-image-redact-areas" aria-label={messages.t("redact.areas")}>
         {redactions.length === 0 ? (
           <p className="hm-image-redact-none">{messages.t("redact.none")}</p>

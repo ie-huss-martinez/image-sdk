@@ -98,6 +98,10 @@ const frames = () => [...document.querySelectorAll<HTMLElement>(".hm-image-redac
 const overlay = () => document.querySelector<HTMLElement>(".hm-image-redact-overlay");
 const option = (text: string) =>
   [...document.querySelectorAll<HTMLElement>("[role=radio]")].find((o) => o.textContent === text);
+/** Whether an element can be seen: the panel hides what doesn't apply, and keeps its place. */
+const shown = (element: Element | null | undefined) =>
+  element !== null && element !== undefined && getComputedStyle(element).visibility === "visible";
+const hint = () => document.querySelector(".hm-image-redact-hint");
 const description = (frame: HTMLElement | undefined) =>
   document.getElementById(frame?.getAttribute("aria-describedby") ?? "")?.textContent;
 
@@ -109,21 +113,36 @@ async function redacting() {
   await until(() => overlay() !== null, "the overlay");
 }
 
+/** Two rendered frames: a resize observer reports with the frame after a layout change. */
+const rendered = () =>
+  act(
+    async () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+
 /**
- * Waits for the stage to stop resizing: the panel's fields appear with the
- * first area, the stage shrinks to make room, and the frames follow once its
- * resize observer reports.
+ * Waits for the stage to have its size, and the frames to be placed for it.
+ *
+ * The stage learns its size from a resize observer, which reports when the
+ * browser next renders, not at a time. When the Redact panel replaces a
+ * shorter one, the stage shrinks, and until that report its frames are still
+ * placed for the old size. So this waits on rendered frames, the clock the
+ * observer runs on, until the first frame's box holds across several: a
+ * timer would say "settled" before a busy browser had rendered at all.
  */
 async function settled() {
-  const box = () => JSON.stringify(frames()[0]?.getBoundingClientRect());
+  const box = () => JSON.stringify(frames()[0]?.getBoundingClientRect() ?? null);
   let last = "";
   let same = 0;
-  await until(() => {
+  for (let i = 0; i < 200 && same < 3; i += 1) {
+    await rendered();
     const now = box();
     same = now === last ? same + 1 : 0;
     last = now;
-    return same >= 3;
-  }, "the stage to settle");
+  }
+  if (same < 3) throw new Error("timed out waiting for the stage to settle");
 }
 
 /** Where a point of the 60 × 40 image is on screen, from a frame the editor placed. */
@@ -243,6 +262,9 @@ describe("redacting (docs/adr/0010)", () => {
     await redacting();
     await click(button("Add area"));
     await until(() => frames().length === 1, "the frame");
+    // Measured once the stage has its size and the frame is placed for it:
+    // the tool's panel replaced the Adjust panel a moment ago.
+    await settled();
     const before = redactions()[0];
     const box = frames()[0]?.getBoundingClientRect();
     for (let i = 0; i < 10; i += 1) await key(frames()[0] ?? null, { key: "ArrowRight" });
@@ -255,6 +277,66 @@ describe("redacting (docs/adr/0010)", () => {
       "the frame to move right",
     );
     expect(frames()[0]?.getBoundingClientRect().top).toBeCloseTo(box?.top ?? 0, 0);
+  });
+
+  it("keeps the stage where it is while redacting, in a layout with the panel under it", async () => {
+    // 400 pixels wide: the inspector sits under the stage and takes its
+    // height from its content. If the panel grew, the stage would shrink,
+    // and the image would move under the pointer while an area is placed.
+    await opened();
+    await redacting();
+    // The tool's panel replaced the Adjust panel: the stage takes its size
+    // for it once, and that's the size it must keep.
+    for (let i = 0; i < 6; i += 1) await rendered();
+    const stage = () => document.querySelector(".hm-image-stage")?.getBoundingClientRect();
+    const inspector = () =>
+      document.querySelector(".hm-image-editor-inspector")?.getBoundingClientRect();
+    expect((inspector()?.top ?? 0) >= (stage()?.bottom ?? 0)).toBe(true);
+    /** Waits several rendered frames, so a resize would have reached the stage, and gives its box. */
+    const box = async () => {
+      for (let i = 0; i < 4; i += 1) await rendered();
+      const { top, left, width, height } = stage() ?? new DOMRect();
+      return { top, left, width, height };
+    };
+    const start = await box();
+    expect(start.height).toBeGreaterThan(0);
+    // With no area, the fields keep their place, unseen and disabled.
+    const fields = () => [
+      ...document.querySelectorAll<HTMLInputElement>(".hm-image-redact-fields input"),
+    ];
+    expect(fields()).toHaveLength(4);
+    expect(fields().every((input) => input.disabled && !shown(input))).toBe(true);
+
+    await click(button("Add area"));
+    await until(() => frames().length === 1, "the frame");
+    expect(await box(), "after the first area").toEqual(start);
+    expect(fields().every((input) => !input.disabled && shown(input))).toBe(true);
+    const placed = frames()[0]?.getBoundingClientRect();
+
+    await click(option("Pixelation"));
+    expect(await box(), "after choosing pixelation").toEqual(start);
+    await click(option("Solid colour"));
+    expect(await box(), "after choosing a colour again").toEqual(start);
+
+    // Five areas: more than the list shows at once, so it scrolls.
+    for (let i = 0; i < 4; i += 1) await click(button("Add area"));
+    await until(() => frames().length === 5, "five frames");
+    expect(await box(), "after five areas").toEqual(start);
+    const list = document.querySelector(".hm-image-redact-areas");
+    expect((list?.scrollHeight ?? 0) > (list?.clientHeight ?? 0)).toBe(true);
+
+    await click(document.querySelector('button[aria-label="Remove area 5"]'));
+    await click(document.querySelector('button[aria-label="Remove area 4"]'));
+    expect(await box(), "after removing two").toEqual(start);
+    // Deselecting, by a press on the image, hides the fields and moves nothing.
+    const edge = stage();
+    await pointer(overlay(), "pointerdown", (edge?.left ?? 0) + 4, (edge?.top ?? 0) + 4);
+    await pointer(overlay(), "pointerup", (edge?.left ?? 0) + 4, (edge?.top ?? 0) + 4);
+    expect(fields().every((input) => input.disabled)).toBe(true);
+    expect(await box(), "after deselecting").toEqual(start);
+    // The first area's frame is where it was put.
+    const still = frames()[0]?.getBoundingClientRect();
+    expect([still?.left, still?.top]).toEqual([placed?.left, placed?.top]);
   });
 
   it("draws an area by dragging across the image: shown while dragging, one step on release", async () => {
@@ -348,7 +430,8 @@ describe("redacting (docs/adr/0010)", () => {
     await redacting();
     await click(button("Add area"));
     await until(() => frames().length === 1, "the frame");
-    expect(panel()?.textContent).not.toContain("may not hide text");
+    expect(shown(hint())).toBe(false);
+    expect(shown(option("Black"))).toBe(true);
     await click(option("Pixelation"));
     expect(redactions()[0]).toEqual({
       key: expect.any(String),
@@ -358,10 +441,12 @@ describe("redacting (docs/adr/0010)", () => {
       width: 15,
       height: 10,
     });
-    expect(panel()?.textContent).toContain(
+    expect(hint()?.textContent).toBe(
       "Pixelation may not hide text. For text and numbers, use a solid colour.",
     );
-    expect(option("Black")).toBeUndefined();
+    expect(shown(hint())).toBe(true);
+    // The colour doesn't apply: it keeps its place, unseen and out of the tab order.
+    expect(shown(option("Black"))).toBe(false);
     expect(description(frames()[0])).toContain("pixelated, 15 × 10");
     await click(option("Solid colour"));
     expect(redactions()[0]).toMatchObject({ mode: "solid", colour: "#000000" });
