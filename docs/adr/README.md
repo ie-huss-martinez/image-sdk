@@ -21,3 +21,4 @@ Use [`template.md`](template.md) for new records. Name files `NNNN-short-title.m
 | [0011](0011-gif-and-animation.md) | GIF: our own decoder, an animation in the plan, and export through a job worker | Accepted |
 | [0012](0012-interface-text-outside-the-server-safe-entry.md) | Interface text stays out of the server-safe entry | Accepted |
 | [0013](0013-layers-in-the-editor.md) | Layers in the editor: the list, the frames and their keys | Accepted |
+| [0014](0014-drawing-strokes-and-arrows.md) | Drawing: how strokes are simplified, stored and drawn, and the arrow's shape | Accepted |
