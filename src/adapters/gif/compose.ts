@@ -54,6 +54,12 @@ export interface GifComposer {
   /** The index of the frame the screen shows, or -1 before the first. */
   readonly shown: number;
   /**
+   * The screen as it stands: what {@link GifComposer.next} returned last,
+   * or a transparent screen before the first frame. The composer's own
+   * buffer.
+   */
+  readonly screen: Uint8ClampedArray<ArrayBuffer>;
+  /**
    * Draws the next frame, and returns the screen: `width × height` RGBA
    * pixels, not premultiplied. It's the composer's own buffer, changed by
    * the next call: copy it to keep it.
@@ -63,6 +69,24 @@ export interface GifComposer {
   next(): Uint8ClampedArray<ArrayBuffer>;
   /** Starts again from before the first frame. */
   reset(): void;
+  /**
+   * A copy of where the composer is: the screen, and what a frame that
+   * restores covered. {@link GifComposer.restore} goes back to it.
+   */
+  snapshot(): GifSnapshot;
+  /** Goes to where a snapshot was taken. The snapshot isn't changed, and can be used again. */
+  restore(snapshot: GifSnapshot): void;
+}
+
+/**
+ * A composer's state after a frame, enough to go on from it: the frame
+ * shown, the screen's pixels, and for a frame that restores (disposal 3),
+ * what was under it.
+ */
+export interface GifSnapshot {
+  readonly shown: number;
+  readonly screen: Uint8ClampedArray;
+  readonly saved: Uint8ClampedArray | undefined;
 }
 
 /** Creates a {@link GifComposer} over a file and its frame table. */
@@ -93,10 +117,21 @@ export function createGifComposer(bytes: Uint8Array, file: GifFile): GifComposer
     get shown() {
       return shown;
     },
+    get screen() {
+      return screen;
+    },
     reset() {
       screen.fill(0);
       shown = -1;
       saved = undefined;
+    },
+    snapshot() {
+      return { shown, screen: screen.slice(), saved: saved?.slice() };
+    },
+    restore(snapshot) {
+      screen.set(snapshot.screen);
+      shown = snapshot.shown;
+      saved = snapshot.saved?.slice();
     },
     next() {
       const frame = file.frames[shown + 1];
