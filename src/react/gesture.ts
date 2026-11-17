@@ -32,10 +32,10 @@ export interface Gesture {
 function createGesture(session: ImageSession, editor: Store<ImageEditorState>): Gesture {
   let pending: readonly ImageCommand[] | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const reducer = createImageReducer((id) => {
-    const source = session.getSnapshot().source;
-    return source && source.id === id ? source : undefined;
-  });
+  // The base's source and every image layer's, as the session's own reducer has them.
+  const reducer = createImageReducer((id) =>
+    session.getSnapshot().sources.find((source) => source.id === id),
+  );
   const clearTimer = () => {
     if (timer !== undefined) clearTimeout(timer);
     timer = undefined;

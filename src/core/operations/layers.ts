@@ -37,13 +37,13 @@ const ANY_OWN = new Set(Object.values(OWN).flat());
  * the same set.
  */
 // biome-ignore lint/suspicious/noControlCharactersInRegex: the controls are what it refuses
-const FORBIDDEN = /[\u0000-\u0009\u000B-\u001F\u007F‪-‮⁦-⁩]/u;
+export const FORBIDDEN_IN_TEXT = /[\u0000-\u0009\u000B-\u001F\u007F‪-‮⁦-⁩]/u;
 
 /** Text of at most `max` code points, with none of the forbidden characters. */
 function checkText(value: unknown, max: number, what: string): string {
   if (typeof value !== "string") invalid("malformed-command", `${what} is text`);
   if (longerThan(value, max)) invalid("text-too-long", `${what} has at most ${max} code points`);
-  if (FORBIDDEN.test(value)) {
+  if (FORBIDDEN_IN_TEXT.test(value)) {
     invalid(
       "invalid-text",
       `${what} can't hold control characters other than a line feed, or bidirectional controls`,

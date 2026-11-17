@@ -13,6 +13,7 @@ function startCrop({ session, editor }: ImageToolContext): void {
     crop: { pending: plan.base.crop ?? wholeCrop(source), aspect: "free" },
     // One tool has the stage at a time.
     redact: null,
+    layers: null,
     preview: null,
   }));
 }

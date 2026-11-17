@@ -38,6 +38,8 @@ export {
 } from "./react/hooks.js";
 export type { ImageEditorProviderProps } from "./react/ImageEditorProvider.js";
 export { ImageEditorProvider } from "./react/ImageEditorProvider.js";
+export type { ImageLayersPanelProps } from "./react/layers/LayersPanel.js";
+export { ImageLayersPanel } from "./react/layers/LayersPanel.js";
 export type { ImageAdjustPanelProps } from "./react/panels/AdjustPanel.js";
 export { ImageAdjustPanel } from "./react/panels/AdjustPanel.js";
 export type { ImageFilterPanelProps } from "./react/panels/FilterPanel.js";

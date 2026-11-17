@@ -244,7 +244,8 @@
   }
 
   .hm-image-crop-handle,
-  .hm-image-redact-handle {
+  .hm-image-redact-handle,
+  .hm-image-layer-handle {
     position: absolute;
     inline-size: var(--hm-target-size);
     block-size: var(--hm-target-size);
@@ -253,7 +254,8 @@
   }
 
   .hm-image-crop-handle::after,
-  .hm-image-redact-handle::after {
+  .hm-image-redact-handle::after,
+  .hm-image-layer-handle::after {
     content: "";
     position: absolute;
     inset: 33%;
@@ -268,49 +270,57 @@
    * handle moves it (docs/adr/0007).
    */
   .hm-image-crop-handle[data-hm-handle="nw"],
-  .hm-image-redact-handle[data-hm-handle="nw"] {
+  .hm-image-redact-handle[data-hm-handle="nw"],
+  .hm-image-layer-handle[data-hm-handle="nw"] {
     top: 0;
     left: 0;
     cursor: nwse-resize;
   }
   .hm-image-crop-handle[data-hm-handle="n"],
-  .hm-image-redact-handle[data-hm-handle="n"] {
+  .hm-image-redact-handle[data-hm-handle="n"],
+  .hm-image-layer-handle[data-hm-handle="n"] {
     top: 0;
     left: 50%;
     cursor: ns-resize;
   }
   .hm-image-crop-handle[data-hm-handle="ne"],
-  .hm-image-redact-handle[data-hm-handle="ne"] {
+  .hm-image-redact-handle[data-hm-handle="ne"],
+  .hm-image-layer-handle[data-hm-handle="ne"] {
     top: 0;
     left: 100%;
     cursor: nesw-resize;
   }
   .hm-image-crop-handle[data-hm-handle="e"],
-  .hm-image-redact-handle[data-hm-handle="e"] {
+  .hm-image-redact-handle[data-hm-handle="e"],
+  .hm-image-layer-handle[data-hm-handle="e"] {
     top: 50%;
     left: 100%;
     cursor: ew-resize;
   }
   .hm-image-crop-handle[data-hm-handle="se"],
-  .hm-image-redact-handle[data-hm-handle="se"] {
+  .hm-image-redact-handle[data-hm-handle="se"],
+  .hm-image-layer-handle[data-hm-handle="se"] {
     top: 100%;
     left: 100%;
     cursor: nwse-resize;
   }
   .hm-image-crop-handle[data-hm-handle="s"],
-  .hm-image-redact-handle[data-hm-handle="s"] {
+  .hm-image-redact-handle[data-hm-handle="s"],
+  .hm-image-layer-handle[data-hm-handle="s"] {
     top: 100%;
     left: 50%;
     cursor: ns-resize;
   }
   .hm-image-crop-handle[data-hm-handle="sw"],
-  .hm-image-redact-handle[data-hm-handle="sw"] {
+  .hm-image-redact-handle[data-hm-handle="sw"],
+  .hm-image-layer-handle[data-hm-handle="sw"] {
     top: 100%;
     left: 0;
     cursor: nesw-resize;
   }
   .hm-image-crop-handle[data-hm-handle="w"],
-  .hm-image-redact-handle[data-hm-handle="w"] {
+  .hm-image-redact-handle[data-hm-handle="w"],
+  .hm-image-layer-handle[data-hm-handle="w"] {
     top: 50%;
     left: 0;
     cursor: ew-resize;
@@ -346,26 +356,100 @@
     outline-offset: var(--hm-border-width-2);
   }
 
+  /*
+   * The layers' frames (docs/adr/0013): each sits on its layer, turned as
+   * the layer is, by the transform the renderer draws it through. Only the
+   * selected one, the one under the pointer and the one with focus are
+   * outlined, so the image is seen as it will be exported.
+   */
+  .hm-image-layers-overlay {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .hm-image-layer-frame {
+    position: absolute;
+    inset-block-start: 0;
+    /* Physical, as the image's own pixels are: the transform places it from the stage's left. */
+    left: 0;
+    box-sizing: border-box;
+    transform-origin: 0 0;
+    touch-action: none;
+    cursor: move;
+  }
+
+  .hm-image-layer-frame:hover {
+    outline: var(--hm-border-width) dashed var(--hm-color-accent);
+  }
+
+  .hm-image-layer-frame[data-hm-selected] {
+    outline: var(--hm-border-width-2) solid var(--hm-color-accent);
+  }
+
+  /* A hidden layer's frame, shown while it's selected: where it would be. */
+  .hm-image-layer-frame[data-hm-selected][data-hm-hidden] {
+    outline-style: dashed;
+  }
+
+  .hm-image-layer-frame:focus-visible {
+    outline: var(--hm-border-width-2) solid var(--hm-color-accent-active);
+    outline-offset: var(--hm-border-width-2);
+  }
+
+  /* The buttons that act on the selected layer, in a row. */
+  .hm-image-layers-order {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-layers-problem {
+    margin: 0;
+  }
+
+  .hm-image-editor--styled .hm-image-layers-problem {
+    color: var(--hm-color-danger-text);
+  }
+
+  /* A layer's name takes the row; its place and size sit in two columns under it. */
+  .hm-image-layers-name {
+    grid-column: 1 / -1;
+  }
+
+  /* A long name is cut short in its row: the list never grows wider than the inspector. */
+  .hm-image-layers-list .hm-image-layer-select {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    justify-content: start;
+  }
+
   .hm-image-editor-inspector:empty {
     display: none;
   }
 
   .hm-image-crop-panel,
-  .hm-image-redact-panel {
+  .hm-image-redact-panel,
+  .hm-image-layers-panel {
     display: grid;
     gap: var(--hm-gap-normal);
   }
 
   /* Left and top, then width and height: two columns that shrink with the inspector. */
   .hm-image-crop-fields,
-  .hm-image-redact-fields {
+  .hm-image-redact-fields,
+  .hm-image-layers-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--hm-gap-tight);
   }
 
   .hm-image-crop-actions,
-  .hm-image-redact-actions {
+  .hm-image-redact-actions,
+  .hm-image-layers-actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: end;
@@ -374,12 +458,14 @@
 
   .hm-image-redact-intro,
   .hm-image-redact-hint,
-  .hm-image-redact-none {
+  .hm-image-redact-none,
+  .hm-image-layers-none {
     margin: 0;
   }
 
   .hm-image-editor--styled .hm-image-redact-intro,
-  .hm-image-editor--styled .hm-image-redact-none {
+  .hm-image-editor--styled .hm-image-redact-none,
+  .hm-image-editor--styled .hm-image-layers-none {
     color: var(--hm-color-text-muted);
   }
 
@@ -392,7 +478,8 @@
    * What doesn't apply keeps its place and is hidden: visibility takes it
    * out of sight, the tab order and the accessibility tree together.
    */
-  .hm-image-redact-panel [data-hm-inactive] {
+  .hm-image-redact-panel [data-hm-inactive],
+  .hm-image-layers-panel [data-hm-inactive] {
     visibility: hidden;
   }
 
@@ -410,7 +497,8 @@
    * The list holds three areas' rows and scrolls beyond them, so adding or
    * removing one doesn't change the panel's height either.
    */
-  .hm-image-redact-areas {
+  .hm-image-redact-areas,
+  .hm-image-layers-list {
     box-sizing: border-box;
     block-size: calc(3 * var(--hm-control-height) + 2 * var(--hm-gap-tight));
     overflow-y: auto;
@@ -418,13 +506,15 @@
 
   /* Beside the stage, the inspector's height doesn't touch it: the list shows every area. */
   @container (width >= 720px) {
-    .hm-image-redact-areas {
+    .hm-image-redact-areas,
+    .hm-image-layers-list {
       block-size: auto;
       overflow-y: visible;
     }
   }
 
-  .hm-image-redact-areas ul {
+  .hm-image-redact-areas ul,
+  .hm-image-layers-list ul {
     display: grid;
     gap: var(--hm-gap-tight);
     margin: 0;
@@ -433,7 +523,8 @@
   }
 
   /* An area's button takes the row, and its remove button the end. */
-  .hm-image-redact-areas li {
+  .hm-image-redact-areas li,
+  .hm-image-layers-list li {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--hm-gap-tight);

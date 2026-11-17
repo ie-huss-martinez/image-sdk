@@ -258,6 +258,148 @@ test.describe("the image editor", () => {
     expect(page.url()).toContain("/editor.html#redacting");
   });
 
+  test("shows the layers with no violations, and keeps their keys from the browser", async ({
+    page,
+  }) => {
+    await page.goto("/editor.html");
+    // A page taller than the window, with a history entry to go back to: a
+    // key that reached the browser would scroll it or leave it.
+    await page.evaluate(() => {
+      document.body.style.minHeight = "300vh";
+      history.pushState({}, "", "#layers");
+    });
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose an image" }).click();
+    await (await chooser).setFiles({
+      name: "photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(fixture("quadrants.png")),
+    });
+    await expect(page.getByRole("img", { name: "Edited image preview, 48 × 32" })).toBeVisible({
+      timeout: FIRST_RENDER_TIMEOUT,
+    });
+    // Three shapes, as a host adds them: the tools that add layers come next.
+    await page.evaluate(() => {
+      const shape = (key: string, name: string, x: number, y: number) => ({
+        key,
+        name,
+        kind: "shape",
+        shape: "rectangle",
+        fill: "#c03030",
+        stroke: null,
+        visible: true,
+        opacity: 100,
+        x,
+        y,
+        width: 12,
+        height: 8,
+        rotation: 0,
+      });
+      window.imageEditor.execute([
+        {
+          type: "image.insertLayers",
+          at: 0,
+          layers: [
+            shape("a", "Bottom", 2, 2),
+            shape("b", "Middle", 18, 12),
+            shape("c", "Top", 34, 22),
+          ],
+        },
+      ]);
+    });
+    const order = () =>
+      page.evaluate(() =>
+        (window.imageEditor.plan() as { layers: { key: string }[] }).layers.map(
+          (layer) => layer.key,
+        ),
+      );
+    const layers = page.getByRole("button", { name: "Layers", exact: true });
+    await layers.focus();
+    await page.keyboard.press("l");
+    await expect(page.getByRole("region", { name: "Layers", exact: true })).toBeVisible();
+    // On the top layer's button in the list, which is selected.
+    const top = page.getByRole("button", { name: "Top", exact: true });
+    await expect(top).toBeFocused();
+    await expect(top).toHaveAttribute("aria-pressed", "true");
+    await noViolations(page);
+    const scrolled = () => page.evaluate(() => [window.scrollX, window.scrollY]);
+    // Moving focus may scroll its target into view; a key must not scroll further.
+    let before = await scrolled();
+    const stayed = async (keys: string) => {
+      expect(page.url(), keys).toContain("/editor.html#layers");
+      expect(await scrolled(), keys).toEqual(before);
+    };
+    // The list's keys, with a real key press in each engine: Alt is Option on macOS.
+    await page.keyboard.press("Alt+ArrowDown");
+    await stayed("Alt+ArrowDown");
+    expect(await order()).toEqual(["a", "c", "b"]);
+    await expect(top).toBeFocused();
+    await page.keyboard.press("Alt+ArrowDown");
+    // At the bottom, the key is still the list's: nothing scrolls.
+    await page.keyboard.press("Alt+ArrowDown");
+    await stayed("Alt+ArrowDown at the bottom");
+    expect(await order()).toEqual(["c", "a", "b"]);
+    await page.keyboard.press("Alt+ArrowUp");
+    await page.keyboard.press("Alt+ArrowUp");
+    await page.keyboard.press("Alt+ArrowUp");
+    await stayed("Alt+ArrowUp at the top");
+    expect(await order()).toEqual(["a", "b", "c"]);
+    await expect(top).toBeFocused();
+    // In the name's field the keys are the field's: the layers stay as they are.
+    const name = page.getByRole("textbox", { name: "Name" });
+    await name.focus();
+    // Left to the browser, which may scroll the page for Alt with an arrow,
+    // as it does from any field: the layers don't move, and nothing navigates.
+    await page.keyboard.press("Alt+ArrowUp");
+    await page.keyboard.press("Alt+ArrowDown");
+    await page.keyboard.press("Backspace");
+    expect(page.url()).toContain("/editor.html#layers");
+    expect(await order()).toEqual(["a", "b", "c"]);
+    await expect(name).toHaveValue("To");
+    // Put back, so leaving the field renames nothing.
+    await page.keyboard.press("p");
+    await expect(name).toHaveValue("Top");
+    // The frame's keys are the crop frame's.
+    const frame = page.getByRole("group", { name: "Layer 1 of 3: Top" });
+    await frame.focus();
+    // Once the browser's own scrolling, from the field's keys and from
+    // moving focus, has come to rest: it may be animated.
+    await expect
+      .poll(async () => {
+        const first = await scrolled();
+        await page.waitForTimeout(150);
+        return (await scrolled()).join() === first.join();
+      })
+      .toBe(true);
+    before = await scrolled();
+    for (const keys of [
+      "Shift+ArrowLeft",
+      "Shift+ArrowUp",
+      "ArrowRight",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowUp",
+    ]) {
+      await page.keyboard.press(keys);
+      await stayed(keys);
+      await expect(frame, keys).toBeFocused();
+    }
+    await expect(frame).toHaveAccessibleDescription(/^11 × 7 pixels, from 34, 22, turned 0°\./);
+    await noViolations(page);
+    // Backspace deletes the layer, and doesn't go back a page: focus is on the next frame.
+    // Focus moves to that frame, which the browser may scroll into view.
+    await page.keyboard.press("Backspace");
+    expect(page.url()).toContain("/editor.html#layers");
+    expect(await order()).toEqual(["a", "b"]);
+    await expect(page.getByRole("group", { name: "Layer 1 of 2: Middle" })).toBeFocused();
+    // Delete in the list, too.
+    await page.getByRole("button", { name: "Middle", exact: true }).focus();
+    await page.keyboard.press("Delete");
+    expect(page.url()).toContain("/editor.html#layers");
+    expect(await order()).toEqual(["a"]);
+    await expect(page.getByRole("button", { name: "Bottom", exact: true })).toBeFocused();
+  });
+
   test("crops by dragging a handle with a real mouse", async ({ page }) => {
     await page.goto("/editor.html");
     await page.evaluate(

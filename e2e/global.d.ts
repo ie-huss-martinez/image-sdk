@@ -5,6 +5,8 @@ interface Window {
     status(): string;
     /** The session's plan, as plain data, or null before an image is open. */
     plan(): unknown;
+    /** Runs commands as a host does, such as inserting layers. */
+    execute(commands: unknown): void;
   };
   imageElementEvents: { name: string; json: string }[];
   imageSdk: {
