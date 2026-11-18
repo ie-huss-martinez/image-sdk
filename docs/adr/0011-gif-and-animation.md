@@ -12,6 +12,7 @@
 - **Amended:** 2026-11-18: `animations: false` keeps every file a still, under "Opening an animation in the session"
 - **Amended:** 2026-11-18: one rule for an animation that can't be held. A file over `maxFrames` or, across its frames, `maxDecodedSize` opens as its first frame with a notice, as one over `maxAnimationPixels` does, where it was refused; under "An animation that can't be held opens as a still"
 - **Amended:** 2026-11-18, as the encoder was built: how a frame's palette is chosen and when a frame marks a colour transparent, under "Encoding"
+- **Amended:** 2026-11-18, as playing was built: where the frame shown lives, what Play looks like, and how loop counts are played, under "Playing in the editor"; and the open time of the largest animation the limits allow, measured, with the decision to keep them, under "How long the largest animation takes to open"
 - **Amended:** 2026-11-18, as the job worker was built: the render worker's call that gives a frame's pixels, when a job worker is retired, and its measured size, under "The job worker"
 
 ## Context
@@ -202,11 +203,35 @@ interface ImageFrame {
 
 ### Playing in the editor
 
-- **Nothing plays on its own.** An animated image opens paused on its first frame. Play, pause and a frame scrubber are controls with names, and `Space` plays and pauses when the timeline has focus. That meets WCAG 2.2's [2.2.2 Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html) for everyone, and so needs nothing more for people who prefer reduced motion.
+- **Nothing plays on its own.** An animated image opens paused on its first frame. Play, pause and a frame scrubber are controls with names, and `Space` plays and pauses through [sdk-core ADR 0030](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0030-tools-and-keyboard-shortcuts.md)'s `play-pause`. That meets WCAG 2.2's [2.2.2 Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html) for everyone, and so needs nothing more for people who prefer reduced motion.
 - **Playback honours the plan's timing,** and stops after the loop count. A delay under 2 hundredths of a second is shown as 10, as browsers show it. The plan and the export keep the value.
 - **The timeline is a list with one tab stop.** Each frame is an item named by its position and delay. Moving, duplicating and deleting have buttons, and each is announced.
 - **Frame thumbnails come from the renderer,** so they show the plan: cropped, developed and redacted. `engine.thumbnail` shows the source ([ADR 0010](0010-redaction.md)).
 - **Flashing content** is the user's own image, and the editor can't make it safe. Not playing until asked is what it can do.
+- **The frame shown and whether it plays are the editor's state,** beside the active tool and outside the plan and its history. No tool resets them; another image opening shows its first frame, paused. The stage asks the renderer for that frame, kept within the plan's frames as they change.
+- **Play is a toggle button with a visible pressed state:** its name stays "Play", `aria-pressed` says whether it's playing, and `aria-keyshortcuts="Space"` names its key. The scrubber is a slider named "Frame", whose value reads "Frame 3 of 12"; moving it pauses.
+- **`Space` is the family's `play-pause`,** from anywhere in the editor except on a control (sdk-core ADR 0030): a field, a button, a slider or a list row keeps Space as its own, so Space on Play presses Play, on the scrubber does nothing, and on a list row selects it ([ui ADR 0009](https://github.com/ie-huss-martinez/ui/blob/main/docs/adr/0009-reorderable-list.md)). It's a tool, `image.play`, that's off the toolbar, since the bar has Play. Held down, it doesn't repeat. An earlier draft bound Space on the bar itself; that took Space from the bar's own controls, as the video SDK found too.
+- **A loop count of `n` plays the frames `n + 1` times,** as GIF's `NETSCAPE2.0` count means repeats; `null` plays them once, and 0 for ever. Played to the end, it stops on the last frame, and Play starts again from the first.
+- **The export dialog exports the frame shown** to PNG, JPEG and WebP, and all of them to GIF. Opening it stops playing, so the frame exported is the frame the user sees.
+- **The bar takes a row only when there's an animation,** so a still's layout is as it was.
+
+### How long the largest animation takes to open
+
+Measured on 2026-11-18, before the editor could play, to decide whether the default limits were right and what the editor should show first.
+
+- **The file:** the largest animation within the default limits. 300 frames (`maxFrames`) of 1054 × 790, so frames × screen × 4 bytes is 999.2 MB, under `maxDecodedSize`'s 1 GB, and the screen is under `maxAnimationPixels`. Its 256 colours are dithered noise in 40% of each row and flat colour in the rest, which makes it 97.1 MB. `maxFileSize` binds first: frames of noise throughout, at that size, would be about 237 MB. So it's the worst content that fits.
+- **How:** in Chromium 159, in the pinned browser image, on a quiet machine. The open is measured through the example editor, from `open` until the document is ready.
+- **Chromium can't throttle a worker's CPU.** It refuses `Emulation.setCPUThrottlingRate` on a worker target ("Operation is only supported for pages, not workers"), so throttling the page alone measures the page, not the open. The open's dominant work, the check of every frame, which the worker runs, was measured on a page instead: the same code, `readGifFrames` and `checkGifFrames`, bundled into it, where throttling applies.
+
+| What | CPU ×1 | CPU ×4 | Load average (1 min) |
+|---|---|---|---|
+| The whole open, in the editor | 4.6 s, 4.9 s; progress first shown at 0.78 s | not measurable: see above | 2.7–2.9 |
+| The check of every frame, on a page | 3.41 s, 3.50 s | 14.61 s, 14.77 s | 2.1–2.3 |
+| The rest of the open: probe, reading the file, the first bitmap, the page | 1.2–1.5 s, by difference | about 4.8–6 s, estimated | |
+| **The whole open** | **4.6–4.9 s** | **about 19.5–21 s, estimated** | |
+
+- **Playing it holds little.** Drawing its frames at the file's 40 ms cadence through the real engine, worker and renderer: all of Chromium's memory has a median of 888 MB while playing every frame, against 882 MB redrawing the first, and 902 MB at most. That's about four of the per-call frame bitmaps of 3.3 MB at once, released between draws, and nothing grows over 30 s of playing. A frame draws in 17.9 ms at the median and 37.8 ms at worst, within the cadence.
+- **Decided: keep the limits.** About 20 s needs the worst content that fits, at every ceiling at once, on a CPU four times slower. Flat content decodes three to five times faster. Lowering `maxFrames` would turn files that open today into stills, to fix a case that showing the first frame fixes better. So the editor's next step is to show an animation's first frame while the rest are checked, with a target of 1 s at CPU ×1, before the frame list.
 
 ### Tests
 

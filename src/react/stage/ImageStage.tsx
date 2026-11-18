@@ -2,6 +2,7 @@ import { Button, FileDropZone, ProgressBar, Spinner } from "@hussmartinez/ui/rea
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createImageRenderer } from "../../adapters/image-renderer.js";
 import { compositionSize } from "../../core/model/geometry.js";
+import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageRenderer } from "../../core/ports/image-renderer.js";
 import { CropFrame } from "../crop/CropFrame.js";
 import { DrawOverlay } from "../draw/DrawOverlay.js";
@@ -75,6 +76,17 @@ function useStageSize(element: HTMLElement | null): StageSize | undefined {
     };
   }, [element]);
   return size;
+}
+
+/**
+ * The frame of an animated plan the stage shows: the one asked for, or the
+ * last when frames were removed under it (docs/adr/0011).
+ *
+ * @internal
+ */
+export function shownFrame(plan: ImagePlan, frame: number): number {
+  const count = plan.animation?.frames.length ?? 1;
+  return Math.min(Math.max(0, frame), count - 1);
 }
 
 /**
@@ -185,12 +197,16 @@ export function ImageStage(props: ImageStageProps): ReactNode {
           zoom: view.zoom,
           pan: view.pan,
           inset,
+          // An animation's frame being shown, kept within its frames as they change.
+          ...(plan.animation === null
+            ? {}
+            : { frame: shownFrame(plan, editorState.playback.frame) }),
         }),
       )
       .catch(() => {
         // A render that fails leaves the previous frame; the session's state is unaffected.
       });
-  }, [plan, view, size, inset]);
+  }, [plan, view, size, inset, editorState.playback.frame]);
 
   const className = ["hm-image-stage", props.className].filter(Boolean).join(" ");
   const empty = status === "empty" && !snapshot.opening;

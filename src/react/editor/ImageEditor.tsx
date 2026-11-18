@@ -12,7 +12,7 @@ import {
 } from "react";
 import { engineInternals } from "../../adapters/image-engine.js";
 import type { ImageSessionEvent } from "../../core/session/session.js";
-import { NO_TOOL } from "../../features/editor-state.js";
+import { NO_TOOL, PAUSED } from "../../features/editor-state.js";
 import type { ImageToolContext } from "../../features/tool-types.js";
 import { DEFAULT_TOOLBAR, imageTools } from "../../features/tools.js";
 import { EngineBoundary } from "../EngineBoundary.js";
@@ -21,6 +21,7 @@ import { useImageDocument, useImageEditorState, useImageInternals } from "../hoo
 import { ImageProvider } from "../ImageEditorProvider.js";
 import { ImageInspector } from "../panels/Inspector.js";
 import { ImageStage } from "../stage/ImageStage.js";
+import { AnimationBar } from "../timeline/AnimationBar.js";
 import { ImageToolbar } from "../toolbar/ImageToolbar.js";
 import { imageIcons } from "../toolbar/icons.js";
 import type { ImageEditorHandle, ImageEditorProps } from "./types.js";
@@ -180,12 +181,16 @@ function ImageEditorBody(props: BodyProps): ReactNode {
     }
   }, [hostPlan, session, openSource]);
 
-  // Cropping and the export dialog end when another image opens.
+  // Cropping and the export dialog end when another image opens, and an
+  // animation starts again from its first frame, paused.
   const sourceId = snapshot.source?.id;
   useEffect(() => {
     if (sourceId === undefined) return;
     editor.set((state) =>
-      state.tool === null && state.dialog === null && state.error === null
+      state.tool === null &&
+      state.dialog === null &&
+      state.error === null &&
+      state.playback === PAUSED
         ? state
         : {
             ...state,
@@ -193,6 +198,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
             preview: null,
             dialog: null,
             error: null,
+            playback: PAUSED,
           },
     );
   }, [editor, sourceId]);
@@ -299,6 +305,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
             className={join("hm-image-editor-toolbar", classNames.toolbar)}
           />
           <ImageStage className={join("hm-image-editor-stage", classNames.stage)} />
+          <AnimationBar className="hm-image-editor-timeline" />
           <div className={join("hm-image-editor-inspector", classNames.inspector)}>
             <ImageInspector {...(props.features ? { features: props.features } : {})} />
           </div>

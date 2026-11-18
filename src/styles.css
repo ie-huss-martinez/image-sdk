@@ -104,6 +104,43 @@
     }
   }
 
+  /*
+   * An animation's bar sits under the stage (docs/adr/0011). The rows change
+   * only when it's there, so a still's layout is the same as without it.
+   */
+  .hm-image-editor-layout:has(> .hm-image-editor-timeline) {
+    grid-template-rows: auto minmax(calc(var(--hm-space-12) * 2.5), 1fr) auto minmax(0, auto);
+    grid-template-areas: "toolbar" "stage" "timeline" "inspector";
+  }
+
+  @container (width >= 720px) {
+    .hm-image-editor-layout:has(> .hm-image-editor-timeline) {
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas: "toolbar toolbar" "stage inspector" "timeline inspector";
+    }
+  }
+
+  .hm-image-editor-timeline {
+    grid-area: timeline;
+  }
+
+  /* Play, the scrubber taking the room, and where it is, on one line that wraps when narrow. */
+  .hm-image-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hm-gap-normal);
+  }
+
+  .hm-image-timeline-scrubber {
+    flex: 1 1 calc(var(--hm-space-12) * 2);
+    min-inline-size: 0;
+  }
+
+  .hm-image-timeline-position {
+    font-variant-numeric: tabular-nums;
+  }
+
   .hm-image-editor--styled {
     font-family: var(--hm-font-family);
     color: var(--hm-color-text);

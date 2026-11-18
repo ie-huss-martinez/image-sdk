@@ -126,6 +126,7 @@ export const imageEditorMessages: {
     readonly "toolbar.groups.other": "More tools";
     readonly "tools.open": "Open image";
     readonly "tools.undo": "Undo";
+    readonly "tools.play": "Play";
     readonly "tools.redo": "Redo";
     readonly "tools.rotate-left": "Rotate left";
     readonly "tools.rotate-right": "Rotate right";
@@ -279,6 +280,11 @@ export const imageEditorMessages: {
     readonly "inspector.adjust": "Adjust";
     readonly "inspector.filters": "Filters";
     readonly "inspector.info": "Info";
+    readonly "timeline.label": "Animation";
+    readonly "timeline.play": "Play";
+    readonly "timeline.frame": "Frame";
+    readonly "timeline.position": "Frame {frame, number} of {count, number}";
+    readonly "timeline.where": "Frame {frame, number} of {count, number}, {seconds, number} s";
     readonly "notices.label": "Notices";
     readonly "notices.dismiss": "Dismiss";
     readonly "notices.incomplete": {
@@ -542,6 +548,10 @@ export interface ImageEditorState {
         readonly selected: string | null;
         readonly focus?: "list" | "text";
     } | null;
+    readonly playback: {
+        readonly frame: number;
+        readonly playing: boolean;
+    };
     readonly preview: ImagePlan | null;
     readonly redact: {
         readonly selected: string | null;

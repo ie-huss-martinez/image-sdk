@@ -66,7 +66,17 @@ export interface ImageEditorState {
   readonly preview: ImagePlan | null;
   /** The dialog the editor shows over the stage, such as `export`, or `null`. */
   readonly dialog: "export" | null;
+  /**
+   * An animation's frame being shown, as an index into the plan's
+   * `animation.frames`, and whether it's playing (docs/adr/0011). View
+   * state, like the zoom: outside the plan and its history. No tool resets
+   * it; another image opening does.
+   */
+  readonly playback: { readonly frame: number; readonly playing: boolean };
 }
+
+/** The first frame, paused: nothing plays on its own (docs/adr/0011). */
+export const PAUSED = Object.freeze({ frame: 0, playing: false });
 
 /**
  * No tool on the stage: what a tool spreads before it sets its own state, so
@@ -85,6 +95,7 @@ export const IDLE: ImageEditorState = Object.freeze({
   error: null,
   preview: null,
   dialog: null,
+  playback: PAUSED,
 });
 
 /** A store of the editor's state. */

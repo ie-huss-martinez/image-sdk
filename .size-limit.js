@@ -33,24 +33,25 @@ export default [
     limit: "27 kB",
   },
   {
-    // The core's 26.0 kB and the editor. Measured at 49.0 kB (37.7 kB
+    // The core's 26.9 kB and the editor. Measured at 50.9 kB (39.2 kB
     // minified) with the editor's tools up to drawing (docs/adr/0013,
-    // docs/adr/0015), the names of the frame commands for undo, and an
-    // animation's open: its progress and its notices (docs/adr/0011):
+    // docs/adr/0015), the names of the frame commands for undo, an
+    // animation's open, with its progress and notices, and its playing:
+    // the bar under the stage and the play tool (docs/adr/0011);
     // crop, redact, the layers' list and frames, the tools that add text,
     // shapes and images with their fields, and the interface's text.
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "50 kB",
+    limit: "51 kB",
   },
   {
-    // The React entry and the element's own mount: measured at 50.0 kB
-    // (38.4 kB minified).
+    // The React entry and the element's own mount: measured at 51.9 kB
+    // (39.9 kB minified).
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "51 kB",
+    limit: "52 kB",
   },
   {
     name: "Stylesheet (./styles.css)",
