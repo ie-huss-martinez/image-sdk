@@ -14,21 +14,38 @@ export function isGif(head: Uint8Array): boolean {
 }
 
 /**
+ * How many bytes of a sub-block chain are looked at per read. A chain's
+ * lengths are walked within each view, so a large frame's data takes one
+ * read per this many bytes, not one per sub-block of at most 255.
+ */
+const CHAIN_VIEW = 64 * 1024;
+
+/**
  * Skips a chain of data sub-blocks, each a length byte and that many bytes,
  * ending with a zero length, and returns the offset after it.
  */
 async function skipSubBlocks(reader: WindowReader, start: number): Promise<number> {
   let offset = start;
   for (;;) {
-    const length = (await exact(reader, "gif", offset, 1, "a data sub-block"))[0] ?? 0;
-    offset += 1;
-    if (length === 0) {
-      return offset;
-    }
-    if (offset + length > reader.size) {
+    if (offset + 1 > reader.size) {
       throw invalid("gif", "a data sub-block ends past the end of the file");
     }
-    offset += length;
+    // A view from the reader's window: the lengths in it are walked without
+    // another read, and the next view starts at the first length past it.
+    const view = await reader.bytes(offset, CHAIN_VIEW);
+    let at = 0;
+    while (at < view.length) {
+      const length = view[at] ?? 0;
+      offset += 1;
+      if (length === 0) {
+        return offset;
+      }
+      if (offset + length > reader.size) {
+        throw invalid("gif", "a data sub-block ends past the end of the file");
+      }
+      offset += length;
+      at += 1 + length;
+    }
   }
 }
 
