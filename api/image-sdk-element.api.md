@@ -24,6 +24,7 @@ export type ImageEditorElementMethods = Pick<ImageEditorHandle, "open" | "insert
 
 // @public
 export interface ImageEditorElementProps {
+    animations?: boolean;
     assetsUrl?: string | URL;
     // Warning: (ae-forgotten-export) The symbol "ImageEngine" needs to be exported by the entry point element.d.ts
     //

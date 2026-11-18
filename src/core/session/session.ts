@@ -127,6 +127,12 @@ export interface ImageSessionOptions {
   readonly processor: ImageProcessor;
   /** The host's limits, over `imageLimits`' defaults (ADR 0004). */
   readonly filePolicy?: ImageFilePolicyOverrides;
+  /**
+   * Whether an animated file opens as an animation (docs/adr/0011). `true`
+   * when omitted. With `false`, every file opens as a still: an animated
+   * one as its first frame, as before 0.7.0.
+   */
+  readonly animations?: boolean;
   readonly onEvent?: (event: ImageSessionEvent) => void;
 }
 
@@ -755,8 +761,10 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
             // within `maxAnimationPixels`; over it, the file opens as its
             // first frame, as it always did (docs/adr/0011).
             const size = probe.oriented.width * probe.oriented.height;
-            const within = probe.frames > 1 ? fits("maxAnimationPixels", size) : undefined;
-            const animated = probe.frames > 1 && within !== false;
+            // A host that wants stills only asked for none: the limit isn't consulted.
+            const wanted = probe.frames > 1 && options.animations !== false;
+            const within = wanted ? fits("maxAnimationPixels", size) : undefined;
+            const animated = wanted && within !== false;
             // Near the size an animation may be ("warning"), or over it and
             // so a still (`false`): the snapshot's warnings name the limit
             // either way.

@@ -784,6 +784,7 @@ export interface ImageSessionExport {
 
 // @public
 export interface ImageSessionOptions {
+    readonly animations?: boolean;
     readonly engine: ImageEngine;
     readonly filePolicy?: ImageFilePolicyOverrides;
     // (undocumented)

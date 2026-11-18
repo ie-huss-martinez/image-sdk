@@ -40,6 +40,12 @@ export interface ImageEditorProviderProps {
   readonly assetsUrl?: string | URL;
   /** File limits for a session the provider creates (docs/adr/0004). */
   readonly filePolicy?: ImageFilePolicyOverrides;
+  /**
+   * Whether an animated file opens as an animation, for a session the
+   * provider creates (docs/adr/0011). `true` when omitted; with `false`,
+   * every file opens as a still, an animated one as its first frame.
+   */
+  readonly animations?: boolean;
   /** Anonymous usage events from a session the provider creates. */
   readonly onEvent?: (event: ImageSessionEvent) => void;
   /** Text overrides, typed against the English catalogue (ADR 0019). */
@@ -69,6 +75,7 @@ function own(props: ImageEditorProviderProps): Owned {
       engine,
       processor,
       ...(props.filePolicy ? { filePolicy: props.filePolicy } : {}),
+      ...(props.animations === undefined ? {} : { animations: props.animations }),
       ...(props.onEvent ? { onEvent: props.onEvent } : {}),
     });
   return {

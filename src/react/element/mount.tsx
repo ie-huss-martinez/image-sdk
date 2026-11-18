@@ -31,6 +31,8 @@ export interface ImageEditorElementProps {
   /** The plan, applied as one undoable step when it changes. */
   plan?: ImagePlan;
   filePolicy?: ImageFilePolicyOverrides;
+  /** Whether an animated file opens as an animation: `true` when unset. */
+  animations?: boolean;
   /** Where the application serves the package's `dist/assets/` directory. */
   assetsUrl?: string | URL;
   /** Text overrides, typed against the English catalogue. */

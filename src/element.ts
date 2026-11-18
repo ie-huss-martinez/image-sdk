@@ -31,7 +31,7 @@ const words = (value: string): readonly string[] => value.split(/\s+/).filter(Bo
 /**
  * Registers `<hm-image-editor>`, or the tag you name, and returns its class
  * (docs/adr/0007, sdk-core ADR 0040): the attributes `theme`, `locale` and
- * `tools`; the properties `file`, `plan`, `filePolicy`, `assetsUrl`,
+ * `tools`; the properties `file`, `plan`, `filePolicy`, `animations`, `assetsUrl`,
  * `messages`, `engine` and `processor`; the methods `open`, `insertImage`, `execute`,
  * `export`, `undo` and `redo`; and the events `hm-image-editor-change`,
  * `-event`, `-export` and `-error`. Calling it again returns the same class.
@@ -59,7 +59,16 @@ export const defineImageEditorElement = /* @__PURE__ */ createEditorElement<
     locale: "locale",
     tools: { property: "tools", parse: words },
   },
-  properties: ["file", "plan", "filePolicy", "assetsUrl", "messages", "engine", "processor"],
+  properties: [
+    "file",
+    "plan",
+    "filePolicy",
+    "animations",
+    "assetsUrl",
+    "messages",
+    "engine",
+    "processor",
+  ],
   methods: ["open", "insertImage", "execute", "export", "undo", "redo"],
   events: ["change", "event", "export", "error"],
   mount: mountImageEditor,

@@ -352,14 +352,39 @@ describe("the image session (ADR 0003)", () => {
       const held = await near.session.open(animated());
       expect(held.frames).toBe(5);
       expect(near.session.getSnapshot().warnings).toEqual(["maxAnimationPixels"]);
-      // A host that wants every file a still sets the limit to one pixel.
-      const never = setup({ filePolicy: { maxAnimationPixels: 1 } });
-      const still = await never.session.open(animated());
-      expect(still).toMatchObject({ frames: 1, fileFrames: 5 });
-      expect(never.session.getSnapshot().plan?.animation).toBeNull();
       // A still of the same size isn't an animation at all: no warning.
       await near.session.open(await file());
       expect(near.session.getSnapshot().warnings).toEqual([]);
+    });
+
+    it("opens every file as a still when the host asks for no animations", async () => {
+      const { session, engine } = setup({ animations: false });
+      const steps: unknown[] = [];
+      const off = session.subscribe(() => steps.push(session.getSnapshot().progress));
+      const source = await session.open(animated());
+      off();
+      expect(source).toMatchObject({ frames: 1, fileFrames: 5, incomplete: false, timing: null });
+      const snapshot = session.getSnapshot();
+      expect(snapshot.plan).toEqual(createPlan(source.id));
+      // It's the host's choice, not a limit: nothing is warned, and no frames are checked.
+      expect(snapshot.warnings).toEqual([]);
+      expect(steps.every((step) => step === null)).toBe(true);
+      expect(engine.sources.get(source.id)?.frames).toBe(1);
+      expect(source.decodedBytes).toBe(40 * 20 * 4);
+      // Even one the limit would refuse as an animation: the limit isn't asked.
+      const small = setup({
+        animations: false,
+        filePolicy: { maxAnimationPixels: { maximum: 500, warning: 100 } },
+      });
+      await small.session.open(animated());
+      expect(small.session.getSnapshot().warnings).toEqual([]);
+      // And frame commands are refused, as for any still.
+      expect(() => session.execute({ type: "image.reverseFrames" })).toThrow();
+      // Asked for explicitly, or not said, animations open.
+      for (const options of [{ animations: true }, {}]) {
+        const other = setup(options);
+        expect((await other.session.open(animated())).frames).toBe(5);
+      }
     });
 
     it("can be cancelled while its frames are checked, and keeps the document that was open", async () => {

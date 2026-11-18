@@ -35,6 +35,7 @@ export function Editor({ file }: { file: File }) {
 | Theme and styling | `theme: "light" \| "dark" \| "system"`, `className`, `classNames`, `unstyled`, `icons`; page attributes `data-hm-theme` and `data-hm-density` |
 | Translation | `messages` overrides, including shared control text, and `locale` for formatting; [`imageEditorMessages`](src/react/editor-messages.ts), from `./react` and `./element`, is the editor's catalogue. The headless entry's [`imageMessages`](src/messages/en.ts) holds the errors and warnings only |
 | Limits and assets | `filePolicy`, `assetsUrl`; see [host integration](docs/hosting.md) |
+| Animations | `animations`, `true` by default: an animated GIF opens as an animation. With `false`, every file opens as a still |
 | Host-owned processing | `engine`, `processor`, `session`; a supplied session must use the supplied engine |
 | Host callbacks | `onEvent` receives anonymous usage events; `onExport(blob, details)` receives the exported file instead of the dialog offering a download |
 
@@ -85,7 +86,7 @@ defineImageEditorElement();
 <hm-image-editor theme="dark" locale="en"></hm-image-editor>
 ```
 
-Set the element's height in host CSS. It renders into the light DOM and uses React internally. Its attributes are `theme`, `locale` and `tools` (space-separated IDs). Its properties are `file` (`Blob`), `plan`, `filePolicy`, `assetsUrl`, `messages`, `engine` and `processor`, as well as the attribute-backed properties. Set processing configuration before connecting the element. Setting `file` opens an image; the methods `open`, `insertImage`, `execute`, `export`, `undo` and `redo` match the React handle.
+Set the element's height in host CSS. It renders into the light DOM and uses React internally. Its attributes are `theme`, `locale` and `tools` (space-separated IDs). Its properties are `file` (`Blob`), `plan`, `filePolicy`, `animations`, `assetsUrl`, `messages`, `engine` and `processor`, as well as the attribute-backed properties. Set processing configuration before connecting the element. Setting `file` opens an image; the methods `open`, `insertImage`, `execute`, `export`, `undo` and `redo` match the React handle.
 
 Listen for `hm-image-editor-change` (plan), `hm-image-editor-event` (anonymous usage event), `hm-image-editor-error` (`{ code, details }`) and `hm-image-editor-export` (format, dimensions, size and metadata summary). Event payloads are in `event.detail`. The export event carries a report; call the element's `export(format)` method to obtain a file. See the [element API report](api/image-sdk-element.api.md).
 
