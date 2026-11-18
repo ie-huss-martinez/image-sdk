@@ -243,7 +243,15 @@ describe("an animation's notices (docs/adr/0011)", () => {
     const editor = await mounted();
     // The open may be over before a test's next turn, so what the stage
     // showed is recorded as it changes, and Cancel is pressed from there.
-    const seen = { label: "", max: "", values: [] as string[], text: "", cancelled: false };
+    const seen = {
+      label: "",
+      max: "",
+      values: [] as string[],
+      text: "",
+      cancelled: false,
+      firstFrame: "",
+      overImage: false,
+    };
     const observer = new MutationObserver(() => {
       const opening = document.querySelector(".hm-image-stage-opening");
       const bar = opening?.querySelector("progress");
@@ -253,8 +261,11 @@ describe("an animation's notices (docs/adr/0011)", () => {
       const value = bar.getAttribute("aria-valuetext") ?? "";
       if (seen.values.at(-1) !== value) seen.values.push(value);
       seen.text = opening.textContent ?? "";
-      // Once it has moved, cancel from the button beside it.
-      if (seen.values.length >= 3 && !seen.cancelled) {
+      const canvas = document.querySelector<HTMLCanvasElement>(".hm-image-stage-canvas");
+      if (canvas && !canvas.hidden) seen.firstFrame = canvas.getAttribute("aria-label") ?? "";
+      if (opening.classList.contains("hm-image-stage-opening--over-image")) seen.overImage = true;
+      // Once it has moved and the first frame shows, cancel from the button beside it.
+      if (seen.values.length >= 3 && seen.firstFrame !== "" && !seen.cancelled) {
         seen.cancelled = true;
         [...opening.querySelectorAll("button")]
           .find((button) => button.textContent === "Cancel")
@@ -278,6 +289,10 @@ describe("an animation's notices (docs/adr/0011)", () => {
     expect(seen.values.length).toBeGreaterThanOrEqual(3);
     for (const value of seen.values) expect(value).toMatch(/^Checking frames: \d+ of 80$/);
     expect(seen.text).toMatch(/Checking frames: \d+ of 80/);
+    // The first frame showed on the stage while the rest were checked,
+    // named for what it is, with the progress at the stage's foot.
+    expect(seen.firstFrame).toBe("First frame of the image being opened, 800 × 600");
+    expect(seen.overImage).toBe(true);
     // Cancelled from there: nothing is open, and nothing is shown as failed.
     const snapshot = session(editor)?.getSnapshot();
     expect(snapshot).toMatchObject({ status: "empty", error: null, progress: null });

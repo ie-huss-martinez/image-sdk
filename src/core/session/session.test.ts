@@ -313,6 +313,41 @@ describe("the image session (ADR 0003)", () => {
       expect(steps.every((step) => step === null)).toBe(true);
     });
 
+    it("offers the opening animation's first frame while the rest are checked", async () => {
+      const { session } = setup();
+      const seen: (string | null)[] = [];
+      const stop = session.subscribe(() => {
+        const { openingFrame, opening } = session.getSnapshot();
+        const line = openingFrame
+          ? `${openingFrame.source} ${openingFrame.width}x${openingFrame.height}`
+          : null;
+        if (opening && seen.at(-1) !== line) seen.push(line);
+      });
+      const source = await session.open(animated());
+      stop();
+      // Nothing before the first frame is ready; then the source being opened, at its size.
+      expect(seen).toEqual([null, `${source.id} 40x20`]);
+      // Gone once it's open: the document shows it now.
+      expect(session.getSnapshot().openingFrame).toBeNull();
+      // A still offers none.
+      const still: (unknown | null)[] = [];
+      const off = session.subscribe(() => still.push(session.getSnapshot().openingFrame));
+      await session.open(await file());
+      off();
+      expect(still.every((frame) => frame === null)).toBe(true);
+    });
+
+    it("drops the first frame when the open is cancelled", async () => {
+      const { session } = setup();
+      const controller = new AbortController();
+      const stop = session.subscribe(() => {
+        if (session.getSnapshot().openingFrame) controller.abort();
+      });
+      await rejection(session.open(animated(), { signal: controller.signal }));
+      stop();
+      expect(session.getSnapshot()).toMatchObject({ openingFrame: null, opening: false });
+    });
+
     it("ends at the frame before one that can't be decoded, and says the file was incomplete", async () => {
       const { session } = setup();
       const source = await session.open(animated({ decodes: 3 }));

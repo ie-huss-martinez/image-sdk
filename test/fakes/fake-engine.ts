@@ -123,6 +123,8 @@ export function createFakeEngine(): FakeEngine {
         const frames = Math.min(listed, fake.animation.decodes ?? listed);
         for (let done = 1; done <= frames; done += 1) {
           options.onProgress?.(done / listed);
+          // Its first frame can be drawn from here, before the rest are checked.
+          if (done === 1) options.onFirstFrame?.();
           // A turn of the event loop, so a cancel can arrive between two frames.
           await new Promise((resolve) => setTimeout(resolve, 0));
           throwIfAborted(options.signal);

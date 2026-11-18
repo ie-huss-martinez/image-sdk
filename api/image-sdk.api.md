@@ -721,6 +721,7 @@ export interface ImageReducerSource extends ImageSize {
 export interface ImageRegisterOptions extends ImageProgressOptions {
     readonly filePolicy?: ImageFilePolicy;
     readonly frames?: "first" | "all";
+    readonly onFirstFrame?: () => void;
 }
 
 // @public
@@ -814,6 +815,11 @@ export interface ImageSessionSnapshot {
     readonly historyTrimmed: boolean;
     readonly inserting: boolean;
     readonly opening: boolean;
+    readonly openingFrame: {
+        readonly source: string;
+        readonly width: number;
+        readonly height: number;
+    } | null;
     readonly plan: ImagePlan | null;
     readonly progress: {
         readonly done: number;

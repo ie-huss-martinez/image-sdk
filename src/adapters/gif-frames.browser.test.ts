@@ -5,7 +5,7 @@ import { imageLimits } from "../core/errors/image-limits.js";
 import { createPlan, type ImagePlan } from "../core/model/plan.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import { fittedView } from "../core/ports/image-renderer.js";
-import { createImageEngine } from "./image-engine.js";
+import { createImageEngine, engineInternals } from "./image-engine.js";
 import { createImageProcessor } from "./image-processor.js";
 import { createImageRenderer, rendererInternals } from "./image-renderer.js";
 
@@ -114,6 +114,25 @@ async function held(bytes: Uint8Array, own = engine()) {
   const probe = await own.probe(file);
   const info = await own.register("s", file, probe, { frames: "all" });
   return { own, info, probe };
+}
+
+/** Waits until the worker itself has no source with this id: its bitmap was closed and dropped. */
+async function expectReleased(own: ImageEngine, id: string) {
+  const internals = engineInternals(own);
+  if (!internals) throw new Error("not the SDK's engine");
+  const deadline = Date.now() + 5_000;
+  for (;;) {
+    const held = await internals.call("thumbnail", { id, maxSize: 4 }).then(
+      (bitmap) => {
+        bitmap.close();
+        return true;
+      },
+      () => false,
+    );
+    if (!held) return;
+    if (Date.now() > deadline) throw new Error(`the worker still holds "${id}"`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
 }
 
 describe("a GIF held with all its frames (docs/adr/0011)", () => {
@@ -502,6 +521,98 @@ describe("a GIF held with all its frames (docs/adr/0011)", () => {
         (thrown: unknown) => thrown,
       );
     expect(isImageError(error, "TOO_MANY_FRAMES")).toBe(true);
+  });
+
+  it("lets the first frame be drawn as a still while the rest are checked, and nothing more", async () => {
+    // Enough frames that the check is still running once the first is ready.
+    const long = writeGif({
+      width: 160,
+      height: 120,
+      palette: FOUR,
+      loop: 0,
+      frames: Array.from({ length: 60 }, (_, n) => ({ pixels: pattern(160, 120, 4, n), delay: 2 })),
+    });
+    const own = engine();
+    const file = blobOf(long);
+    const probe = await own.probe(file);
+    const renderer = createImageRenderer(own);
+    const canvas = document.createElement("canvas");
+    await renderer.attach(canvas);
+    const processor = createImageProcessor(own);
+    let firstFrame = 0;
+    let checked = 0;
+    let drawnEarly: Promise<unknown> | undefined;
+    let exportEarly: Promise<unknown> | undefined;
+    const registering = own.register("s", file, probe, {
+      frames: "all",
+      onProgress: () => {
+        checked += 1;
+      },
+      onFirstFrame: () => {
+        firstFrame += 1;
+        // Drawn as a still now: its first frame.
+        drawnEarly = renderer.render(createPlan("s"), { ...fittedView(160, 120), inset: 0 });
+        // Not exported, and not animated, yet: it isn't registered.
+        exportEarly = processor.export({ plan: createPlan("s"), format: { type: "png" } }).then(
+          () => "exported",
+          (error: unknown) => (error instanceof TypeError ? "refused" : String(error)),
+        );
+      },
+    });
+    await registering;
+    expect(firstFrame).toBe(1);
+    expect(await drawnEarly).toBe("drawn");
+    expect(await exportEarly).toBe("refused");
+    expect(checked).toBeGreaterThan(1);
+    const copy = await rendererInternals(renderer)?.snapshot();
+    if (!copy) throw new Error("no snapshot");
+    const shown = await pixelsOf(copy);
+    const first = await pixelsOf(
+      blobOf(
+        writeGif({
+          width: 160,
+          height: 120,
+          palette: FOUR,
+          frames: [{ pixels: pattern(160, 120, 4, 0) }],
+        }),
+      ),
+    );
+    expect(differing(shown.data, first.data)).toBe(0);
+    await renderer.destroy();
+  });
+
+  it("can't be drawn early once its registration is cancelled", async () => {
+    const long = writeGif({
+      width: 160,
+      height: 120,
+      palette: FOUR,
+      loop: 0,
+      frames: Array.from({ length: 60 }, (_, n) => ({ pixels: pattern(160, 120, 4, n), delay: 2 })),
+    });
+    const own = engine();
+    const file = blobOf(long);
+    const probe = await own.probe(file);
+    const renderer = createImageRenderer(own);
+    await renderer.attach(document.createElement("canvas"));
+    const controller = new AbortController();
+    const error = await own
+      .register("s", file, probe, {
+        frames: "all",
+        signal: controller.signal,
+        onFirstFrame: () => controller.abort(),
+      })
+      .then(
+        () => undefined,
+        (thrown: unknown) => thrown,
+      );
+    expect(isImageError(error, "ABORTED")).toBe(true);
+    await expect(
+      renderer.render(createPlan("s"), { ...fittedView(160, 120), inset: 0 }),
+    ).rejects.toBeInstanceOf(TypeError);
+    // And the worker let its first frame's bitmap go: asked for it directly,
+    // past the page's own check, it has no such source.
+    await expectReleased(own, "s");
+    await renderer.destroy();
   });
 
   it("frees a source's frames when it's released", async () => {

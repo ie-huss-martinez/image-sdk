@@ -100,6 +100,17 @@ export interface ImageSessionSnapshot {
    * and for a still.
    */
   readonly progress: { readonly done: number; readonly total: number } | null;
+  /**
+   * The first frame of the animation being opened, once it can be drawn and
+   * while the rest are checked (docs/adr/0011): a source id a renderer of
+   * the session's engine may draw as a still, and its size. `null` when
+   * nothing is opening, for a still, and before the first frame is ready.
+   */
+  readonly openingFrame: {
+    readonly source: string;
+    readonly width: number;
+    readonly height: number;
+  } | null;
   /** Whether an export is in progress. */
   readonly exporting: boolean;
   /** The limits the last open, edit or export came near: at or above their warnings. */
@@ -523,6 +534,8 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
   let opening = 0;
   /** The latest open's frames checked, while it checks them. */
   let progress: { readonly done: number; readonly total: number } | null = null;
+  /** The latest open's first frame, once it can be drawn. */
+  let openingFrame: ImageSessionSnapshot["openingFrame"] = null;
   let exporting = 0;
   let inserting = 0;
   /** Which document an async result belongs to. */
@@ -543,6 +556,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     inserting: !destroyed && inserting > 0,
     opening: !destroyed && opening > 0,
     progress: !destroyed && opening > 0 ? progress : null,
+    openingFrame: !destroyed && opening > 0 ? openingFrame : null,
     exporting: !destroyed && exporting > 0,
     warnings,
     error,
@@ -787,6 +801,15 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
               ...(animated
                 ? {
                     frames: "all" as const,
+                    onFirstFrame: () => {
+                      if (ticket !== opens || destroyed) return;
+                      openingFrame = {
+                        source: id,
+                        width: probe.oriented.width,
+                        height: probe.oriented.height,
+                      };
+                      publish();
+                    },
                     onProgress: (fraction: number) => {
                       // Only the latest open's frames are the snapshot's.
                       if (ticket !== opens || destroyed) return;
@@ -840,7 +863,10 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         throw failure;
       } finally {
         opening -= 1;
-        if (ticket === opens) progress = null;
+        if (ticket === opens) {
+          progress = null;
+          openingFrame = null;
+        }
         if (!destroyed) publish();
       }
     },

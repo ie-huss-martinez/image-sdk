@@ -209,6 +209,23 @@
     gap: var(--hm-gap-normal);
   }
 
+  /*
+   * Over the first frame of an animation still opening (docs/adr/0011), the
+   * progress moves to the stage's foot, on a surface, so the image shows.
+   */
+  .hm-image-stage-opening--over-image {
+    align-self: end;
+    justify-self: center;
+    margin: var(--hm-inset-normal);
+    padding: var(--hm-inset-tight) var(--hm-inset-normal);
+  }
+
+  .hm-image-editor--styled .hm-image-stage-opening--over-image {
+    background: var(--hm-color-surface);
+    border: var(--hm-border-width) solid var(--hm-color-border);
+    border-radius: var(--hm-radius-surface);
+  }
+
   /* The notices and a failure, stacked at the stage's foot, over the image. */
   .hm-image-stage-foot {
     align-self: end;
