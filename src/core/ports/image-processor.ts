@@ -17,6 +17,16 @@ export type ImageExportFormat =
   | { readonly type: "gif" };
 
 /**
+ * Whether a format's files carry the fields the user keeps: PNG and JPEG do,
+ * and WebP and GIF carry no metadata at all (ADR 0005, docs/adr/0011).
+ *
+ * @internal
+ */
+export function keepsFields(format: ImageExportFormat["type"]): boolean {
+  return format === "png" || format === "jpeg";
+}
+
+/**
  * One export: a plan over sources registered with the same engine, and the
  * output format. The plan's kept metadata goes into the file, and nothing
  * else does (ADR 0005).

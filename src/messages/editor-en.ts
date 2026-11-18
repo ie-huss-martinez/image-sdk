@@ -287,7 +287,7 @@ export const imageEditorText = /* @__PURE__ */ defineMessages({
   "export.fitHeight": "Largest height",
   "export.fields": "Details to include",
   "export.fieldsHint": "Only what you fill in is written to the file.",
-  "export.fieldsNone": "A GIF file carries no details: these aren't written to it.",
+  "export.fieldsNone": "A {format} file carries no details: these aren't written to it.",
   "export.field.title": "Title",
   "export.field.description": "Description",
   "export.field.artist": "Artist",

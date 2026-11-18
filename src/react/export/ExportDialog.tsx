@@ -21,7 +21,7 @@ import {
   MAX_METADATA_LENGTH,
 } from "../../core/model/source.js";
 import type { ImageCommand } from "../../core/operations/commands.js";
-import type { ImageExportFormat } from "../../core/ports/image-processor.js";
+import { type ImageExportFormat, keepsFields } from "../../core/ports/image-processor.js";
 import type { ImageSessionExport, ImageSessionSource } from "../../core/session/session.js";
 import {
   useImageDocument,
@@ -277,8 +277,8 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
   const composition = compositionSize(plan, source);
   const size = outputSize(current.output, composition);
   const removed = KINDS.filter((kind) => source.metadata[kind]);
-  // A GIF carries no details: the fields the user filled in aren't written (docs/adr/0011).
-  const writesFields = current.format !== "gif";
+  // WebP and GIF carry no details: the fields the user filled in aren't written.
+  const writesFields = keepsFields(current.format);
   const kept = writesFields ? FIELDS.filter((field) => current.metadata[field] !== "") : [];
   const exporting = phase.kind === "exporting";
 
@@ -414,7 +414,9 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
             <fieldset className="hm-image-export-metadata">
               <legend>{messages.t("export.fields")}</legend>
               <p className="hm-image-export-hint">
-                {messages.t(writesFields ? "export.fieldsHint" : "export.fieldsNone")}
+                {writesFields
+                  ? messages.t("export.fieldsHint")
+                  : messages.t("export.fieldsNone", { format: formatName(current.format) })}
               </p>
               <div className="hm-image-export-fields">
                 {FIELDS.map((field) => (
