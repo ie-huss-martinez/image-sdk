@@ -31,6 +31,8 @@ export interface GifFrameStore {
   readonly spacing: number;
   /** The bytes the cache holds now. */
   readonly cached: number;
+  /** The most bytes the cache can come to hold, from how it was planned: within its bound. */
+  readonly ceiling: number;
   /** How many frames have been decoded since the store was made: what its work has cost. */
   readonly decoded: number;
   /**
@@ -86,6 +88,7 @@ export function createGifFrameStore(
   return {
     frames: count,
     spacing,
+    ceiling: spacing === 0 ? 0 : Math.ceil(count / spacing) * screenBytes * (restores ? 2 : 1),
     get cached() {
       return cached;
     },

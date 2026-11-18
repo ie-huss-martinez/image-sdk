@@ -28,7 +28,7 @@ exposeWorker<Pick<RenderWorkerContract, "probe" | "register" | "export" | "relea
     },
     register: ({ id }) => {
       sources.add(id);
-      return { width: 4, height: 2 };
+      return { width: 4, height: 2, frames: 1, timing: null, incomplete: false, bytes: 32 };
     },
     export: ({ plan }, { signal }) =>
       new Promise((_resolve, reject) => {

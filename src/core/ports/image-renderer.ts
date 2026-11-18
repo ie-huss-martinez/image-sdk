@@ -36,6 +36,12 @@ export interface ImageView {
    * be cut off where the image meets the stage's edge. 0 when omitted.
    */
   readonly inset?: number;
+  /**
+   * Which frame of an animated plan is shown, as an index into the plan's
+   * `animation.frames`: 0 when omitted. It's view state, like the zoom
+   * (docs/adr/0011).
+   */
+  readonly frame?: number;
 }
 
 /**

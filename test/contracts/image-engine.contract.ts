@@ -69,6 +69,16 @@ export function describeImageEngineContract(name: string, harness: ImageEngineHa
       const file = await harness.file({ width: 4, height: 3, orientation: 6 });
       const info = await engine.register("a", file, await engine.probe(file));
       expect(info).toMatchObject({ id: "a", width: 3, height: 4, frames: 1, decodedBytes: 48 });
+      // A still has no timing, and its frames didn't end early (docs/adr/0011).
+      expect(info).toMatchObject({ timing: null, incomplete: false });
+      await engine.destroy();
+    });
+
+    it("registers a still as a still, whichever frames it's asked for", async () => {
+      const engine = harness.createEngine();
+      const file = await harness.file({ width: 4, height: 3 });
+      const info = await engine.register("a", file, await engine.probe(file), { frames: "all" });
+      expect(info).toMatchObject({ frames: 1, timing: null, incomplete: false });
       await engine.destroy();
     });
 

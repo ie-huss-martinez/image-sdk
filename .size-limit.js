@@ -14,7 +14,10 @@ export default [
     name: "Server-safe core (.), with the shared code it loads",
     // The core never loads the React editor's chunks, nor the interface's
     // text, which the React entry holds (docs/adr/0012). Measured at
-    // 24.8 kB (19.0 kB minified) with the plan's format version 4: the
+    // 25.0 kB (19.2 kB minified) with sources that hold their frames
+    // (docs/adr/0011): their timing, the option that asks for them and the
+    // frame a call draws, 0.2 kB over the 24.8 kB of the plan's format
+    // version 4: the
     // animation's frames and loop count, their commands and the document's
     // frame counts (docs/adr/0011), 1.3 kB over version 3's 23.6 kB; the
     // keyed-list reducer; the
@@ -26,7 +29,7 @@ export default [
     // text of errors and warnings.
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
-    limit: "25 kB",
+    limit: "26 kB",
   },
   {
     // The core's 24.8 kB and the editor. Measured at 47.4 kB (36.5 kB
@@ -59,11 +62,13 @@ export default [
     // calibration, the renderer, the encoders' metadata rewrite, develop and
     // filters (docs/adr/0006), redaction's two passes (docs/adr/0010), the
     // layer renderer with drawings and arrows, and the SDK's own GIF
-    // decoder (docs/adr/0011). Measured at 22.2 kB with the GIF decoder,
-    // which docs/adr/0009 expected to bring it to about 28 kB.
+    // decoder (docs/adr/0011) with its frame store and the check of every
+    // frame of a source held with its frames. Measured at 23.1 kB (22.9 kB
+    // minified), 0.8 kB over the 22.3 kB it was with the first frame only;
+    // docs/adr/0009 expected the decoder to bring it to about 28 kB.
     name: "Render worker, inlined (lazy)",
     path: "dist/lazy/inline-worker-*.js",
     brotli: true,
-    limit: "23 kB",
+    limit: "24 kB",
   },
 ];

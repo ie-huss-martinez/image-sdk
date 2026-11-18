@@ -284,6 +284,7 @@ export type ImageExportFormat = {
 export interface ImageExportJob {
     // (undocumented)
     readonly format: ImageExportFormat;
+    readonly frame?: number;
     // (undocumented)
     readonly plan: ImagePlan;
 }
@@ -700,6 +701,7 @@ export interface ImageReducerSource extends ImageSize {
 // @public
 export interface ImageRegisterOptions extends ImageProgressOptions {
     readonly filePolicy?: ImageFilePolicy;
+    readonly frames?: "first" | "all";
 }
 
 // @public
@@ -831,7 +833,6 @@ export interface ImageSourceInfo {
     readonly decodedBytes: number;
     // (undocumented)
     readonly format: ImageFormat;
-    // (undocumented)
     readonly frames: number;
     // (undocumented)
     readonly hasAlpha: boolean;
@@ -839,6 +840,9 @@ export interface ImageSourceInfo {
     readonly height: number;
     // (undocumented)
     readonly id: string;
+    readonly incomplete: boolean;
+    // Warning: (ae-forgotten-export) The symbol "ImageSourceTiming" needs to be exported by the entry point index.d.ts
+    readonly timing: ImageSourceTiming | null;
     // (undocumented)
     readonly width: number;
 }
@@ -881,6 +885,7 @@ export interface ImageThumbnail {
 
 // @public
 export interface ImageView {
+    readonly frame?: number;
     // (undocumented)
     readonly height: number;
     readonly inset?: number;

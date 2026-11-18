@@ -11,7 +11,7 @@ import {
   type ImageView,
 } from "../core/ports/image-renderer.js";
 import { engineInternals } from "./image-engine.js";
-import { layerSources } from "./image-processor.js";
+import { checkFrame, layerSources } from "./image-processor.js";
 
 /** What tests reach of a renderer from {@link createImageRenderer}. */
 export interface RendererInternals {
@@ -107,7 +107,13 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
     internals
       .call(
         "render",
-        { id, plan: request.plan, view: request.view, limits: request.limits },
+        {
+          id,
+          plan: request.plan,
+          view: request.view,
+          frame: request.view.frame ?? 0,
+          limits: request.limits,
+        },
         { signal: controller.signal },
       )
       .then(
@@ -194,6 +200,8 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
       const policy = options?.filePolicy ?? imageLimits.resolve();
       try {
         checkView(view);
+        // The frame shown is one the plan has: only 0 for a still.
+        checkFrame(plan, view.frame ?? 0);
         // A runaway layout can't size the canvas past the limits; the
         // current frame stays (docs/adr/0004).
         checkOutputLimits(policy, backingSize(view));

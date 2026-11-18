@@ -239,12 +239,13 @@ export function createEngine(
         { registered: false, released: false };
       ids.set(id, reservation);
       try {
-        const size = await call(
+        const decoded = await call(
           "register",
           {
             id,
             file,
             probe,
+            frames: options?.frames ?? "first",
             // The maxima cross to the worker, which checks them against its
             // own probe (docs/adr/0004).
             limits: Object.fromEntries(
@@ -254,7 +255,11 @@ export function createEngine(
               ]),
             ) as Record<(typeof PER_FILE_LIMITS)[number], number>,
           },
-          callOptions(options),
+          {
+            ...callOptions(options),
+            // Only a source held with all its frames reports any (docs/adr/0011).
+            onProgress: ({ done, total }) => options?.onProgress?.(done / total),
+          },
         );
         lifecycle.check(reservation.generation);
         if (reservation.released)
@@ -265,13 +270,14 @@ export function createEngine(
         return {
           id,
           format: probe.format,
-          width: size.width,
-          height: size.height,
-          // Animations open as their first frame until the GIF decoder lands
-          // (docs/adr/0001).
-          frames: 1,
+          width: decoded.width,
+          height: decoded.height,
+          // 1 unless it was registered with all its frames (docs/adr/0011).
+          frames: decoded.frames,
           hasAlpha: probe.hasAlpha,
-          decodedBytes: size.width * size.height * 4,
+          decodedBytes: decoded.bytes,
+          timing: decoded.timing,
+          incomplete: decoded.incomplete,
         };
       } catch (error) {
         if (ids.get(id) === reservation) ids.delete(id);

@@ -1,13 +1,14 @@
 import type { OUTPUT_LIMITS, PER_FILE_LIMITS } from "../../core/errors/image-limits.js";
 import type { ImagePlan } from "../../core/model/plan.js";
-import type { ImageProbe, ImageSize } from "../../core/model/source.js";
+import type { ImageProbe, ImageSize, ImageSourceTiming } from "../../core/model/source.js";
 import type { ImageExportFormat } from "../../core/ports/image-processor.js";
 import type { ImageView } from "../../core/ports/image-renderer.js";
 
 /**
  * The render worker's RPC contract (docs/adr/0002), shared by the page and
  * the worker. The worker holds every registered source as an upright
- * `ImageBitmap`; the page keeps each source's `Blob`.
+ * `ImageBitmap`, and a GIF registered with all its frames as its bytes and
+ * a frame store besides (docs/adr/0011); the page keeps each source's `Blob`.
  */
 export interface RenderWorkerContract {
   /** Reads a file's headers (docs/adr/0001). */
@@ -24,8 +25,20 @@ export interface RenderWorkerContract {
       readonly probe: ImageProbe;
       /** The maximum of each per-file limit. */
       readonly limits: Readonly<Record<(typeof PER_FILE_LIMITS)[number], number>>;
+      /** Whether an animated file is held with every frame, or as its first (docs/adr/0011). */
+      readonly frames: "first" | "all";
     };
-    readonly output: ImageSize;
+    readonly output: ImageSize & {
+      /** The frames held: 1 for a still. */
+      readonly frames: number;
+      /** The file's timing, for a source held with all its frames. */
+      readonly timing: ImageSourceTiming | null;
+      readonly incomplete: boolean;
+      /** The bytes the worker holds for it. */
+      readonly bytes: number;
+    };
+    /** The frames checked so far, of those the file lists: for a source held with all its frames. */
+    readonly progress: { readonly done: number; readonly total: number };
   };
   /** A rendering of a source that fits inside `maxSize` × `maxSize`. */
   readonly thumbnail: {
@@ -40,6 +53,8 @@ export interface RenderWorkerContract {
     readonly input: {
       readonly plan: ImagePlan;
       readonly format: ImageExportFormat;
+      /** Which of the plan's animation's frames: 0 for a still. */
+      readonly frame: number;
       /** The maximum of each output limit. */
       readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number], number>>;
     };
@@ -56,6 +71,8 @@ export interface RenderWorkerContract {
       readonly id: string;
       readonly plan: ImagePlan;
       readonly view: ImageView;
+      /** Which of the plan's animation's frames: 0 for a still. */
+      readonly frame: number;
       /** The maximum of each output limit, for the canvas's backing size. */
       readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number], number>>;
     };

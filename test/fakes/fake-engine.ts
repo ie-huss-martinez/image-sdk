@@ -117,6 +117,8 @@ export function createFakeEngine(): FakeEngine {
         frames: 1,
         hasAlpha: probe.hasAlpha,
         decodedBytes: decoded.width * decoded.height * 4,
+        timing: null,
+        incomplete: false,
       } satisfies ImageSourceInfo;
     },
     async thumbnail(id, maxSize, options) {

@@ -23,6 +23,11 @@ export type ImageExportFormat =
 export interface ImageExportJob {
   readonly plan: ImagePlan;
   readonly format: ImageExportFormat;
+  /**
+   * Which frame of an animated plan to export, as an index into the plan's
+   * `animation.frames`: 0 when omitted. A still has only frame 0.
+   */
+  readonly frame?: number;
 }
 
 /**
