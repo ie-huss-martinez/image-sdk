@@ -203,6 +203,68 @@ describe("the preview renderer (docs/adr/0002)", () => {
     expect(isImageError(error, "UNSUPPORTED_ENVIRONMENT")).toBe(true);
   });
 
+  it("refuses a waiting render at once when its signal aborts, and never draws it", async () => {
+    const { engine, renderer } = await open(2_400, 1_600);
+    opened.push({ engine, renderer });
+    const view = fittedView(2_400, 1_600);
+    const first = renderer.render(withDevelop({ contrast: 30 }), view);
+    // Let the first render reach the worker, so the second waits behind it.
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const controller = new AbortController();
+    const second = renderer.render(withDevelop({ contrast: -30 }), view, {
+      signal: controller.signal,
+    });
+    const settled: string[] = [];
+    void first.then(
+      () => settled.push("first"),
+      () => settled.push("first"),
+    );
+    const refused = second.then(
+      () => "drawn",
+      (error: unknown) => {
+        settled.push("second");
+        return isImageError(error, "ABORTED") ? "aborted" : String(error);
+      },
+    );
+    controller.abort();
+    expect(await refused).toBe("aborted");
+    // Refused while it waited, before the render ahead of it settled.
+    expect(settled).toEqual(["second"]);
+    const outcome = await first;
+    expect(["drawn", "superseded"]).toContain(outcome);
+    expect(rendererInternals(renderer)?.drawn()).toBe(outcome === "drawn" ? 1 : 0);
+    // The renderer carries on.
+    expect(await renderer.render(createPlan("s"), view)).toBe("drawn");
+  });
+
+  it("refuses a waiting render whose signal has aborted when its turn comes, even unheard", async () => {
+    const { engine, renderer } = await open(2_400, 1_600);
+    opened.push({ engine, renderer });
+    const view = fittedView(2_400, 1_600);
+    // A signal whose abort fires no event the renderer hears, as an abort
+    // that happened before a listener was added doesn't.
+    let aborted = false;
+    const reason = new DOMException("Stopped.", "AbortError");
+    const signal = {
+      get aborted() {
+        return aborted;
+      },
+      reason,
+      addEventListener() {},
+      removeEventListener() {},
+      throwIfAborted() {
+        if (aborted) throw reason;
+      },
+    } as unknown as AbortSignal;
+    const first = renderer.render(withDevelop({ contrast: 30 }), view);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const second = renderer.render(withDevelop({ contrast: -30 }), view, { signal });
+    aborted = true;
+    const outcome = await first;
+    await expect(second).rejects.toMatchObject({ code: "ABORTED" });
+    expect(rendererInternals(renderer)?.drawn()).toBe(outcome === "drawn" ? 1 : 0);
+  });
+
   it("resolves a waiting render as superseded when destroyed", async () => {
     const { engine, renderer } = await open(2_400, 1_600);
     const view = fittedView(2_400, 1_600);

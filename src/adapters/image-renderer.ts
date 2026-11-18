@@ -1,4 +1,4 @@
-import { asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
+import { abortError, asImageError, throwIfAborted } from "../core/errors/error-helpers.js";
 import { ImageError, isImageError } from "../core/errors/image-error.js";
 import { checkOutputLimits, imageLimits, OUTPUT_LIMITS } from "../core/errors/image-limits.js";
 import type { ImagePlan } from "../core/model/plan.js";
@@ -42,6 +42,8 @@ interface Request {
   readonly reject: (error: unknown) => void;
   readonly signal: AbortSignal | undefined;
   readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number], number>>;
+  /** Stops listening for an abort while it waits: it's drawn, replaced or dropped. */
+  stopWaiting: () => void;
 }
 
 function checkView(view: ImageView): void {
@@ -100,6 +102,14 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
     if (inFlight || !pending) return;
     const request = pending;
     pending = undefined;
+    request.stopWaiting();
+    // Aborted while it waited: refused, never drawn. An abort fires its event
+    // once, so a listener added from here on would never hear it.
+    if (request.signal?.aborted) {
+      request.reject(abortError(request.signal.reason));
+      pump();
+      return;
+    }
     const controller = new AbortController();
     const onAbort = () => controller.abort(request.signal?.reason);
     request.signal?.addEventListener("abort", onAbort, { once: true });
@@ -223,8 +233,29 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
         OUTPUT_LIMITS.map((limit) => [limit, policy.limits[limit].maximum]),
       ) as Request["limits"];
       return new Promise<ImageRenderOutcome>((resolve, reject) => {
-        pending?.resolve("superseded");
-        pending = { plan, view, resolve, reject, signal: options?.signal, limits };
+        const signal = options?.signal;
+        if (pending) {
+          pending.stopWaiting();
+          pending.resolve("superseded");
+        }
+        const request: Request = { plan, view, resolve, reject, signal, limits, stopWaiting() {} };
+        pending = request;
+        // While it waits behind a render being drawn, an abort refuses it at
+        // once. Checked first: an abort that has happened fires no event.
+        if (signal?.aborted) {
+          pending = undefined;
+          reject(abortError(signal.reason));
+          return;
+        }
+        if (signal) {
+          const onAbort = () => {
+            if (pending !== request) return;
+            pending = undefined;
+            reject(abortError(signal.reason));
+          };
+          signal.addEventListener("abort", onAbort, { once: true });
+          request.stopWaiting = () => signal.removeEventListener("abort", onAbort);
+        }
         // The render being drawn is stale now: stop it at its next strip.
         inFlight?.controller.abort(
           new DOMException("A later render replaced this one.", "AbortError"),
@@ -237,6 +268,7 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
       if (destroyed) return;
       destroyed = true;
       if (pending) {
+        pending.stopWaiting();
         try {
           internals.check();
           pending.resolve("superseded");
