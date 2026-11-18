@@ -1,5 +1,17 @@
 # @hussmartinez/image-sdk
 
+## 0.7.1
+
+### Patch Changes
+
+- [#107](https://github.com/ie-huss-martinez/image-sdk/pull/107) [`216ddf7`](https://github.com/ie-huss-martinez/image-sdk/commit/216ddf7d18baa8734097662f7152c16a2971a41a) Thanks [@hussmartinez](https://github.com/hussmartinez)! - A large GIF starts to open sooner. Before decoding, the SDK walks the file's blocks to check its size and frame count. It now reads the data of each frame in 64 KiB views instead of one sub-block at a time. Nothing else changes: the same files open, with the same frames, and the same files are refused with the same errors.
+
+- [#110](https://github.com/ie-huss-martinez/image-sdk/pull/110) [`24c2676`](https://github.com/ie-huss-martinez/image-sdk/commit/24c267629bc348a701a3471a03c2b08a77d64431) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Pausing an animation, or moving to another frame, while it plays now always holds. Before, on a busy device, the frame that was about to show could still come and start the animation playing again, or replace the frame chosen.
+
+- [#109](https://github.com/ie-huss-martinez/image-sdk/pull/109) [`c4ad289`](https://github.com/ie-huss-martinez/image-sdk/commit/c4ad289a304ed0fe0e4b50a08d8267dc4fa98a51) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The SDK now depends on `@hussmartinez/ui` `^0.14.0`, as audio-sdk 0.7 and video-sdk 0.3.1 do, so a page using image-sdk beside either has one copy of ui. Before, image-sdk asked for `^0.10.0`, which before 1.0 means 0.10 only.
+  
+  One behaviour comes with it, in the Layers and Frames lists: a row is now selected whenever it takes focus, by Tab or a click as well as the arrow keys. Tabbing into the Layers list with no layer selected selects the first one, so the buttons that act on it are ready at once.
+
 ## 0.7.0
 
 ### Minor Changes
