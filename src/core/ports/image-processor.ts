@@ -4,14 +4,17 @@ import type { ImageExportOptions } from "./options.js";
 /**
  * The file an export produces (ADR 0001). `quality`, from 0 to 1, applies to
  * the lossy formats; it defaults to 0.92. WebP is encoded only where the
- * browser can, and otherwise rejects with `UNSUPPORTED_FORMAT`.
+ * browser can, and otherwise rejects with `UNSUPPORTED_FORMAT`. A GIF is
+ * written by the SDK's own encoder, every frame of an animated plan and one
+ * frame of a still, and carries no metadata (docs/adr/0011).
  *
  * @public
  */
 export type ImageExportFormat =
   | { readonly type: "png" }
   | { readonly type: "jpeg"; readonly quality?: number }
-  | { readonly type: "webp"; readonly quality?: number };
+  | { readonly type: "webp"; readonly quality?: number }
+  | { readonly type: "gif" };
 
 /**
  * One export: a plan over sources registered with the same engine, and the

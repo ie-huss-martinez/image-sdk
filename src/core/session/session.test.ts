@@ -502,6 +502,14 @@ describe("the image session (ADR 0003)", () => {
       expect(session.undo()).toBe(false);
     });
 
+    it("reports no kept fields for a GIF, which carries none", async () => {
+      const { session } = setup();
+      await session.open(animated());
+      session.execute({ type: "image.setMetadata", field: "title", value: "Party" });
+      expect((await session.export({ type: "png" })).kept).toEqual(["title"]);
+      expect((await session.export({ type: "gif" })).kept).toEqual([]);
+    });
+
     it("holds the frames a command adds to maxFrames, and lets a plan over it be trimmed", async () => {
       const { session } = setup({ filePolicy: { maxFrames: 6 } });
       await session.open(animated());

@@ -12,6 +12,7 @@
 - **Amended:** 2026-11-18: `animations: false` keeps every file a still, under "Opening an animation in the session"
 - **Amended:** 2026-11-18: one rule for an animation that can't be held. A file over `maxFrames` or, across its frames, `maxDecodedSize` opens as its first frame with a notice, as one over `maxAnimationPixels` does, where it was refused; under "An animation that can't be held opens as a still"
 - **Amended:** 2026-11-18, as the encoder was built: how a frame's palette is chosen and when a frame marks a colour transparent, under "Encoding"
+- **Amended:** 2026-11-18, as the job worker was built: the render worker's call that gives a frame's pixels, when a job worker is retired, and its measured size, under "The job worker"
 
 ## Context
 
@@ -193,6 +194,10 @@ interface ImageFrame {
 - **Why not encode in the render worker:** stopping an encode that doesn't answer means terminating its worker, and terminating the render worker ends the session ([ADR 0008](0008-terminal-engine-invalidation.md)). The job worker can be terminated at any time and costs nothing: the next export starts another. ADR 0008's states and guards apply to the render worker only.
 - **Cancelling** is checked between frames. A job worker that doesn't acknowledge within `sdk-core`'s grace period is terminated ([ADR 0018](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0018-worker-rpc-protocol.md)). The whole export runs under `maxProcessingTime` and reports progress by frame.
 - **Lifetime and assets:** it starts on the first GIF export and stops after `sdk-core`'s idle timeout. It's inlined by default, and `image/job.worker.js` under `assetsUrl` when self-hosted, with the same version check as the render worker. The Content Security Policy is the one ADR 0002 gives: no new directive.
+- **The render worker gives a frame as pixels:** its `frame` call renders one frame of the plan at the output's size, as an export does, and returns its RGBA pixels, not premultiplied, as a transferred buffer. It's given how many frames the export writes, and checks them all against `maxDecodedSize` before it draws the first, so the bound holds whichever call comes first. Its `export` call refuses a GIF: a GIF is never one call.
+- **A job worker is kept between exports, and retired when one doesn't finish.** An export that finishes leaves its job worker for the next, until sdk-core's idle timeout ends it. One that's cancelled or fails retires its client: no export starts on it again, and its worker is terminated as soon as no export is using it. Otherwise a job worker that didn't answer a cancel, which sdk-core terminates a second later, would take the next export down with it.
+- **Measured:** the inlined job worker is 6.8 kB, brotli at quality 11, `gifenc` and the writer together; its budget is 7 kB. The self-hosted copy is 6.1 kB.
+- **`NOTICE` credits `gifenc`** with its MIT licence and copyright, and ships with the package.
 - **An export's peak** is the sources' working set, one output canvas and one frame in the render worker; one frame in transit; and one frame, its indexed copy and the file so far in the job worker.
 
 ### Playing in the editor

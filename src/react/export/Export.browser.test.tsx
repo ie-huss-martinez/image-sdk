@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
+import { writeGif } from "../../../test/fixtures/gif-writer.js";
+import { readGifFrames } from "../../adapters/gif/frames.js";
 import { ImageError } from "../../core/errors/image-error.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageProcessor } from "../../core/ports/image-processor.js";
@@ -262,6 +264,55 @@ describe("the export dialog (docs/adr/0007)", () => {
     expect(exports[0]?.details).toMatchObject({ width: 30, height: 20, removed: [], kept: [] });
     await until(() => dialog() === null, "the dialog to close");
     expect(document.activeElement).toBe(exportButton());
+  });
+
+  it("exports an animation as a GIF of all its frames, and says a GIF keeps no details", async () => {
+    const exports: { blob: Blob; details: ImageSessionExport }[] = [];
+    const { handle } = await opened({
+      onExport: (blob, details) => exports.push({ blob, details }),
+    });
+    // An animated GIF of three frames replaces the still.
+    const gif = writeGif({
+      width: 6,
+      height: 4,
+      palette: [
+        [255, 0, 0],
+        [0, 0, 255],
+      ],
+      loop: 0,
+      frames: [0, 1, 0].map((index) => ({
+        pixels: Array.from({ length: 24 }, () => index),
+        delay: 8,
+      })),
+    });
+    await act(async () => handle.current?.open(new Blob([gif.slice()], { type: "image/gif" })));
+    await until(
+      () => handle.current?.session.getSnapshot().plan?.animation?.frames.length === 3,
+      "the animation",
+      FIRST_OPEN_TIMEOUT,
+    );
+    await openDialog();
+    // A GIF opens to export as a GIF, with no quality to choose.
+    expect(inDialog("GIF").getAttribute("aria-checked")).toBe("true");
+    expect(dialog()?.textContent).not.toContain("Quality");
+    // A title typed in isn't written to a GIF, and the dialog says so.
+    await type(inDialog("Title"), "Party");
+    expect(dialog()?.textContent).toContain(
+      "A GIF file carries no details: these aren't written to it.",
+    );
+    expect(summary()).not.toContain("Kept in the file");
+    await click(inDialog("Export"));
+    await until(() => exports.length === 1, "the host's export", 20_000);
+    expect(exports[0]?.blob.type).toBe("image/gif");
+    expect(exports[0]?.details).toMatchObject({ width: 6, height: 4, kept: [] });
+    const written = new Uint8Array(await (exports[0] as { blob: Blob }).blob.arrayBuffer());
+    const file = readGifFrames(written);
+    expect(file.frames.map((frame) => frame.delay)).toEqual([8, 8, 8]);
+    expect(file.loop).toBe(0);
+    // And PNG, chosen instead, is one frame with the title kept.
+    await openDialog();
+    await click(inDialog("PNG"));
+    expect(summary()).toContain("Kept in the file");
   });
 
   it("shows the catalogue's text for a format the browser can't write, and keeps the choices", async () => {

@@ -138,6 +138,61 @@ describe("importing on a server", () => {
  */
 const CODE_GENERATION = /(?<![\w$.])eval\s*\(|(?<![\w$.])(?:new\s+)?Function\s*\(/;
 
+const jobWorker = () => {
+  const found = files.find((file) => /^lazy\/inline-job-worker-[\w-]+\.js$/.test(file.fileName));
+  if (found?.type !== "chunk") throw new Error("the inlined job worker chunk wasn't built");
+  return found;
+};
+
+describe("the job worker (docs/adr/0011)", () => {
+  it("is inlined in a lazy chunk that only import() loads, never the entries", () => {
+    expect(jobWorker().code).toContain("hm-image-job");
+    for (const entry of ["index.js", "react.js", "element.js"]) {
+      expect(chunk(entry).imports, entry).not.toContain(jobWorker().fileName);
+    }
+  });
+
+  it("bundles the GIF encoder, and nothing else bundles it", () => {
+    // An error message of gifenc's own: the decoder's code names NETSCAPE2.0 too.
+    const encoder = (code: string) =>
+      code.includes("First frame must include a { palette } option");
+    expect(encoder(jobWorker().code)).toBe(true);
+    for (const file of files) {
+      if (file.type === "chunk" && file !== jobWorker()) {
+        expect(encoder(file.code), file.fileName).toBe(false);
+      }
+    }
+  });
+
+  it("generates no code from strings, and makes no requests of its own", () => {
+    expect(jobWorker().code).not.toMatch(CODE_GENERATION);
+    expect(jobWorker().code).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|importScripts|WebSocket/);
+  });
+
+  it("is written to dist/assets/image/job.worker.js too, one module with no imports and the version", async () => {
+    const found = files.find((file) => file.fileName === "assets/image/job.worker.js");
+    if (found?.type !== "asset") throw new Error("dist/assets/image/job.worker.js wasn't built");
+    const code = String(found.source);
+    expect(code).not.toMatch(/^\s*import\s|\bimport\s*\(/m);
+    expect(code).toContain("hm-rpc");
+    expect(code).not.toMatch(CODE_GENERATION);
+    expect(code).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|importScripts|WebSocket/);
+    const { version } = JSON.parse(await readFile("package.json", "utf8")) as { version: string };
+    expect(code).toMatch(
+      new RegExp(`packageVersion:[\`"']${version.replaceAll(".", "\\.")}[\`"']`),
+    );
+  });
+
+  it("ships NOTICE, which credits the encoder it bundles", async () => {
+    const manifest = JSON.parse(await readFile("package.json", "utf8")) as { files: string[] };
+    expect(manifest.files).toContain("NOTICE");
+    const notice = await readFile("NOTICE", "utf8");
+    expect(notice).toContain("gifenc 1.0.3");
+    expect(notice).toContain("Copyright (c) 2017 Matt DesLauriers");
+    expect(notice).toContain("The MIT License (MIT)");
+  });
+});
+
 describe("the render worker (docs/adr/0002)", () => {
   const worker = () => {
     const found = files.find((file) => /^lazy\/inline-worker-[\w-]+\.js$/.test(file.fileName));
@@ -162,10 +217,13 @@ describe("the render worker (docs/adr/0002)", () => {
         entry,
       ).toEqual([]);
     }
-    // Something the core entry loads imports it, lazily.
-    expect(loadedBy("index.js").flatMap((loaded) => loaded.dynamicImports)).toEqual([
-      worker().fileName,
-    ]);
+    // Something the core entry loads imports it, lazily, as it does the job
+    // worker (docs/adr/0011), and nothing else.
+    expect(
+      loadedBy("index.js")
+        .flatMap((loaded) => loaded.dynamicImports)
+        .sort(),
+    ).toEqual([jobWorker().fileName, worker().fileName].sort());
   });
 
   it("generates no code from strings, in any chunk, including the inlined worker", () => {

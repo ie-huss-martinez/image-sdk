@@ -65,8 +65,15 @@ type Phase =
   | { readonly kind: "exporting"; readonly progress: number }
   | { readonly kind: "done"; readonly result: ImageSessionExport; readonly format: FormatType };
 
-const FORMATS: readonly FormatType[] = ["png", "jpeg", "webp"];
-const EXTENSIONS: Readonly<Record<FormatType, string>> = { png: "png", jpeg: "jpg", webp: "webp" };
+const FORMATS: readonly FormatType[] = ["png", "jpeg", "webp", "gif"];
+const EXTENSIONS: Readonly<Record<FormatType, string>> = {
+  png: "png",
+  jpeg: "jpg",
+  webp: "webp",
+  gif: "gif",
+};
+/** The formats with a quality to choose: the lossy ones. */
+const LOSSY: ReadonlySet<FormatType> = new Set(["jpeg", "webp"]);
 const FIELDS: readonly (keyof ImageKeepableMetadata)[] = [
   "title",
   "description",
@@ -119,7 +126,9 @@ function changes(plan: ImagePlan, draft: Draft): ImageCommand[] {
 }
 
 const formatOf = (draft: Draft): ImageExportFormat =>
-  draft.format === "png" ? { type: "png" } : { type: draft.format, quality: draft.quality / 100 };
+  draft.format === "jpeg" || draft.format === "webp"
+    ? { type: draft.format, quality: draft.quality / 100 }
+    : { type: draft.format };
 
 /**
  * The export dialog (docs/adr/0007). Export is irreversible, so it shows a
@@ -268,7 +277,9 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
   const composition = compositionSize(plan, source);
   const size = outputSize(current.output, composition);
   const removed = KINDS.filter((kind) => source.metadata[kind]);
-  const kept = FIELDS.filter((field) => current.metadata[field] !== "");
+  // A GIF carries no details: the fields the user filled in aren't written (docs/adr/0011).
+  const writesFields = current.format !== "gif";
+  const kept = writesFields ? FIELDS.filter((field) => current.metadata[field] !== "") : [];
   const exporting = phase.kind === "exporting";
 
   const footer =
@@ -326,7 +337,7 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
               options={FORMATS.map((format) => ({ value: format, label: formatName(format) }))}
               onValueChange={(format) => update({ format: format as FormatType })}
             />
-            {current.format === "png" ? null : (
+            {!LOSSY.has(current.format) ? null : (
               <Field label={messages.t("export.quality")} className="hm-image-slider-field">
                 {(control) => (
                   <div className="hm-image-adjust-row">
@@ -402,7 +413,9 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
             </div>
             <fieldset className="hm-image-export-metadata">
               <legend>{messages.t("export.fields")}</legend>
-              <p className="hm-image-export-hint">{messages.t("export.fieldsHint")}</p>
+              <p className="hm-image-export-hint">
+                {messages.t(writesFields ? "export.fieldsHint" : "export.fieldsNone")}
+              </p>
               <div className="hm-image-export-fields">
                 {FIELDS.map((field) => (
                   <Field key={field} label={messages.t(`export.field.${field}`)}>

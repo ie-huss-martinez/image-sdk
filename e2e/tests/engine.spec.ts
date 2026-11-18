@@ -1,5 +1,11 @@
 import { expect, type Page, test } from "@playwright/test";
-import { fixture, quadrantsJpeg, quadrantsPng, quadrantsWebp } from "../fixtures.js";
+import {
+  fixture,
+  gifWithBackground,
+  quadrantsJpeg,
+  quadrantsPng,
+  quadrantsWebp,
+} from "../fixtures.js";
 import { classify } from "../orientation.js";
 
 /**
@@ -78,6 +84,29 @@ for (const { mode, page: path, selfHosted } of MODES) {
         expect(foreign).toEqual([]);
       });
     }
+
+    test("exports an animation to GIF through the job worker, under the page's policy, with no request", async ({
+      page,
+    }) => {
+      const foreign = foreignRequests(page);
+      const workers: string[] = [];
+      page.on("request", (request) => {
+        if (/\/image-sdk\/image\/\w+\.worker\.js$/.test(request.url())) workers.push(request.url());
+      });
+      await page.goto(path);
+      const outcome = await page.evaluate(
+        ([data, hosted]) => window.imageSdk.exportGif(new Uint8Array(data).buffer, hosted),
+        [Array.from(gifWithBackground("after disposal 2")), selfHosted] as const,
+      );
+      // Two frames, each delay one more than the file's 10, as the page's plan says.
+      expect(outcome).toEqual({ status: "exported", type: "image/gif", delays: [11, 11] });
+      expect(await page.evaluate(() => window.imageSdk.violations)).toEqual([]);
+      expect(foreign).toEqual([]);
+      // Self-hosted, both workers come from the host's assets; inlined, neither is requested.
+      expect(workers.map((url) => new URL(url).pathname).sort()).toEqual(
+        selfHosted ? ["/image-sdk/image/job.worker.js", "/image-sdk/image/render.worker.js"] : [],
+      );
+    });
 
     test("fails HEIC with DECODE_FAILED where the browser can't decode it", async ({ page }) => {
       await page.goto(path);
