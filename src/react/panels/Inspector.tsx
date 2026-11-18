@@ -3,6 +3,7 @@ import { type ReactNode, useState } from "react";
 import { ImageCropPanel } from "../crop/CropPanel.js";
 import { ImageDrawPanel } from "../draw/DrawPanel.js";
 import type { ImageEditorFeatures } from "../editor/types.js";
+import { ImageFramesPanel } from "../frames/FramesPanel.js";
 import { useImageDocument, useImageEditorState, useImageMessages } from "../hooks.js";
 import { ImageLayersPanel } from "../layers/LayersPanel.js";
 import { ImageRedactPanel } from "../redact/RedactPanel.js";
@@ -15,8 +16,8 @@ const PANELS: readonly Panel[] = ["adjust", "filters", "info"];
 
 /**
  * The inspector (docs/adr/0007): the crop panel while cropping, and the
- * redact panel while redacting, and the layers panel while the layers are
- * shown; otherwise
+ * redact panel while redacting, the layers panel while the layers are
+ * shown, and the frames panel while an animation's frames are; otherwise
  * a choice of the Adjust, Filters and Info panels, once an image is open.
  */
 export function ImageInspector(props: { readonly features?: ImageEditorFeatures }): ReactNode {
@@ -28,6 +29,7 @@ export function ImageInspector(props: { readonly features?: ImageEditorFeatures 
   if (editor.tool === "redact") return <ImageRedactPanel />;
   if (editor.tool === "layers") return <ImageLayersPanel />;
   if (editor.tool === "draw") return <ImageDrawPanel />;
+  if (editor.tool === "frames") return <ImageFramesPanel />;
   if (!plan) return null;
   // The panels the host turned on, in order; the choice falls to the first.
   const panels = PANELS.filter((name) => props.features?.[name] !== false);

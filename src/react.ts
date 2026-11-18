@@ -31,6 +31,8 @@ export type { ImageEditorMessageCatalogue } from "./react/editor-messages.js";
 export { imageEditorMessages } from "./react/editor-messages.js";
 export type { ImageExportDialogProps } from "./react/export/ExportDialog.js";
 export { ImageExportDialog } from "./react/export/ExportDialog.js";
+export type { ImageFramesPanelProps } from "./react/frames/FramesPanel.js";
+export { ImageFramesPanel } from "./react/frames/FramesPanel.js";
 export {
   useImageDocument,
   useImageEditorState,

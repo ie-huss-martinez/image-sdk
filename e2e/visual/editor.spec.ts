@@ -17,6 +17,8 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * |---|---|
  * | `empty` | The drop zone, before an image is open |
  * | `open` | An image on the stage, with the Adjust panel |
+ * | `animation` | An animation's bar under the stage, on its second frame, paused, with Play focused |
+ * | `frames` | The frames panel, each frame's thumbnail drawn, the second frame selected and shown |
  * | `crop` | The crop frame and its handles, with the crop panel |
  * | `redact` | A solid redaction selected, with its frame and handles, and the redact panel |
  * | `redact-pixelate` | Two redactions, the second pixelated and selected, with the warning that pixelation may not hide text |
@@ -86,6 +88,15 @@ const EDITOR: Readonly<Record<string, State>> = {
     await bar.getByRole("slider", { name: "Frame" }).press("ArrowRight");
     await expect(bar).toContainText("Frame 2 of 2");
     await bar.getByRole("button", { name: "Play" }).focus();
+  },
+  // The frames panel, its thumbnails drawn, the second frame selected (docs/adr/0011).
+  frames: async (page) => {
+    await open(gifWithBackground("after disposal 2"))(page);
+    await page.getByRole("button", { name: "Frames" }).click({ timeout: FIRST_RENDER_TIMEOUT });
+    const list = page.getByRole("grid", { name: "Frames, in the order they play" });
+    await expect(list.locator(".hm-image-frame-thumbnail-canvas")).toHaveCount(2);
+    await list.getByText("Frame 2, 0.10 seconds").click();
+    await expect(page.getByRole("region", { name: "Animation" })).toContainText("Frame 2 of 2");
   },
   crop: async (page) => {
     await opened(page);

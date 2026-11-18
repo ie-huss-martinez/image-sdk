@@ -12,8 +12,12 @@ import type { ImageCrop, ImagePlan, ImageRedactionMode } from "../core/model/pla
  * @public
  */
 export interface ImageEditorState {
-  /** The tool that takes over the stage, such as `crop`, or `null`. */
-  readonly tool: "crop" | "redact" | "layers" | "draw" | null;
+  /**
+   * The tool that takes over the stage, such as `crop`, or `null`. With
+   * `frames`, the inspector lists an animation's frames (docs/adr/0011);
+   * the one selected is the one shown, `playback.frame`.
+   */
+  readonly tool: "crop" | "redact" | "layers" | "draw" | "frames" | null;
   /** The crop being made, in whole pixels of the oriented source, and its aspect. */
   readonly crop: { readonly pending: ImageCrop; readonly aspect: ImageAspect } | null;
   /**
