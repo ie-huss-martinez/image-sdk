@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type GifFixture, writeGif } from "../../../test/fixtures/gif-writer.js";
+import { createGifWriter } from "./encode.js";
 import { createGifFrameStore } from "./frame-store.js";
 import { readGifFrames } from "./frames.js";
 
@@ -191,6 +192,48 @@ describe("every frame, composed as the browser composes it (docs/adr/0011)", () 
       expect(await sameFrames(writeGif(fixture))).toBe(fixture.frames.length);
     });
   }
+});
+
+/** A GIF the SDK writes (docs/adr/0011) is one every browser plays as it was written. */
+describe("a GIF the SDK writes, read by the browser (docs/adr/0011)", () => {
+  it("plays the frames that were written: their pixels, their transparency, with no ghost", async () => {
+    const width = 9;
+    const height = 7;
+    const colours = [
+      [255, 0, 0, 255],
+      [0, 255, 0, 255],
+      [0, 0, 255, 255],
+      [250, 200, 20, 255],
+      [0, 0, 0, 0],
+    ];
+    // Three frames: opaque, then transparent where the first drew, then mixed.
+    const frames = [0, 1, 2].map((n) =>
+      Array.from({ length: width * height }, (_, i) => {
+        if (n === 0) return colours[i % 4] as number[];
+        if (n === 1) return (i % 3 === 0 ? colours[4] : colours[(i + 1) % 4]) as number[];
+        return colours[(i * 2 + n) % 5] as number[];
+      }),
+    );
+    const writer = createGifWriter({ width, height, loop: 3 });
+    frames.forEach((pixels, n) => {
+      writer.frame(Uint8ClampedArray.from(pixels.flat()), 5 + n);
+    });
+    const bytes = writer.finish();
+    const theirs = await byTheBrowser(bytes);
+    expect(theirs).toHaveLength(3);
+    for (const [n, pixels] of frames.entries()) {
+      expect(
+        differing(Uint8ClampedArray.from(pixels.flat()), theirs[n] as Uint8ClampedArray),
+        `frame ${n}`,
+      ).toBe(0);
+    }
+    // And as the SDK's own decoder reads it.
+    expect(await sameFrames(bytes)).toBe(3);
+    // The first frame, by the still decoder every browser has.
+    const bitmap = await createImageBitmap(new Blob([bytes.slice()], { type: "image/gif" }));
+    expect([bitmap.width, bitmap.height]).toEqual([width, height]);
+    bitmap.close();
+  });
 });
 
 /** The corpus's animations (test/fixtures/gif-corpus): every frame of each. */

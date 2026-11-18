@@ -106,6 +106,7 @@
     "dependency-cruiser": "catalog:",
     "ajv": "catalog:",
     "fast-check": "catalog:",
+    "gifenc": "catalog:",
     "husky": "catalog:",
     "lint-staged": "catalog:",
     "playwright": "catalog:",

@@ -221,6 +221,9 @@ catalogs:
     fast-check:
       specifier: ^4.10.2
       version: 4.10.2
+    gifenc:
+      specifier: 1.0.3
+      version: 1.0.3
     husky:
       specifier: ^9.1.7
       version: 9.1.7
@@ -314,6 +317,9 @@ importers:
       fast-check:
         specifier: 'catalog:'
         version: 4.10.2
+      gifenc:
+        specifier: 'catalog:'
+        version: 1.0.3
       husky:
         specifier: 'catalog:'
         version: 9.1.7
@@ -1464,6 +1470,9 @@ packages:
   get-east-asian-width@1.7.0:
     resolution: {integrity: sha512-XjH1AECxf0giL2V1aU8vKyRR2ppRUb5c0EvT7zuJTokQ74bNo52zOtghqdWIqrhUD79fo3x0WfKZdOqxF6LG1Q==}
     engines: {node: '>=18'}
+
+  gifenc@1.0.3:
+    resolution: {integrity: sha512-xdr6AdrfGBcfzncONUOlXMBuc5wJDtOueE3c5rdG0oNgtINLD+f2iFZltrBRZYzACRbKr+mSVU/x98zv2u3jmw==}
 
   global-directory@4.0.1:
     resolution: {integrity: sha512-wHTUcDUoZ1H5/0iVqEudYW4/kAlN5cZ3j/bXn0Dpbizl9iaUVeWSHqiOjsgk6OW2bkLclbBjzewBz6weQ1zA2Q==}
@@ -3373,6 +3382,8 @@ snapshots:
   get-caller-file@2.0.5: {}
 
   get-east-asian-width@1.7.0: {}
+
+  gifenc@1.0.3: {}
 
   global-directory@4.0.1:
     dependencies:

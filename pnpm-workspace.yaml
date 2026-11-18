@@ -32,6 +32,9 @@ catalog:
   ajv: ^8.20.0
   dependency-cruiser: ^18.7.2
   fast-check: ^4.10.2
+  # The GIF encoder, bundled into the job worker: pinned exactly, never a
+  # range (docs/adr/0011, sdk-core ADR 0028).
+  gifenc: 1.0.3
   husky: ^9.1.7
   lint-staged: ^17.6.0
   playwright: 1.65.1
