@@ -32,7 +32,7 @@ export default [
     // over the 26.9 kB before it.
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
-    limit: "28 kB",
+    limit: "27.5 kB",
   },
   {
     // The core's 27.0 kB and the editor. Measured at 51.2 kB (39.4 kB
@@ -47,7 +47,7 @@ export default [
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "52 kB",
+    limit: "51.5 kB",
   },
   {
     // The React entry and the element's own mount: measured at 52.2 kB
@@ -56,7 +56,7 @@ export default [
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "53 kB",
+    limit: "52.5 kB",
   },
   {
     name: "Stylesheet (./styles.css)",
