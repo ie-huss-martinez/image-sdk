@@ -1,3 +1,4 @@
+import type { Store } from "@hussmartinez/sdk-core";
 import { PauseIcon, PlayIcon, Slider, ToggleButton } from "@hussmartinez/ui/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import type { ImageAnimation } from "../../core/model/plan.js";
@@ -6,11 +7,21 @@ import { nextFrame, shownDelay, withPlaying } from "../../features/playback/play
 import { useImageDocument, useImageEditorState, useImageMessages } from "../hooks.js";
 import { shownFrame } from "../stage/ImageStage.js";
 
-/** Plays the animation while the editor says it's playing, a frame at a time, at its timing. */
-function usePlayback(
+/**
+ * Plays the animation while the editor says it's playing, a frame at a time,
+ * at its timing.
+ *
+ * A tick does nothing unless, when it fires, the animation is still playing
+ * the frame it was set for. A pause or a seek cancels the tick only when the
+ * effect cleans up, after React renders, and a tick already due by then
+ * would otherwise undo it.
+ *
+ * @internal
+ */
+export function usePlayback(
   animation: ImageAnimation | null,
   playback: ImageEditorState["playback"],
-  set: (change: (state: ImageEditorState) => ImageEditorState) => void,
+  editor: Store<ImageEditorState>,
 ): void {
   /** How many times it has reached its end since Play was pressed. */
   const played = useRef(0);
@@ -22,16 +33,18 @@ function usePlayback(
     const frame = Math.min(playback.frame, animation.frames.length - 1);
     const delay = shownDelay(animation.frames[frame]?.delay ?? 0);
     const timer = setTimeout(() => {
+      const now = editor.getSnapshot().playback;
+      if (!now.playing || now.frame !== playback.frame) return;
       const next = nextFrame(animation, frame, played.current);
       if (next) played.current = next.played;
-      set((state) => ({
+      editor.set((state) => ({
         ...state,
         // The last frame stays when the loop count is spent.
         playback: next ? { frame: next.frame, playing: true } : { frame, playing: false },
       }));
     }, delay);
     return () => clearTimeout(timer);
-  }, [animation, playback.frame, playback.playing, set]);
+  }, [animation, playback.frame, playback.playing, editor]);
 }
 
 /**
@@ -49,7 +62,7 @@ export function AnimationBar(props: { readonly className?: string | undefined })
   const messages = useImageMessages();
   const animation = status === "ready" ? (plan?.animation ?? null) : null;
   const { playback } = editorState;
-  usePlayback(animation, playback, editor.set);
+  usePlayback(animation, playback, editor);
   if (!animation || !plan) return null;
 
   const count = animation.frames.length;
