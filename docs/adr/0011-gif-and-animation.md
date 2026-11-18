@@ -248,6 +248,7 @@ interface ImageFrame {
 - **The export dialog exports the frame shown** to PNG, JPEG and WebP, and all of them to GIF. Opening it stops playing, so the frame exported is the frame the user sees.
 - **The bar takes a row only when there's an animation,** so a still's layout is as it was.
 - **Play shows Pause while it plays,** as players do, so the state reads at a glance; its name stays "Play" and `aria-pressed` carries the state.
+- **A pause or a seek always holds.** Each frame's timer is cleared when the editor renders again, and a timer already due by then would otherwise undo what was chosen. So when a timer fires, it shows the next frame only if the animation is still playing the frame it was set for. 0.7.0 shipped without this check, and the editor's tests found it on a busy machine.
 - **Playing drifts a little.** Each frame waits its delay after the one before was asked for, so every frame's time to draw adds to the next. For an editor's preview that's right: it never skips a frame. A long animation played here runs slower than its timing by the draws' total, which the measurements above put at about 18 ms a frame for the largest. The file's timing is the plan's, unchanged, and the export writes it.
 
 ### The frames panel
