@@ -27,6 +27,8 @@ export interface GifFixtureFrame {
   readonly data?: readonly number[];
   /** Leaves out the end code. */
   readonly noEnd?: boolean;
+  /** How many bytes each data sub-block holds, the last excepted: 255 by default, as encoders write them. */
+  readonly subBlockSize?: number;
 }
 
 /** A GIF to write. */
@@ -113,10 +115,10 @@ export function lzwEncode(pixels: readonly number[], codeSize: number, end = tru
 }
 
 /** Bytes as data sub-blocks of at most 255, with the terminator. */
-export function subBlocks(data: readonly number[]): number[] {
+export function subBlocks(data: readonly number[], size = 255): number[] {
   const out: number[] = [];
-  for (let at = 0; at < data.length; at += 255) {
-    const block = data.slice(at, at + 255);
+  for (let at = 0; at < data.length; at += size) {
+    const block = data.slice(at, at + size);
     out.push(block.length, ...block);
   }
   out.push(0);
@@ -189,7 +191,12 @@ export function writeGif(spec: GifFixture): Uint8Array {
     if (frame.palette) bytes.push(...frame.palette.flat());
     const codeSize = frame.codeSize ?? Math.max(2, paletteBits(colours));
     const stored = frame.interlaced ? interlace(frame.pixels, width, height) : frame.pixels;
-    bytes.push(codeSize, ...subBlocks(frame.data ?? lzwEncode(stored, codeSize, !frame.noEnd)));
+    bytes.push(codeSize);
+    // One at a time: a large frame's data is more than a spread's arguments can hold.
+    const data = frame.data ?? lzwEncode(stored, codeSize, !frame.noEnd);
+    for (const byte of subBlocks(data, frame.subBlockSize)) {
+      bytes.push(byte);
+    }
   }
   bytes.push(0x3b);
   return Uint8Array.from(bytes);

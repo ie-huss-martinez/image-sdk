@@ -15,6 +15,7 @@
 - **Amended:** 2026-11-18, as playing was built: where the frame shown lives, what Play looks like, and how loop counts are played, under "Playing in the editor"; and the open time of the largest animation the limits allow, measured, with the decision to keep them, under "How long the largest animation takes to open"
 - **Amended:** 2026-11-18, as the first frame came to show while an animation opens: how the engine lets it be drawn early, where the editor shows it, and how soon, under "The first frame while it opens"
 - **Amended:** 2026-11-18, as the frame list was built: where it lives, what it does, how its thumbnails are drawn and how many at once, under "The frames panel"
+- **Amended:** 2026-11-19, as the probe came to read sub-block chains in views: how much sooner the first frame shows, and a correction to how much of it the probe was, under "The first frame while it opens"
 - **Amended:** 2026-11-18, as the job worker was built: the render worker's call that gives a frame's pixels, when a job worker is retired, and its measured size, under "The job worker"
 
 ## Context
@@ -141,6 +142,17 @@ Checking every frame of a large animation takes seconds ("How long the largest a
 | The worker's part before it, on a page: probe, read, frame table, frame 0, bitmap | 0.91 s, 0.95 s | 3.53 s, 3.52 s |
 
 The target was 1 s at CPU ×1. Nearly all of the time is the probe, 0.83 to 0.87 s of it: it walks every block of the 97 MB file, reading each sub-block's length through the window reader. Reading the frame table, decoding frame 0 and making its bitmap take under 0.1 s. A probe that reads sub-block chains in larger windows is where a later gain would come from.
+
+**The probe, read in views** (2026-11-19). The probe walked a frame's data one sub-block at a time, awaiting a one-byte read for each of about 380,000 in that file. It now takes a 64 KiB view of the reader's window and walks the lengths in it without another read. Measured the same way, with the two probes side by side, each timed run under a 1-minute load of 4 or just over it:
+
+| What | Before | After |
+|---|---|---|
+| In the editor, CPU ×1: `open` until the first frame is shown | 0.81, 0.93, 0.84 s | 0.65, 0.71, 0.66 s |
+| The probe on a page, CPU ×1, after a first run | 216 to 254 ms | 172 to 181 ms |
+| The probe on a page, CPU ×4, after a first run | 547 to 672 ms | 331 to 423 ms |
+| The probe on a page, CPU ×4, a fresh page's first run | 3.28, 3.17 s | 0.51, 2.73 s |
+
+The first frame shows about 0.18 s sooner. The figure above that put the probe at 0.83 to 0.87 s also counted the first read of the file, which this change doesn't touch: on its own, the old probe takes 0.22 to 0.32 s at CPU ×1. A fresh page's first read of a 97 MB file is most of what's left at CPU ×4, and it varies from run to run.
 
 ### What the worker holds
 

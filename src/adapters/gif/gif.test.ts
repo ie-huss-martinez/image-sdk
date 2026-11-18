@@ -330,6 +330,70 @@ describe("the GIF frame table (docs/adr/0011)", () => {
     );
   });
 
+  it("ends a file where the frame table does when frames' data spans many of the probe's reads", async () => {
+    // Noise in 256 colours: each frame's data is a chain of sub-blocks longer
+    // than the 64 KiB the probe looks at per read. With the default sub-block
+    // size, they meet each view's end exactly; with other sizes, they cross it.
+    let seed = 1;
+    const noise = (count: number) =>
+      Array.from({ length: count }, () => {
+        seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+        return (seed >>> 16) % 256;
+      });
+    const palette = Array.from({ length: 256 }, (_, i) => [i, 255 - i, (i * 7) % 256] as const);
+    const valid = writeGif({
+      width: 300,
+      height: 300,
+      palette,
+      loop: 0,
+      // Sub-blocks of the usual 255 bytes, which meet the probe's views exactly,
+      // and of sizes that run across them.
+      frames: [
+        { pixels: noise(90_000) },
+        { pixels: noise(90_000), subBlockSize: 100 },
+        { pixels: noise(90_000), subBlockSize: 7 },
+      ],
+    });
+    expect(valid.length).toBeGreaterThan(3 * 64 * 1024);
+    const probed = async (bytes: Uint8Array, windowSize?: number) => {
+      try {
+        const reader = createWindowReader(
+          new Blob([bytes.slice()]),
+          windowSize === undefined ? {} : { windowSize },
+        );
+        return `${(await probeGif(reader)).frames}`;
+      } catch (error) {
+        if (!isImageError(error)) throw error;
+        return error.code;
+      }
+    };
+    const read = (bytes: Uint8Array) => {
+      try {
+        return `${readGifFrames(bytes).frames.length}`;
+      } catch (error) {
+        if (!isImageError(error)) throw error;
+        return error.code;
+      }
+    };
+    expect(await probed(valid)).toBe("3");
+    // Cut around every multiple of the probe's view and of the reader's
+    // windows, and at random, with the reader's default window, a small one
+    // and one that isn't a multiple of anything.
+    const cuts = new Set<number>([valid.length]);
+    for (let edge = 64 * 1024; edge < valid.length; edge += 4096) {
+      for (let near = -3; near <= 3; near += 1) cuts.add(edge + near);
+    }
+    for (const length of [...cuts].filter((length) => length > 6 && length <= valid.length)) {
+      const cut = valid.slice(0, length);
+      const expected = read(cut);
+      for (const windowSize of [undefined, 4096, 100_003]) {
+        expect(await probed(cut, windowSize), `${length} bytes, window ${windowSize}`).toBe(
+          expected,
+        );
+      }
+    }
+  });
+
   it("refuses a first frame outside the screen or with a code size out of range, and a file with no frame", () => {
     expect(
       refusal(() =>
