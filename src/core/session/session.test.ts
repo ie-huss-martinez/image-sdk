@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { TestImageSpec } from "../../../test/contracts/harness-types.js";
 import { createFakeEngine, type FakeEngine } from "../../../test/fakes/fake-engine.js";
+import { encodeJson, type FakeImageFile, storedPixels } from "../../../test/fakes/fake-image.js";
 import { createFakeProcessor } from "../../../test/fakes/fake-processor.js";
 import { fakeEngineHarness } from "../../../test/fakes/harness.js";
 import { type ImageError, isImageError } from "../errors/image-error.js";
-import type { ImagePlan } from "../model/plan.js";
+import { createPlan, type ImageAnimation, type ImageFrame, type ImagePlan } from "../model/plan.js";
+import { EMPTY_KEEPABLE_METADATA, NO_METADATA } from "../model/source.js";
 import type { ImageEngine } from "../ports/image-engine.js";
 import type { ImageProcessor } from "../ports/image-processor.js";
 import { createImageSession, type ImageSessionEvent, type ImageSessionOptions } from "./session.js";
@@ -248,6 +250,285 @@ describe("the image session (ADR 0003)", () => {
         base: { ...target.base, develop: { ...target.base.develop, tint: 500 } },
       }),
     ).toThrow();
+  });
+
+  describe("an animation (docs/adr/0011)", () => {
+    const delays = [10, 0, 25, 65_535, 7];
+    /** A fake animation: five frames, and what the file says of them. */
+    const animated = (
+      animation: Partial<NonNullable<FakeImageFile["animation"]>> = {},
+      size: { width: number; height: number } = { width: 40, height: 20 },
+    ) =>
+      encodeJson({
+        magic: "FAKEIMG1",
+        ...size,
+        orientation: 1,
+        pixels: storedPixels(size.width, size.height),
+        metadata: NO_METADATA,
+        keepable: EMPTY_KEEPABLE_METADATA,
+        animation: { loop: 2, delays, ...animation },
+      } satisfies FakeImageFile);
+    const code = async (promise: Promise<unknown>) => {
+      const error = (await rejection(promise)) as ImageError;
+      return [error.code, error.details?.["reason"] ?? error.details?.["limit"]];
+    };
+
+    it("opens a file of several frames as an animation, with the file's timing", async () => {
+      const { session, events } = setup();
+      const source = await session.open(animated());
+      expect(source).toMatchObject({ frames: 5, fileFrames: 5, incomplete: false });
+      const { plan, warnings, progress } = session.getSnapshot();
+      expect(plan?.animation).toEqual({
+        loop: 2,
+        frames: delays.map((delay, frame) => ({ key: `frame-${frame + 1}`, frame, delay })),
+      });
+      // Everything else is a new plan's.
+      expect({ ...plan, animation: null }).toEqual(createPlan(source.id));
+      expect(warnings).toEqual([]);
+      expect(progress).toBeNull();
+      expect(events.at(-1)).toMatchObject({ type: "open", outcome: "done" });
+      // And nothing to undo: opening isn't an edit.
+      expect(session.undo()).toBe(false);
+    });
+
+    it("says how far the check of its frames has got, while it opens", async () => {
+      const { session } = setup();
+      const seen: (number | null)[] = [];
+      const stop = session.subscribe(() => {
+        const { progress, opening } = session.getSnapshot();
+        const done = progress?.done ?? null;
+        if (opening && seen.at(-1) !== done) seen.push(done);
+        if (progress) expect(progress.total).toBe(5);
+      });
+      await session.open(animated());
+      stop();
+      // Nothing until the first frame is checked, then each frame.
+      expect(seen).toEqual([null, 1, 2, 3, 4, 5]);
+      expect(session.getSnapshot().progress).toBeNull();
+      // A still has none.
+      const steps: unknown[] = [];
+      const off = session.subscribe(() => steps.push(session.getSnapshot().progress));
+      await session.open(await file());
+      off();
+      expect(steps.every((step) => step === null)).toBe(true);
+    });
+
+    it("ends at the frame before one that can't be decoded, and says the file was incomplete", async () => {
+      const { session } = setup();
+      const source = await session.open(animated({ decodes: 3 }));
+      expect(source).toMatchObject({ frames: 3, fileFrames: 5, incomplete: true });
+      expect(session.getSnapshot().plan?.animation?.frames.map((frame) => frame.delay)).toEqual([
+        10, 0, 25,
+      ]);
+      // A file cut at its end, with every frame: all of them, and incomplete.
+      const cut = await session.open(animated({ cut: true }));
+      expect(cut).toMatchObject({ frames: 5, fileFrames: 5, incomplete: true });
+      // Only its first frame: a still, that says so.
+      const one = await session.open(animated({ decodes: 1 }));
+      expect(one).toMatchObject({ frames: 1, fileFrames: 5, incomplete: true, timing: null });
+      expect(session.getSnapshot().plan?.animation).toBeNull();
+    });
+
+    it("opens an animation over maxAnimationPixels as its first frame, never refusing it", async () => {
+      // 40 × 20 is 800 pixels: over a limit of 500, and near one of 1,000.
+      const { session, engine } = setup({
+        filePolicy: { maxAnimationPixels: { maximum: 500, warning: 100 } },
+      });
+      const source = await session.open(animated());
+      expect(source).toMatchObject({ frames: 1, fileFrames: 5, incomplete: false, timing: null });
+      const snapshot = session.getSnapshot();
+      expect(snapshot.plan).toEqual(createPlan(source.id));
+      expect(snapshot.error).toBeNull();
+      // The snapshot names the limit, so the editor can say why it's a still.
+      expect(snapshot.warnings).toEqual(["maxAnimationPixels"]);
+      // It's held as a still: one frame's pixels, not an animation's working set.
+      expect(source.decodedBytes).toBe(40 * 20 * 4);
+      expect(engine.sources.get(source.id)?.frames).toBe(1);
+      // And it exports, as any still does.
+      expect((await session.export({ type: "png" })).blob.size).toBeGreaterThan(0);
+
+      // Near the limit, it's an animation, with a warning.
+      const near = setup({ filePolicy: { maxAnimationPixels: { maximum: 1_000, warning: 100 } } });
+      const held = await near.session.open(animated());
+      expect(held.frames).toBe(5);
+      expect(near.session.getSnapshot().warnings).toEqual(["maxAnimationPixels"]);
+      // A host that wants every file a still sets the limit to one pixel.
+      const never = setup({ filePolicy: { maxAnimationPixels: 1 } });
+      const still = await never.session.open(animated());
+      expect(still).toMatchObject({ frames: 1, fileFrames: 5 });
+      expect(never.session.getSnapshot().plan?.animation).toBeNull();
+      // A still of the same size isn't an animation at all: no warning.
+      await near.session.open(await file());
+      expect(near.session.getSnapshot().warnings).toEqual([]);
+    });
+
+    it("can be cancelled while its frames are checked, and keeps the document that was open", async () => {
+      const { session, engine } = setup();
+      const first = await session.open(await file());
+      const before = session.getSnapshot().plan;
+      const controller = new AbortController();
+      const stop = session.subscribe(() => {
+        if (session.getSnapshot().progress?.done === 2) controller.abort();
+      });
+      const error = await rejection(session.open(animated(), { signal: controller.signal }));
+      stop();
+      expect(isImageError(error, "ABORTED")).toBe(true);
+      const snapshot = session.getSnapshot();
+      expect(snapshot).toMatchObject({ opening: false, progress: null, error: null });
+      expect(snapshot.source?.id).toBe(first.id);
+      expect(snapshot.plan).toBe(before);
+      // Only the document's source is held.
+      expect([...engine.sources.keys()]).toEqual([first.id]);
+    });
+
+    it("counts what an animation holds against maxSessionSize, and keeps the open document if it's too much", async () => {
+      // A still of 40 × 20 holds 3,200 bytes; the fake's animation of five holds seven times that.
+      const { session, engine } = setup({ filePolicy: { maxSessionSize: 10_000 } });
+      const first = await session.open(await file());
+      expect(await code(session.open(animated()))).toEqual(["SESSION_TOO_LARGE", "maxSessionSize"]);
+      expect(session.getSnapshot().source?.id).toBe(first.id);
+      expect([...engine.sources.keys()]).toEqual([first.id]);
+    });
+
+    it("edits the frames, undoes each step, and exports the frame asked for", async () => {
+      const { session } = setup();
+      await session.open(animated());
+      const keys = () => session.getSnapshot().plan?.animation?.frames.map((frame) => frame.key);
+      session.execute({ type: "image.removeFrames", keys: ["frame-2", "frame-4"] });
+      expect(keys()).toEqual(["frame-1", "frame-3", "frame-5"]);
+      session.execute({ type: "image.reverseFrames" });
+      session.execute({
+        type: "image.insertFrames",
+        at: 0,
+        frames: [{ key: "again", frame: 3, delay: 1 }],
+      });
+      expect(keys()).toEqual(["again", "frame-5", "frame-3", "frame-1"]);
+      // A frame the source doesn't have is refused: the source holds five.
+      expect(() =>
+        session.execute({
+          type: "image.insertFrames",
+          at: 0,
+          frames: [{ key: "none", frame: 5, delay: 1 }],
+        }),
+      ).toThrow(/no frame 5/);
+      expect((await session.export({ type: "png" }, { frame: 3 })).blob.size).toBeGreaterThan(0);
+      await expect(session.export({ type: "png" }, { frame: 4 })).rejects.toBeDefined();
+      expect(session.undo()).toBe(true);
+      expect(session.undo()).toBe(true);
+      expect(session.undo()).toBe(true);
+      expect(keys()).toEqual(["frame-1", "frame-2", "frame-3", "frame-4", "frame-5"]);
+      expect(session.undo()).toBe(false);
+    });
+
+    it("holds the frames a command adds to maxFrames, and lets a plan over it be trimmed", async () => {
+      const { session } = setup({ filePolicy: { maxFrames: 6 } });
+      await session.open(animated());
+      const add = (...names: string[]) =>
+        session.execute({
+          type: "image.insertFrames",
+          at: 0,
+          frames: names.map((key) => ({ key, frame: 0, delay: 1 })),
+        });
+      add("a");
+      let refused: unknown;
+      try {
+        add("b");
+      } catch (error) {
+        refused = error;
+      }
+      expect(isImageError(refused, "TOO_MANY_FRAMES")).toBe(true);
+      expect(session.getSnapshot().plan?.animation?.frames).toHaveLength(6);
+      // Removing, reordering and timing aren't adding: they're allowed at the limit.
+      session.execute({ type: "image.reverseFrames" });
+      session.execute({ type: "image.removeFrames", keys: ["a"] });
+      expect(session.getSnapshot().plan?.animation?.frames).toHaveLength(5);
+    });
+
+    it("applies a host's animation as one step: frames added, removed, reordered and retimed", async () => {
+      const { session, events } = setup();
+      await session.open(animated());
+      const start = session.getSnapshot().plan;
+      if (!start?.animation) throw new Error("no animation");
+      const [one, two, three, four, five] = start.animation.frames as [
+        ImageFrame,
+        ImageFrame,
+        ImageFrame,
+        ImageFrame,
+        ImageFrame,
+      ];
+      const targets: ImageAnimation[] = [
+        // Retimed, and the loop changed.
+        { loop: null, frames: start.animation.frames.map((frame) => ({ ...frame, delay: 4 })) },
+        // Trimmed and reordered.
+        { loop: 2, frames: [five, two] },
+        // Every frame replaced by new ones.
+        {
+          loop: 2,
+          frames: [
+            { key: "x", frame: 4, delay: 1 },
+            { key: "y", frame: 0, delay: 2 },
+          ],
+        },
+        // Some kept, some new, in another order, one retimed.
+        { loop: 0, frames: [{ key: "n", frame: 2, delay: 9 }, four, { ...one, delay: 99 }, three] },
+        // One frame left.
+        { loop: 2, frames: [three] },
+      ];
+      for (const animation of targets) {
+        const count = events.length;
+        session.applyPlan({ ...start, animation });
+        expect(session.getSnapshot().plan?.animation).toEqual(animation);
+        // One step, whatever changed: one event, and one undo back to the start.
+        expect(events.length - count).toBe(1);
+        expect(session.undo()).toBe(true);
+        expect(session.getSnapshot().plan).toEqual(start);
+      }
+      // The same animation again changes nothing.
+      const count = events.length;
+      session.applyPlan(start);
+      expect(events).toHaveLength(count);
+    });
+
+    it("refuses a host plan no command can reach, and changes nothing", async () => {
+      const { session } = setup();
+      await session.open(animated());
+      const start = session.getSnapshot().plan;
+      if (!start?.animation) throw new Error("no animation");
+      const refused = (next: ImagePlan) => {
+        try {
+          session.applyPlan(next);
+        } catch (error) {
+          return [(error as ImageError).code, (error as ImageError).details?.["reason"]];
+        }
+        throw new Error("expected a refusal");
+      };
+      // An animation can't become a still.
+      expect(refused({ ...start, animation: null })).toEqual(["INVALID_COMMAND", "no-frames"]);
+      // A frame can't show another frame of the source under the same key.
+      expect(
+        refused({
+          ...start,
+          animation: {
+            ...start.animation,
+            frames: start.animation.frames.map((frame, index) =>
+              index === 0 ? { ...frame, frame: 3 } : frame,
+            ),
+          },
+        }),
+      ).toEqual(["INVALID_COMMAND", "duplicate-key"]);
+      // A frame the source doesn't have.
+      expect(
+        refused({
+          ...start,
+          animation: {
+            ...start.animation,
+            frames: [...start.animation.frames, { key: "z", frame: 9, delay: 1 }],
+          },
+        }),
+      ).toEqual(["INVALID_COMMAND", "invalid-frame"]);
+      expect(session.getSnapshot().plan).toEqual(start);
+      expect(session.undo()).toBe(false);
+    });
   });
 
   it("refuses frame commands and a host's animation for a still (docs/adr/0011)", async () => {

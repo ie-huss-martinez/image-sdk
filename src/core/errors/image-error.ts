@@ -29,6 +29,9 @@ import { isSdkError, type SdkCoreErrorCode, SdkError } from "@hussmartinez/sdk-c
  * - `IMAGE_DIMENSION_TOO_LARGE`: a width or height exceeds the
  *   `maxImageDimension` limit.
  * - `TOO_MANY_FRAMES`: an animation exceeds the `maxFrames` limit.
+ * - `ANIMATION_TOO_LARGE`: a file asked for with all its frames has a screen
+ *   over the `maxAnimationPixels` limit. The session doesn't raise it: it
+ *   opens such a file as its first frame instead (docs/adr/0011).
  * - `SESSION_TOO_LARGE`: the decoded images the session holds exceed the
  *   `maxSessionSize` limit.
  * - `TOO_MANY_LAYERS`: the layer plan exceeds the `maxLayers` limit.
@@ -52,6 +55,7 @@ export type ImageErrorCode =
   | "IMAGE_TOO_LARGE"
   | "IMAGE_DIMENSION_TOO_LARGE"
   | "TOO_MANY_FRAMES"
+  | "ANIMATION_TOO_LARGE"
   | "SESSION_TOO_LARGE"
   | "TOO_MANY_LAYERS"
   | "TOO_MANY_POINTS";

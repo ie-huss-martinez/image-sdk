@@ -84,6 +84,7 @@ export const imageEditorMessages: {
     readonly "editor.choose": "Choose an image";
     readonly "editor.dropHint": "or drop it here";
     readonly "editor.opening": "Opening the image…";
+    readonly "editor.checkingFrames": "Checking frames: {done, number} of {total, number}";
     readonly "editor.cancel": "Cancel";
     readonly "editor.opened": "Image opened, {width, number} × {height, number}.";
     readonly "editor.undid": "Undid {action}.";
@@ -280,6 +281,15 @@ export const imageEditorMessages: {
     readonly "inspector.info": "Info";
     readonly "notices.label": "Notices";
     readonly "notices.dismiss": "Dismiss";
+    readonly "notices.incomplete": {
+        readonly $plural: "frames";
+    } & {
+        readonly one: "This animation's file is damaged. Only its first frame could be opened, of {listed, number}.";
+        readonly other: "This animation's file is damaged. {frames, number} of its {listed, number} frames could be opened.";
+    };
+    readonly "notices.incompleteEnd": "This animation's file is damaged at its end. All {frames, number} of its frames were opened.";
+    readonly "notices.animationTooLarge": "This animation is too large to edit as an animation. Its first frame is open as a still image.";
+    readonly "notices.firstFrame": "This file is an animation. Its first frame is open as a still image.";
     readonly "notices.colourProfile": "This image has a colour profile. Colours outside sRGB will be clipped in the exported file.";
     readonly "info.panel": "Image info";
     readonly "info.size": "Size";
@@ -397,6 +407,7 @@ export const imageEditorMessages: {
         readonly one: "This animation has {actual, number} frames, which is over the {maximum}-frame limit.";
         readonly other: "This animation has {actual, number} frames, which is over the {maximum, number}-frame limit.";
     };
+    readonly "errors.ANIMATION_TOO_LARGE": "This animation is too large to open with all its frames. Its first frame can still be opened.";
     readonly "errors.SESSION_TOO_LARGE": "The open images would use {actual, fileSize} of memory, which is over the {maximum, fileSize} limit. Close an image, or clear the undo history, and try again.";
     readonly "errors.TOO_MANY_LAYERS": {
         readonly $plural: "maximum";
@@ -413,6 +424,7 @@ export const imageEditorMessages: {
         readonly one: "This animation has {actual} frame.";
         readonly other: "This animation has {actual, number} frames, and may be slow to edit and export.";
     };
+    readonly "warnings.maxAnimationPixels": "This animation is large, and may be slow to play, edit and export.";
     readonly "warnings.maxSessionSize": "The open images use {actual, fileSize} of memory. Clearing the undo history frees memory.";
     readonly "warnings.maxLayers": {
         readonly $plural: "actual";

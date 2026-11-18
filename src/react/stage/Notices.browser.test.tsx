@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
+import { writeGif } from "../../../test/fixtures/gif-writer.js";
 import { concat, pngChunk } from "../../../test/fixtures/image-writers.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle, ImageEditorProps } from "../editor/types.js";
@@ -66,7 +67,12 @@ async function mounted(props: Partial<ImageEditorProps> = {}) {
       FIRST_OPEN_TIMEOUT,
     );
   };
-  return { open };
+  /** Starts an open without waiting for it. */
+  const start = (file: File) =>
+    act(async () => {
+      void handle.current?.open(file);
+    });
+  return { open, start, session: () => handle.current?.session };
 }
 
 const region = () => document.querySelector<HTMLElement>('[role="status"][aria-label="Notices"]');
@@ -121,6 +127,162 @@ describe("the stage's notices (docs/adr/0007, Warnings)", () => {
     await open(await photo());
     expect(region()).not.toBeNull();
     expect(notices()).toHaveLength(0);
+  });
+});
+
+describe("an animation's notices (docs/adr/0011)", () => {
+  const FOUR = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+    [255, 255, 255],
+  ] as const;
+  /** A GIF of `frames` frames, 12 × 9, named as a person's file would be. */
+  const animation = (frames: number, change: (bytes: Uint8Array) => Uint8Array = (b) => b) =>
+    new File(
+      [
+        change(
+          writeGif({
+            width: 12,
+            height: 9,
+            palette: FOUR,
+            loop: 0,
+            frames: Array.from({ length: frames }, (_, n) => ({
+              pixels: Array.from({ length: 108 }, (_, i) => (i + n) % 4),
+              delay: 10,
+            })),
+          }),
+        ).slice(),
+      ],
+      "private-party.gif",
+      { type: "image/gif" },
+    );
+  const texts = () => notices().map((notice) => notice.textContent ?? "");
+  const session = (handle: Awaited<ReturnType<typeof mounted>>) => handle.session();
+
+  it("opens an animation over maxAnimationPixels as its first frame, and says so", async () => {
+    // 12 × 9 is 108 pixels: over a limit of 100.
+    const editor = await mounted({
+      filePolicy: { maxAnimationPixels: { maximum: 100, warning: 50 } },
+    });
+    await editor.open(animation(4));
+    const snapshot = session(editor)?.getSnapshot();
+    // Open, as a still: nothing that opened before stops opening.
+    expect(snapshot?.status).toBe("ready");
+    expect(snapshot?.error).toBeNull();
+    expect(snapshot?.plan?.animation).toBeNull();
+    expect(snapshot?.source).toMatchObject({ frames: 1, fileFrames: 4, incomplete: false });
+    expect(
+      document.querySelector('[role="img"][aria-label^="Edited image preview, 12 × 9"]'),
+    ).not.toBeNull();
+    expect(texts()).toEqual([
+      expect.stringContaining(
+        "This animation is too large to edit as an animation. Its first frame is open as a still image.",
+      ),
+    ]);
+    // And it exports as any still does.
+    const exported = await session(editor)?.export({ type: "png" });
+    expect(exported?.blob.size).toBeGreaterThan(0);
+  });
+
+  it("opens an animation within the limit as one, with a warning when it's near it", async () => {
+    const editor = await mounted({
+      filePolicy: { maxAnimationPixels: { maximum: 200, warning: 50 } },
+    });
+    await editor.open(animation(4));
+    const snapshot = session(editor)?.getSnapshot();
+    expect(snapshot?.plan?.animation?.frames).toHaveLength(4);
+    expect(snapshot?.source).toMatchObject({ frames: 4, fileFrames: 4 });
+    expect(texts()).toEqual([expect.stringContaining("This animation is large")]);
+  });
+
+  it("shows how many frames are checked while a long animation opens, and cancels from there", async () => {
+    // Enough work that the check is still running when it's looked at: one
+    // frame of 800 × 600, written once and repeated 80 times in the file.
+    const one = writeGif({
+      width: 800,
+      height: 600,
+      palette: FOUR,
+      frames: [
+        { pixels: Array.from({ length: 480_000 }, (_, i) => (i * 7 + (i >> 5)) % 4), delay: 2 },
+      ],
+    });
+    // The header and a table of four colours, then the frame's blocks, then the trailer.
+    const head = one.slice(0, 13 + 12);
+    const frame = one.slice(13 + 12, -1);
+    const bytes = new Uint8Array(head.length + frame.length * 80 + 1);
+    bytes.set(head);
+    for (let n = 0; n < 80; n += 1) bytes.set(frame, head.length + n * frame.length);
+    bytes[bytes.length - 1] = 0x3b;
+    const long = new File([bytes], "private-party.gif", { type: "image/gif" });
+    const editor = await mounted();
+    // The open may be over before a test's next turn, so what the stage
+    // showed is recorded as it changes, and Cancel is pressed from there.
+    const seen = { label: "", max: "", values: [] as string[], text: "", cancelled: false };
+    const observer = new MutationObserver(() => {
+      const opening = document.querySelector(".hm-image-stage-opening");
+      const bar = opening?.querySelector("progress");
+      if (!opening || !bar) return;
+      seen.label = bar.getAttribute("aria-label") ?? "";
+      seen.max = bar.getAttribute("max") ?? "";
+      const value = bar.getAttribute("aria-valuetext") ?? "";
+      if (seen.values.at(-1) !== value) seen.values.push(value);
+      seen.text = opening.textContent ?? "";
+      // Once it has moved, cancel from the button beside it.
+      if (seen.values.length >= 3 && !seen.cancelled) {
+        seen.cancelled = true;
+        [...opening.querySelectorAll("button")]
+          .find((button) => button.textContent === "Cancel")
+          ?.click();
+      }
+    });
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true });
+    try {
+      await editor.start(long);
+      await until(
+        () => seen.cancelled && session(editor)?.getSnapshot().opening === false,
+        "the cancel",
+        FIRST_OPEN_TIMEOUT,
+      );
+    } finally {
+      observer.disconnect();
+    }
+    // Named, with its count in words, not a percentage; and it moved.
+    expect(seen.label).toBe("Opening the image…");
+    expect(seen.max).toBe("80");
+    expect(seen.values.length).toBeGreaterThanOrEqual(3);
+    for (const value of seen.values) expect(value).toMatch(/^Checking frames: \d+ of 80$/);
+    expect(seen.text).toMatch(/Checking frames: \d+ of 80/);
+    // Cancelled from there: nothing is open, and nothing is shown as failed.
+    const snapshot = session(editor)?.getSnapshot();
+    expect(snapshot).toMatchObject({ status: "empty", error: null, progress: null });
+    expect(document.querySelector(".hm-image-stage-opening")).toBeNull();
+    expect(document.querySelector('[role="alert"]')?.textContent ?? "").toBe("");
+  });
+
+  it("says nothing of an animation well within the limit", async () => {
+    const editor = await mounted();
+    await editor.open(animation(4));
+    expect(session(editor)?.getSnapshot().plan?.animation?.frames).toHaveLength(4);
+    expect(texts()).toEqual([]);
+  });
+
+  it("says a damaged animation's frames ended early, and how many opened", async () => {
+    const editor = await mounted();
+    // Cut inside its last frame: three whole frames of four.
+    await editor.open(animation(4, (bytes) => bytes.slice(0, -6)));
+    expect(session(editor)?.getSnapshot().source).toMatchObject({
+      frames: 3,
+      fileFrames: 3,
+      incomplete: true,
+    });
+    expect(texts()).toEqual([
+      expect.stringContaining(
+        "This animation's file is damaged at its end. All 3 of its frames were opened.",
+      ),
+    ]);
+    // No file name, in any notice.
+    expect(region()?.textContent).not.toContain("private");
   });
 });
 

@@ -49,7 +49,9 @@ export interface ImageRegisterOptions extends ImageProgressOptions {
    * - `"all"`: every frame. The engine decodes each once to check it, so
    *   the call takes as long as that; `onProgress` follows it, and the
    *   source's `frames` are those that decoded. A file with one frame is a
-   *   still either way.
+   *   still either way. A file whose screen is over `filePolicy`'s
+   *   `maxAnimationPixels` rejects with `ANIMATION_TOO_LARGE`: register it
+   *   as `"first"` instead, as the session does.
    */
   readonly frames?: "first" | "all";
 }

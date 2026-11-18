@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { type GifFixture, lzwEncode, writeGif } from "../../test/fixtures/gif-writer.js";
 import { type ImageError, isImageError } from "../core/errors/image-error.js";
+import { imageLimits } from "../core/errors/image-limits.js";
 import { createPlan, type ImagePlan } from "../core/model/plan.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import { fittedView } from "../core/ports/image-renderer.js";
@@ -400,6 +401,33 @@ describe("a GIF held with all its frames (docs/adr/0011)", () => {
     // It was answered before the last frame was checked: the check let it in.
     expect(answeredAt).toBeGreaterThanOrEqual(0);
     expect(answeredAt).toBeLessThan(60);
+  });
+
+  it("refuses to hold all the frames of a file whose screen is over maxAnimationPixels", async () => {
+    const own = engine();
+    const file = blobOf(BYTES);
+    const probe = await own.probe(file);
+    // 12 × 9 is 108 pixels.
+    const filePolicy = imageLimits.resolve({ maxAnimationPixels: 100 });
+    const error = await own.register("s", file, probe, { frames: "all", filePolicy }).then(
+      () => undefined,
+      (thrown: unknown) => thrown,
+    );
+    expect(isImageError(error, "ANIMATION_TOO_LARGE")).toBe(true);
+    expect((error as ImageError).details).toMatchObject({
+      limit: "maxAnimationPixels",
+      maximum: 100,
+      actual: 108,
+    });
+    // As its first frame it registers under the same policy: the limit is on animations.
+    const still = await own.register("s", file, probe, { filePolicy });
+    expect(still).toMatchObject({ frames: 1, timing: null });
+    // And at the limit exactly, with all its frames.
+    const at = await own.register("t", file, probe, {
+      frames: "all",
+      filePolicy: imageLimits.resolve({ maxAnimationPixels: 108 }),
+    });
+    expect(at.frames).toBe(5);
   });
 
   it("frees a source's frames when it's released", async () => {

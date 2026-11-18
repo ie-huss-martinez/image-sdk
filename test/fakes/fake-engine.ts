@@ -16,6 +16,8 @@ export interface FakeSource {
   readonly width: number;
   readonly height: number;
   readonly pixels: Uint8ClampedArray;
+  /** The frames it holds: 1 for a still. Every frame shows the same pixels. */
+  readonly frames: number;
 }
 
 export interface FakeEngine extends ImageEngine {
@@ -72,9 +74,9 @@ export function createFakeEngine(): FakeEngine {
         stored: { width: fake.width, height },
         oriented,
         orientation: fake.orientation,
-        frames: 1,
+        frames: fake.animation?.delays.length ?? 1,
         hasAlpha: true,
-        decodedPixelBound: oriented.width * oriented.height,
+        decodedPixelBound: (fake.animation?.delays.length ?? 1) * oriented.width * oriented.height,
         metadata: fake.metadata,
         keepable: fake.keepable,
       } satisfies ImageProbe;
@@ -107,7 +109,40 @@ export function createFakeEngine(): FakeEngine {
         }
       }
       throwIfAborted(options?.signal);
-      sources.set(id, { width: decoded.width, height: decoded.height, pixels });
+      const still = decoded.width * decoded.height * 4;
+      const listed = fake.animation?.delays.length ?? 1;
+      if (options?.frames === "all" && fake.animation && listed > 1) {
+        // Held with all its frames (docs/adr/0011): each is checked in turn.
+        (options.filePolicy ?? imageLimits.resolve()).check(
+          "maxAnimationPixels",
+          decoded.width * decoded.height,
+        );
+        const frames = Math.min(listed, fake.animation.decodes ?? listed);
+        for (let done = 1; done <= frames; done += 1) {
+          options.onProgress?.(done / listed);
+          // A turn of the event loop, so a cancel can arrive between two frames.
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          throwIfAborted(options.signal);
+        }
+        sources.set(id, { width: decoded.width, height: decoded.height, pixels, frames });
+        options.onProgress?.(1);
+        return {
+          id,
+          format: probe.format,
+          width: decoded.width,
+          height: decoded.height,
+          frames,
+          hasAlpha: probe.hasAlpha,
+          // The first frame, a screen, and a cache of every frame.
+          decodedBytes: still * (2 + frames),
+          timing:
+            frames > 1
+              ? { loop: fake.animation.loop, delays: fake.animation.delays.slice(0, frames) }
+              : null,
+          incomplete: frames < listed || fake.animation.cut === true,
+        } satisfies ImageSourceInfo;
+      }
+      sources.set(id, { width: decoded.width, height: decoded.height, pixels, frames: 1 });
       options?.onProgress?.(1);
       return {
         id,
@@ -116,7 +151,7 @@ export function createFakeEngine(): FakeEngine {
         height: decoded.height,
         frames: 1,
         hasAlpha: probe.hasAlpha,
-        decodedBytes: decoded.width * decoded.height * 4,
+        decodedBytes: still,
         timing: null,
         incomplete: false,
       } satisfies ImageSourceInfo;

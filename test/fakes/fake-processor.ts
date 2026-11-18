@@ -26,14 +26,29 @@ import { encodeJson, type FakeExportFile } from "./fake-image.js";
 export function createFakeProcessor(engine: FakeEngine): ImageProcessor {
   let destroyed = false;
   return {
-    async export({ plan, format }, options) {
+    async export({ plan, format, frame = 0 }, options) {
       if (destroyed) {
         throw new Error("The processor was destroyed.");
       }
       throwIfAborted(options?.signal);
       // It draws the base, redactions, and the layers it can sample without
       // a canvas; it refuses anything else (ADR 0009).
-      checkPlanSupport(plan, ["layers", "redactions"]);
+      // And one frame of an animation, over a source that holds its frames.
+      const held = engine.sources.get(plan.base.source)?.frames ?? 1;
+      checkPlanSupport(
+        plan,
+        held > 1 ? ["layers", "redactions", "animation"] : ["layers", "redactions"],
+      );
+      const shown = plan.animation?.frames[frame];
+      if (plan.animation !== null && (!shown || shown.frame >= held)) {
+        throw new ImageError(
+          "UNSUPPORTED_PLAN",
+          "The plan shows a frame its source doesn't hold.",
+          {
+            details: { reason: "animation" },
+          },
+        );
+      }
       for (const layer of plan.layers) {
         const plain =
           // A drawing or an arrow never reaches here: `checkPlanSupport` refuses it.

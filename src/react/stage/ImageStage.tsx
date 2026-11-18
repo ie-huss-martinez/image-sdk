@@ -1,4 +1,4 @@
-import { Button, FileDropZone, Spinner } from "@hussmartinez/ui/react";
+import { Button, FileDropZone, ProgressBar, Spinner } from "@hussmartinez/ui/react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createImageRenderer } from "../../adapters/image-renderer.js";
 import { compositionSize } from "../../core/model/geometry.js";
@@ -286,7 +286,23 @@ export function ImageStage(props: ImageStageProps): ReactNode {
       ) : null}
       {snapshot.opening || snapshot.inserting ? (
         <div className="hm-image-stage-opening">
-          <Spinner label={messages.t(snapshot.opening ? "editor.opening" : "editor.inserting")} />
+          {snapshot.opening && snapshot.progress ? (
+            // An animation's frames are checked one by one (docs/adr/0011):
+            // how far that's got, in words, where the spinner would be.
+            <>
+              <ProgressBar
+                label={messages.t("editor.opening")}
+                value={snapshot.progress.done}
+                max={snapshot.progress.total}
+                valueText={messages.t("editor.checkingFrames", snapshot.progress)}
+              />
+              <span aria-hidden="true">
+                {messages.t("editor.checkingFrames", snapshot.progress)}
+              </span>
+            </>
+          ) : (
+            <Spinner label={messages.t(snapshot.opening ? "editor.opening" : "editor.inserting")} />
+          )}
           <Button
             variant="secondary"
             onClick={() => (snapshot.opening ? opener.cancel() : inserter.cancel())}
