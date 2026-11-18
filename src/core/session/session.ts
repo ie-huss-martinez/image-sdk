@@ -37,7 +37,11 @@ import type {
 } from "../model/source.js";
 import { createImageReducer, type ImageCommand } from "../operations/commands.js";
 import type { ImageEngine } from "../ports/image-engine.js";
-import type { ImageExportFormat, ImageProcessor } from "../ports/image-processor.js";
+import {
+  type ImageExportFormat,
+  type ImageProcessor,
+  keepsFields,
+} from "../ports/image-processor.js";
 
 /**
  * The document's source, as the editor shows it: its size and format, and
@@ -1043,13 +1047,12 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
           width: size.width,
           height: size.height,
           removed: PRESENCE.filter((kind) => from.metadata[kind]),
-          // A GIF carries no details: nothing the user kept is written (docs/adr/0011).
-          kept:
-            format.type === "gif"
-              ? []
-              : (Object.keys(exported.metadata) as (keyof ImageKeepableMetadata)[]).filter(
-                  (field) => exported.metadata[field] !== "",
-                ),
+          // WebP and GIF carry no details: nothing the user kept is written.
+          kept: !keepsFields(format.type)
+            ? []
+            : (Object.keys(exported.metadata) as (keyof ImageKeepableMetadata)[]).filter(
+                (field) => exported.metadata[field] !== "",
+              ),
         };
       } catch (reason) {
         const failure = isImageError(reason) ? reason : asImageError(reason);

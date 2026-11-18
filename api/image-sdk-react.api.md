@@ -352,7 +352,7 @@ export const imageEditorMessages: {
     readonly "export.fitHeight": "Largest height";
     readonly "export.fields": "Details to include";
     readonly "export.fieldsHint": "Only what you fill in is written to the file.";
-    readonly "export.fieldsNone": "A GIF file carries no details: these aren't written to it.";
+    readonly "export.fieldsNone": "A {format} file carries no details: these aren't written to it.";
     readonly "export.field.title": "Title";
     readonly "export.field.description": "Description";
     readonly "export.field.artist": "Artist";

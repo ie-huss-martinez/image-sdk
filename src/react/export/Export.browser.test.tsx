@@ -313,6 +313,14 @@ describe("the export dialog (docs/adr/0007)", () => {
     await openDialog();
     await click(inDialog("PNG"));
     expect(summary()).toContain("Kept in the file");
+    // WebP keeps no details either, and says so: the summary never claims what isn't written.
+    await click(inDialog("WebP"));
+    expect(summary()).not.toContain("Kept in the file");
+    expect(dialog()?.textContent).toContain(
+      "A WebP file carries no details: these aren't written to it.",
+    );
+    await click(inDialog("JPEG"));
+    expect(summary()).toContain("Kept in the file");
   });
 
   it("shows the catalogue's text for a format the browser can't write, and keeps the choices", async () => {

@@ -502,12 +502,15 @@ describe("the image session (ADR 0003)", () => {
       expect(session.undo()).toBe(false);
     });
 
-    it("reports no kept fields for a GIF, which carries none", async () => {
+    it("reports no kept fields for a GIF or a WebP, which carry none", async () => {
       const { session } = setup();
       await session.open(animated());
       session.execute({ type: "image.setMetadata", field: "title", value: "Party" });
       expect((await session.export({ type: "png" })).kept).toEqual(["title"]);
       expect((await session.export({ type: "gif" })).kept).toEqual([]);
+      // Nor for a WebP, which carries none either.
+      expect((await session.export({ type: "webp" })).kept).toEqual([]);
+      expect((await session.export({ type: "jpeg" })).kept).toEqual(["title"]);
     });
 
     it("holds the frames a command adds to maxFrames, and lets a plan over it be trimmed", async () => {
