@@ -24,7 +24,11 @@ const GEOMETRY = new URL("../../conformance/hm-image-geometry.json", import.meta
 
 const text = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 
-it("keeps the checked-in cases up to date with their generator", async () => {
+// It generates every vector again: thousands of sampled plans and commands,
+// 4 MB of cases. That's work, not waiting: about 1.5 s before the
+// animation's cases were added and 3 to 4 s since, on a busy machine, which
+// is too near the default 5 s to be reliable there.
+it("keeps the checked-in cases up to date with their generator", { timeout: 30_000 }, async () => {
   // `pnpm conformance:update` rewrites them.
   await expect(text(planCases())).toMatchFileSnapshot("../../conformance/hm-image-plan.json");
   await expect(text(commandCases())).toMatchFileSnapshot(
