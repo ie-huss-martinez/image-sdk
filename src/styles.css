@@ -634,6 +634,104 @@
     }
   }
 
+  /*
+   * The frames panel (docs/adr/0011). Its list scrolls within a fixed
+   * height wherever the inspector is, since an animation may have thousands
+   * of frames; only the rows in view draw their thumbnails.
+   */
+  .hm-image-frames-panel {
+    display: grid;
+    gap: var(--hm-gap-normal);
+  }
+
+  /*
+   * Under the stage, the list shows three and a half rows, so it's seen to
+   * scroll, and keeps its height whatever is done to the frames. A row is
+   * as tall as its thumbnail, half of --hm-space-12.
+   */
+  .hm-image-frames-list {
+    box-sizing: border-box;
+    block-size: calc(3.5 * (var(--hm-space-12) / 2 + var(--hm-gap-normal)));
+    overflow-y: auto;
+  }
+
+  /*
+   * Beside the stage, the list takes the inspector's height that the
+   * controls under it leave, so they're always in view.
+   */
+  @container (width >= 720px) {
+    .hm-image-editor-inspector:has(> .hm-image-frames-panel) {
+      align-content: stretch;
+    }
+
+    .hm-image-frames-panel {
+      grid-template-rows: minmax(calc(2 * var(--hm-space-12) / 2), 1fr);
+      min-block-size: 0;
+    }
+
+    .hm-image-frames-list {
+      block-size: auto;
+      min-block-size: 0;
+    }
+  }
+
+  /* A frame's row: its thumbnail, then its name, cut short when the inspector is narrow. */
+  .hm-image-frames-list .hm-image-frame-row {
+    display: flex;
+    align-items: center;
+    gap: var(--hm-gap-tight);
+    min-inline-size: 0;
+  }
+
+  .hm-image-frame-thumbnail {
+    display: block;
+    flex: none;
+  }
+
+  .hm-image-editor--styled .hm-image-frame-thumbnail {
+    background: var(--hm-color-surface-sunken);
+    border-radius: var(--hm-radius-sm);
+  }
+
+  .hm-image-frame-thumbnail-canvas {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .hm-image-frame-name {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hm-image-frames-order {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hm-gap-tight);
+  }
+
+  .hm-image-frames-problem {
+    margin: 0;
+  }
+
+  .hm-image-editor--styled .hm-image-frames-problem {
+    color: var(--hm-color-danger-text);
+  }
+
+  .hm-image-frames-fields {
+    display: grid;
+    gap: var(--hm-gap-tight);
+    justify-items: start;
+  }
+
+  .hm-image-frames-actions {
+    display: flex;
+    justify-content: end;
+  }
+
   .hm-image-redact-areas ul {
     display: grid;
     gap: var(--hm-gap-tight);

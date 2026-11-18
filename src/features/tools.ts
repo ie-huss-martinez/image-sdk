@@ -1,6 +1,7 @@
 import { cropTool, flipHorizontalTool, flipVerticalTool } from "./crop/crop-tools.js";
 import { drawTool } from "./draw/draw-tool.js";
 import { exportTool } from "./export/export-tool.js";
+import { framesTool } from "./frames/frames-tool.js";
 import { redoTool, undoTool } from "./history/history-tools.js";
 import {
   addArrowTool,
@@ -39,6 +40,7 @@ export const imageTools: readonly ImageTool[] = [
   addImageTool,
   drawTool,
   layersTool,
+  framesTool,
   zoomInTool,
   zoomOutTool,
   zoomFitTool,
@@ -62,6 +64,7 @@ export const DEFAULT_TOOLBAR: readonly (readonly string[])[] = [
   ],
   ["image.draw"],
   ["image.layers"],
+  ["image.frames"],
   ["image.zoom-in", "image.zoom-out", "image.zoom-fit"],
   ["image.export"],
 ];

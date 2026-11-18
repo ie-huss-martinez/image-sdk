@@ -1,6 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
-import { fixture, jpegWithPrivateMetadata, quadrantsPngWithColourProfile } from "../fixtures.js";
+import {
+  fixture,
+  gifWithBackground,
+  jpegWithPrivateMetadata,
+  quadrantsPngWithColourProfile,
+} from "../fixtures.js";
 import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**
@@ -631,6 +636,31 @@ test.describe("the image editor", () => {
     await page.getByRole("radio", { name: "Filters" }).click();
     await page.getByRole("radio", { name: "Sepia" }).click();
     await expect(page.getByRole("slider", { name: "Strength" })).toBeVisible();
+    await noViolations(page);
+  });
+
+  test("edits an animation's frames from the keyboard, with no violations", async ({ page }) => {
+    await page.goto("/editor.html");
+    await page.evaluate(
+      (bytes) => window.imageEditor.open(new Uint8Array(bytes).buffer),
+      Array.from(gifWithBackground("after disposal 2")),
+    );
+    const frames = page.getByRole("button", { name: "Frames" });
+    await expect(frames).toBeVisible({ timeout: FIRST_RENDER_TIMEOUT });
+    await frames.focus();
+    await page.keyboard.press("Enter");
+    const list = page.getByRole("grid", { name: "Frames, in the order they play" });
+    await expect(list).toBeVisible();
+    await noViolations(page);
+    // Focus is in the list, on the first frame: Alt and Down move it later.
+    await page.keyboard.press("Alt+ArrowDown");
+    await expect(page.getByRole("region", { name: "Animation" })).toContainText("Frame 2 of 2");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(list.getByRole("row").first()).toContainText("Frame 1, 0.10 seconds");
+    await page.getByRole("button", { name: "Done" }).click();
+    await expect(list).toBeHidden();
+    // Focus goes back to the tool's button.
+    await expect(frames).toBeFocused();
     await noViolations(page);
   });
 

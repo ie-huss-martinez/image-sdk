@@ -14,6 +14,7 @@
 - **Amended:** 2026-11-18, as the encoder was built: how a frame's palette is chosen and when a frame marks a colour transparent, under "Encoding"
 - **Amended:** 2026-11-18, as playing was built: where the frame shown lives, what Play looks like, and how loop counts are played, under "Playing in the editor"; and the open time of the largest animation the limits allow, measured, with the decision to keep them, under "How long the largest animation takes to open"
 - **Amended:** 2026-11-18, as the first frame came to show while an animation opens: how the engine lets it be drawn early, where the editor shows it, and how soon, under "The first frame while it opens"
+- **Amended:** 2026-11-18, as the frame list was built: where it lives, what it does, how its thumbnails are drawn and how many at once, under "The frames panel"
 - **Amended:** 2026-11-18, as the job worker was built: the render worker's call that gives a frame's pixels, when a job worker is retired, and its measured size, under "The job worker"
 
 ## Context
@@ -236,6 +237,35 @@ interface ImageFrame {
 - **The bar takes a row only when there's an animation,** so a still's layout is as it was.
 - **Play shows Pause while it plays,** as players do, so the state reads at a glance; its name stays "Play" and `aria-pressed` carries the state.
 - **Playing drifts a little.** Each frame waits its delay after the one before was asked for, so every frame's time to draw adds to the next. For an editor's preview that's right: it never skips a frame. A long animation played here runs slower than its timing by the draws' total, which the measurements above put at about 18 ms a frame for the largest. The file's timing is the plan's, unchanged, and the export writes it.
+
+### The frames panel
+
+The list of frames the timeline needs is a panel in the inspector, as the layers' is, rather than a strip under the stage: the ui review found a side panel with ui's `ReorderableList` reads and works the same as the layers, and left a filmstrip, ui's `TimelineClips`, for later.
+
+- **A tool shows it.** `image.frames`, with `F`, is on the toolbar only for an animation; a toolbar group with no tool to offer isn't drawn, so a still's toolbar is as it was. Starting it pauses playing.
+- **The frame selected is the frame shown.** The panel has no selection of its own: selecting a row sets the editor's `playback.frame` and pauses, and the scrubber and the list always agree.
+- **Rows are named by place and delay,** such as "Frame 3, 0.10 seconds", with two decimals, since a delay is a whole number of hundredths. A row's name is its place in the plan's order, not the source's frame, so after a move the names read in playing order.
+- **What it does:** move the selected frame earlier or later (the list's `Alt` with the arrows, or two buttons), duplicate it after itself, delete it (or `Delete` in the list), and reverse every frame; set its delay, or every frame's to its; and choose whether the animation plays once, a number of times, or for ever. Each is one command, so one undo step, and moving, copying, deleting, reversing and setting every delay are announced in the editor's words. The last frame can't be deleted, as the plan keeps one. A copy over `maxFrames` is refused by the session, and the panel says why.
+- **Beside the stage, the list takes the inspector's height** that its controls leave, so they're always in view; under the stage it keeps a fixed height and scrolls, so editing doesn't move the stage.
+
+**Thumbnails** come from the renderer, as "Playing in the editor" says, so they show the plan's crop, develop, filter, layers and redactions over each frame.
+
+- **Only rows in view have one.** Each row watches whether it's in view. In view, it makes a renderer with its own 48 × 48 canvas (at the device's pixel ratio) in the render worker; out of view, the renderer is destroyed and the canvas released. Closing the panel releases them all.
+- **At most `MAX_FRAME_THUMBNAILS`, 24, at once.** The rows in view are about 4 to 10, so the cap holds only for a tall inspector or a quick scroll; a row past it shows its name alone, first come first served, until another is released. Measured on 2026-11-18 with the largest animation the limits allow (300 frames of 1054 × 790), through the real engine and renderers, each thumbnail its own 48 × 48 canvas at pixel ratio 2, started together and timed until all were drawn, at CPU ×1, the 1-minute load 3.58 at the start and 3.65 at the end:
+
+| Rows drawn | Two runs |
+|---|---|
+| The first 8, as the panel opens | 0.11 s, 0.10 s |
+| The first 24, the cap | 0.38 s, 0.34 s |
+| The last 8, scrolled to the end | 0.18 s, 0.24 s |
+| The last 24 | 0.40 s, 0.42 s |
+| 8 from the middle | 0.23 s, 0.24 s |
+| 8 at random | 0.84 s, 0.54 s |
+| 24 at random | 1.94 s, 1.86 s |
+
+Rows in view show frames next to each other, which the worker composes one after another from its snapshots ("What the worker holds"), so a panel's rows draw in under a quarter of a second anywhere in the file, and the cap's 24 in about 0.4 s. Frames scattered at random cost four to five times as much, since each decodes forward from its nearest snapshot, but rows in view never ask for that. So the cap stays at 24.
+- **A thumbnail is drawn from the frame's own picture,** a one-frame plan of it with the plan's other edits, so moving, copying or retiming frames redraws none, and an edit to the image redraws only those in view.
+- **A host engine that isn't the SDK's** has no render worker to draw them in: rows show their names alone.
 
 ### How long the largest animation takes to open
 

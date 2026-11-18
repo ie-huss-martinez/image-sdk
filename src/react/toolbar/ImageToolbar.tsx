@@ -43,14 +43,16 @@ export function ImageToolbar(props: ImageToolbarProps): ReactNode {
   const t = messages.t as (key: string) => string;
   return (
     <Toolbar label={messages.t("toolbar.label")} className={props.className}>
-      {registry.toolbar.map((group) => (
-        <ToolbarGroup
-          key={group.map((tool) => tool.id).join(" ")}
-          label={t(`toolbar.groups.${group[0]?.group ?? "other"}`)}
-        >
-          {group
-            .filter((tool) => tool.isAvailable?.(state) ?? true)
-            .map((tool) => {
+      {registry.toolbar.map((group) => {
+        const available = group.filter((tool) => tool.isAvailable?.(state) ?? true);
+        // A group with nothing to offer, such as the frames for a still, isn't there at all.
+        if (available.length === 0) return null;
+        return (
+          <ToolbarGroup
+            key={group.map((tool) => tool.id).join(" ")}
+            label={t(`toolbar.groups.${group[0]?.group ?? "other"}`)}
+          >
+            {available.map((tool) => {
               const Icon = icons[tool.icon];
               const keys = shortcuts?.ariaKeyShortcuts(tool.id);
               const disabled = !(tool.isEnabled?.(state) ?? true);
@@ -79,8 +81,9 @@ export function ImageToolbar(props: ImageToolbarProps): ReactNode {
                 button
               );
             })}
-        </ToolbarGroup>
-      ))}
+          </ToolbarGroup>
+        );
+      })}
     </Toolbar>
   );
 }

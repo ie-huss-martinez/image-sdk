@@ -286,6 +286,36 @@ export const imageEditorMessages: {
     readonly "timeline.frame": "Frame";
     readonly "timeline.position": "Frame {frame, number} of {count, number}";
     readonly "timeline.where": "Frame {frame, number} of {count, number}, {seconds, number} s";
+    readonly "tools.frames": "Frames";
+    readonly "toolbar.groups.frames": "Frames";
+    readonly "frames.panel": "Frames";
+    readonly "frames.list": "Frames, in the order they play";
+    readonly "frames.row": "Frame {index, number}, {seconds} seconds";
+    readonly "frames.selected": "Selected frame";
+    readonly "frames.moveEarlier": "Move earlier";
+    readonly "frames.moveLater": "Move later";
+    readonly "frames.duplicate": "Duplicate";
+    readonly "frames.remove": "Delete";
+    readonly "frames.reverse": "Reverse order";
+    readonly "frames.delay": "Delay, in seconds";
+    readonly "frames.delayAll": "Use for every frame";
+    readonly "frames.loop": "Plays";
+    readonly "frames.loops.once": "Once";
+    readonly "frames.loops.repeat": "Repeats";
+    readonly "frames.loops.forever": "For ever";
+    readonly "frames.repeats": "Times it repeats after the first";
+    readonly "frames.done": "Done";
+    readonly "frames.movedEarlier": "Moved frame {from, number} earlier. It's frame {index, number} of {count, number}.";
+    readonly "frames.movedLater": "Moved frame {from, number} later. It's frame {index, number} of {count, number}.";
+    readonly "frames.duplicated": "Duplicated frame {index, number}. The copy is frame {copy, number}.";
+    readonly "frames.removed": {
+        readonly $plural: "count";
+    } & {
+        readonly one: "Deleted frame {index, number}. One frame is left.";
+        readonly other: "Deleted frame {index, number}. {count, number} frames are left.";
+    };
+    readonly "frames.reversed": "Reversed the order of the frames.";
+    readonly "frames.delayedAll": "Every frame now shows for {seconds} seconds.";
     readonly "notices.label": "Notices";
     readonly "notices.dismiss": "Dismiss";
     readonly "notices.incomplete": {
@@ -559,7 +589,7 @@ export interface ImageEditorState {
         readonly mode: ImageRedactionMode;
         readonly colour: string;
     } | null;
-    readonly tool: "crop" | "redact" | "layers" | "draw" | null;
+    readonly tool: "crop" | "redact" | "layers" | "draw" | "frames" | null;
 }
 
 // @public
@@ -580,6 +610,15 @@ export function ImageFilterPanel(props: ImageFilterPanelProps): ReactNode;
 
 // @public
 export interface ImageFilterPanelProps {
+    // (undocumented)
+    readonly className?: string;
+}
+
+// @public
+export function ImageFramesPanel(props: ImageFramesPanelProps): ReactNode;
+
+// @public
+export interface ImageFramesPanelProps {
     // (undocumented)
     readonly className?: string;
 }
@@ -698,8 +737,8 @@ export function useImageView(): readonly [ImageViewState, Store<ImageViewState>]
 
 // Warnings were encountered during analysis:
 //
-// temp/types/features/editor-state.d.ts:18:9 - (ae-forgotten-export) The symbol "ImageCrop" needs to be exported by the entry point react.d.ts
-// temp/types/features/editor-state.d.ts:19:9 - (ae-forgotten-export) The symbol "ImageAspect" needs to be exported by the entry point react.d.ts
-// temp/types/features/editor-state.d.ts:27:9 - (ae-forgotten-export) The symbol "ImageRedactionMode" needs to be exported by the entry point react.d.ts
+// temp/types/features/editor-state.d.ts:22:9 - (ae-forgotten-export) The symbol "ImageCrop" needs to be exported by the entry point react.d.ts
+// temp/types/features/editor-state.d.ts:23:9 - (ae-forgotten-export) The symbol "ImageAspect" needs to be exported by the entry point react.d.ts
+// temp/types/features/editor-state.d.ts:31:9 - (ae-forgotten-export) The symbol "ImageRedactionMode" needs to be exported by the entry point react.d.ts
 
 ```
