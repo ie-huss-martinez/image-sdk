@@ -24,8 +24,12 @@ export interface GifSource {
 /** What the check of a file's frames needs from its caller. */
 export interface GifCheckOptions {
   readonly signal: AbortSignal;
-  /** Called after each frame that decodes, with how many have and how many the file lists. */
-  readonly progress?: (done: number, total: number) => void;
+  /**
+   * Called after each frame that decodes, with how many have, how many the
+   * file lists, and the screen as that frame shows it: the store's own
+   * buffer, which the next frame changes, so copy it to keep it.
+   */
+  readonly progress?: (done: number, total: number, screen: Uint8ClampedArray) => void;
   /** Lets other work run: called when a slice of decoding has taken long enough. */
   readonly pause?: () => Promise<void>;
   /** The clock, in milliseconds. */
@@ -82,7 +86,8 @@ export async function checkGifFrames(
       break;
     }
     frames += 1;
-    progress?.(frames, total);
+    // The frame just decoded: the store shows it without decoding it again.
+    progress?.(frames, total, store.frame(frames - 1));
     if (frames < total && now() - slice >= SLICE) {
       await pause();
       slice = now();

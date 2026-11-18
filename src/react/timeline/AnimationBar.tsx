@@ -1,4 +1,4 @@
-import { PlayIcon, Slider, ToggleButton } from "@hussmartinez/ui/react";
+import { PauseIcon, PlayIcon, Slider, ToggleButton } from "@hussmartinez/ui/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import type { ImageAnimation } from "../../core/model/plan.js";
 import type { ImageEditorState } from "../../features/editor-state.js";
@@ -67,7 +67,8 @@ export function AnimationBar(props: { readonly className?: string | undefined })
     <section className={className} aria-label={messages.t("timeline.label")}>
       <ToggleButton
         label={messages.t("timeline.play")}
-        icon={<PlayIcon />}
+        // Pause while it plays, as players show it; its name stays Play, and pressed says it's on.
+        icon={playback.playing ? <PauseIcon /> : <PlayIcon />}
         pressed={playback.playing}
         onPressedChange={play}
         // Space plays and pauses from anywhere in the editor but a control (sdk-core ADR 0030).

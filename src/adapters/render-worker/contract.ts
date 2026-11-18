@@ -40,7 +40,15 @@ export interface RenderWorkerContract {
       readonly bytes: number;
     };
     /** The frames checked so far, of those the file lists: for a source held with all its frames. */
-    readonly progress: { readonly done: number; readonly total: number };
+    readonly progress: {
+      readonly done: number;
+      readonly total: number;
+      /**
+       * Sent once, true: the first frame can be drawn now, under the source's
+       * id, while the rest are checked (docs/adr/0011).
+       */
+      readonly firstFrame?: boolean;
+    };
   };
   /** A rendering of a source that fits inside `maxSize` × `maxSize`. */
   readonly thumbnail: {

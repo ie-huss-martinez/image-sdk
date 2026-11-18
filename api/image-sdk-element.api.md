@@ -55,6 +55,7 @@ export const imageEditorMessages: {
     readonly "editor.engineUnavailable": "Image processing stopped. Reload this page or reopen the editor, then choose the image again. Unsaved edits will be lost unless your application has saved them.";
     readonly "editor.label": "Image editor";
     readonly "editor.preview": "Edited image preview, {width, number} × {height, number}";
+    readonly "editor.openingPreview": "First frame of the image being opened, {width, number} × {height, number}";
     readonly "editor.empty": "Open an image to start editing. It stays on this device.";
     readonly "editor.choose": "Choose an image";
     readonly "editor.dropHint": "or drop it here";

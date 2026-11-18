@@ -193,7 +193,17 @@ export function createImageRenderer(engine: ImageEngine): ImageRenderer {
         return Promise.reject(error);
       }
       if (!attached) return Promise.reject(new TypeError("Attach a canvas before rendering."));
-      const missing = [plan.base.source, ...layerSources(plan)].find((id) => !internals.has(id));
+      // A source still being registered may be drawn once its first frame is
+      // ready, as a still, while the rest are checked (docs/adr/0011).
+      const missing =
+        !internals.has(plan.base.source) &&
+        !(
+          internals.drawable(plan.base.source) &&
+          plan.animation === null &&
+          plan.layers.length === 0
+        )
+          ? plan.base.source
+          : layerSources(plan).find((id) => !internals.has(id));
       if (missing !== undefined) {
         return Promise.reject(new TypeError(`There's no source with the id "${missing}".`));
       }

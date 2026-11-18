@@ -2,7 +2,7 @@ import { Button, FileDropZone, ProgressBar, Spinner } from "@hussmartinez/ui/rea
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createImageRenderer } from "../../adapters/image-renderer.js";
 import { compositionSize } from "../../core/model/geometry.js";
-import type { ImagePlan } from "../../core/model/plan.js";
+import { createPlan, type ImagePlan } from "../../core/model/plan.js";
 import type { ImageRenderer } from "../../core/ports/image-renderer.js";
 import { CropFrame } from "../crop/CropFrame.js";
 import { DrawOverlay } from "../draw/DrawOverlay.js";
@@ -124,12 +124,15 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   const inset = cropping || redacting || layering || drawing ? CROP_INSET : 0;
   // What the stage shows: while cropping, the whole image under the plan's
   // other edits; during a gesture, its transient plan; otherwise the plan.
+  // With no document yet, an animation being opened shows its first frame
+  // while the rest are checked, as a still (docs/adr/0011).
+  const opening = snapshot.plan === null ? snapshot.openingFrame : null;
   const plan = useMemo(() => {
     const committed = snapshot.plan;
-    if (!committed) return null;
+    if (!committed) return opening ? createPlan(opening.source) : null;
     if (cropping) return { ...committed, base: { ...committed.base, crop: null } };
     return editorState.preview ?? committed;
-  }, [snapshot.plan, cropping, editorState.preview]);
+  }, [snapshot.plan, cropping, editorState.preview, opening]);
 
   // The canvas and its renderer live and die with this effect.
   useEffect(() => {
@@ -153,8 +156,10 @@ export function ImageStage(props: ImageStageProps): ReactNode {
     };
   }, [engine, frame]);
 
+  /** Whether the canvas shows the first frame of a file still opening. */
+  const showingOpening = snapshot.plan === null && opening !== null;
   // Its name says what it shows, and changes with the document, not each render.
-  const composition = plan && source ? compositionSize(plan, source) : undefined;
+  const composition = plan && source ? compositionSize(plan, source) : (opening ?? undefined);
   const shownWidth = composition?.width;
   const shownHeight = composition?.height;
   useEffect(() => {
@@ -166,12 +171,15 @@ export function ImageStage(props: ImageStageProps): ReactNode {
     if (shownWidth !== undefined && shownHeight !== undefined) {
       canvas.setAttribute(
         "aria-label",
-        messages.t("editor.preview", { width: shownWidth, height: shownHeight }),
+        messages.t(showingOpening ? "editor.openingPreview" : "editor.preview", {
+          width: shownWidth,
+          height: shownHeight,
+        }),
       );
     } else {
       canvas.removeAttribute("aria-label");
     }
-  }, [shownWidth, shownHeight, messages, frame]);
+  }, [shownWidth, shownHeight, messages, frame, showingOpening]);
 
   // Every change of plan, view or size renders; the renderer keeps the latest.
   useEffect(() => {
@@ -301,7 +309,13 @@ export function ImageStage(props: ImageStageProps): ReactNode {
         </FileDropZone>
       ) : null}
       {snapshot.opening || snapshot.inserting ? (
-        <div className="hm-image-stage-opening">
+        <div
+          className={
+            showingOpening
+              ? "hm-image-stage-opening hm-image-stage-opening--over-image"
+              : "hm-image-stage-opening"
+          }
+        >
           {snapshot.opening && snapshot.progress ? (
             // An animation's frames are checked one by one (docs/adr/0011):
             // how far that's got, in words, where the spinner would be.

@@ -12,6 +12,8 @@ export const imageEditorText = /* @__PURE__ */ defineMessages({
     "Image processing stopped. Reload this page or reopen the editor, then choose the image again. Unsaved edits will be lost unless your application has saved them.",
   "editor.label": "Image editor",
   "editor.preview": "Edited image preview, {width, number} × {height, number}",
+  "editor.openingPreview":
+    "First frame of the image being opened, {width, number} × {height, number}",
   "editor.empty": "Open an image to start editing. It stays on this device.",
   "editor.choose": "Choose an image",
   "editor.dropHint": "or drop it here",

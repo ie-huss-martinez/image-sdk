@@ -54,6 +54,15 @@ export interface ImageRegisterOptions extends ImageProgressOptions {
    *   as `"first"` instead, as the session does.
    */
   readonly frames?: "first" | "all";
+  /**
+   * For a source registered with all its frames: called once its first
+   * frame can be drawn, before the rest are checked and before `register`
+   * resolves (docs/adr/0011). From then until `register` settles, a renderer
+   * of the same engine may draw a still plan of the source, its first frame;
+   * nothing else may use it yet. Not called for a still, or by an engine
+   * that can't show a source early.
+   */
+  readonly onFirstFrame?: () => void;
 }
 
 /**

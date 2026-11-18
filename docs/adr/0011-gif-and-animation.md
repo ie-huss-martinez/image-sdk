@@ -13,6 +13,7 @@
 - **Amended:** 2026-11-18: one rule for an animation that can't be held. A file over `maxFrames` or, across its frames, `maxDecodedSize` opens as its first frame with a notice, as one over `maxAnimationPixels` does, where it was refused; under "An animation that can't be held opens as a still"
 - **Amended:** 2026-11-18, as the encoder was built: how a frame's palette is chosen and when a frame marks a colour transparent, under "Encoding"
 - **Amended:** 2026-11-18, as playing was built: where the frame shown lives, what Play looks like, and how loop counts are played, under "Playing in the editor"; and the open time of the largest animation the limits allow, measured, with the decision to keep them, under "How long the largest animation takes to open"
+- **Amended:** 2026-11-18, as the first frame came to show while an animation opens: how the engine lets it be drawn early, where the editor shows it, and how soon, under "The first frame while it opens"
 - **Amended:** 2026-11-18, as the job worker was built: the render worker's call that gives a frame's pixels, when a job worker is retired, and its measured size, under "The job worker"
 
 ## Context
@@ -105,7 +106,7 @@ The frame table ends where the file stops being a GIF, and the probe counts the 
 - **`maxFrames` applies to commands that add frames,** as it does to layers: only a step that adds is checked, so a plan already over a lowered limit can still be trimmed.
 - **A host's plan can change an animation, in one step:** frames added, removed, reordered and retimed, and the loop count. It can't make a still play or an animation a still, and a frame can't show another frame of the source under the same key: no command does either, so `applyPlan` refuses them, as `not-animated`, `no-frames` and `duplicate-key`.
 - **An export to PNG, JPEG or WebP takes a `frame`,** the frame being shown, 0 when omitted.
-- **Not yet, and coming with the timeline:** the first frame shown on the stage while the rest are checked, and the Info panel's line for a file that was incomplete. Until then the stage shows the progress bar alone.
+- **Not yet, and coming with the timeline:** the Info panel's line for a file that was incomplete.
 - **Tests:** through the editor, in the three engines: an animation over `maxAnimationPixels` opens as a still with its notice and exports; one near it opens as an animation with a warning; a damaged one says how many frames opened; and a long one shows its progress, with the count in words, and is cancelled from the button beside it, leaving nothing open and nothing shown as failed.
 
 ### An animation that can't be held opens as a still
@@ -120,6 +121,25 @@ There's one rule: **an animation the SDK can't hold opens as its first frame, a 
 - **Animated PNG and WebP** were always stills. Over `maxFrames` they were refused too, and now open as their first frame like the rest.
 - **One notice says why,** whichever limits the file is over: "This animation is too large to edit as an animation. Its first frame is open as a still image."
 - **Tests:** in the three engines, through the real engine and the real editor: a file over each limit, and over all three, opens as a still with the one notice and exports; a file of 4,097 frames opens as its first frame; the engine refuses the same files only when asked for all their frames; and a file whose first frame alone is over a limit is refused.
+
+### The first frame while it opens
+
+Checking every frame of a large animation takes seconds ("How long the largest animation takes to open", below). The first frame is decoded first, so it's shown as soon as it is.
+
+- **The worker makes the first frame's bitmap as soon as it decodes,** keeps it under the source's id, and tells the page with a `firstFrame` progress message. The check of the rest goes on behind it. If the open is cancelled or fails, that bitmap is closed and dropped, and a test asks the worker directly to prove it.
+- **The engine says so through `onFirstFrame`** on `register`. From then until `register` settles, a renderer of the same engine may draw a still plan of that source, its first frame, and nothing else may use it: no export, no animated plan, no layer. Before then, and after a cancel, drawing it is refused on the page.
+- **The session puts it in its snapshot** as `openingFrame`: the source's id and size, while the animation opens.
+- **The editor shows it only on an empty stage,** named "First frame of the image being opened, W × H", with the progress and Cancel moved to the stage's foot. An open that replaces an open document leaves that document on the stage, since it stays editable until the new one is ready, and showing the new file over it would make edits look as if they applied to it.
+- **An engine that never calls `onFirstFrame`** gives the progress alone, as before.
+
+**Measured** on 2026-11-18, the same file and method as below. Each timed run waited for a 1-minute load average under 4.
+
+| What | CPU ×1 | CPU ×4 |
+|---|---|---|
+| In the editor: `open` until the stage shows the first frame | 0.85 s, 0.86 s, against 4.8 s before | not measurable: Chromium won't throttle a worker |
+| The worker's part before it, on a page: probe, read, frame table, frame 0, bitmap | 0.91 s, 0.95 s | 3.53 s, 3.52 s |
+
+The target was 1 s at CPU ×1. Nearly all of the time is the probe, 0.83 to 0.87 s of it: it walks every block of the 97 MB file, reading each sub-block's length through the window reader. Reading the frame table, decoding frame 0 and making its bitmap take under 0.1 s. A probe that reads sub-block chains in larger windows is where a later gain would come from.
 
 ### What the worker holds
 
@@ -214,6 +234,8 @@ interface ImageFrame {
 - **A loop count of `n` plays the frames `n + 1` times,** as GIF's `NETSCAPE2.0` count means repeats; `null` plays them once, and 0 for ever. Played to the end, it stops on the last frame, and Play starts again from the first.
 - **The export dialog exports the frame shown** to PNG, JPEG and WebP, and all of them to GIF. Opening it stops playing, so the frame exported is the frame the user sees.
 - **The bar takes a row only when there's an animation,** so a still's layout is as it was.
+- **Play shows Pause while it plays,** as players do, so the state reads at a glance; its name stays "Play" and `aria-pressed` carries the state.
+- **Playing drifts a little.** Each frame waits its delay after the one before was asked for, so every frame's time to draw adds to the next. For an editor's preview that's right: it never skips a frame. A long animation played here runs slower than its timing by the draws' total, which the measurements above put at about 18 ms a frame for the largest. The file's timing is the plan's, unchanged, and the export writes it.
 
 ### How long the largest animation takes to open
 

@@ -52,6 +52,11 @@ export interface EngineInternals {
   readonly subscribe: (listener: () => void) => () => void;
   readonly has: (id: string) => boolean;
   /**
+   * Whether a renderer may draw the source: registered, or still being
+   * registered with its first frame ready (docs/adr/0011).
+   */
+  readonly drawable: (id: string) => boolean;
+  /**
    * Loads the job worker's code, on the first GIF export, and returns how to
    * start it and where it comes from (docs/adr/0011). Each processor starts
    * its own.
@@ -166,7 +171,7 @@ export function createEngine(
   /** Sources the worker holds, or is decoding, by id. */
   const ids = new Map<
     string,
-    { generation?: WorkerGeneration; registered: boolean; released: boolean }
+    { generation?: WorkerGeneration; registered: boolean; released: boolean; firstFrame?: boolean }
   >();
   const lifecycle = createWorkerLifecycle(
     () => ids.clear(),
@@ -251,6 +256,13 @@ export function createEngine(
       getSnapshot: lifecycle.getSnapshot,
       subscribe: lifecycle.subscribe,
       has: (id) => ids.get(id)?.registered === true,
+      drawable: (id) => {
+        const reservation = ids.get(id);
+        return (
+          reservation?.registered === true ||
+          (reservation?.firstFrame === true && !reservation.released)
+        );
+      },
       loadJobWorker: async () => {
         if (!environment.loadJobWorker) {
           throw new ImageError("UNSUPPORTED_FORMAT", "This engine can't write GIFs.", {
@@ -274,8 +286,13 @@ export function createEngine(
     ): Promise<ImageSourceInfo> {
       lifecycle.check();
       if (ids.has(id)) throw new TypeError(`The source id "${id}" is already in use.`);
-      const reservation: { generation?: WorkerGeneration; registered: boolean; released: boolean } =
-        { registered: false, released: false };
+      const reservation: {
+        generation?: WorkerGeneration;
+        registered: boolean;
+        released: boolean;
+        /** Its first frame is drawable, though it isn't registered yet. */
+        firstFrame?: boolean;
+      } = { registered: false, released: false };
       ids.set(id, reservation);
       try {
         const decoded = await call(
@@ -299,7 +316,15 @@ export function createEngine(
           {
             ...callOptions(options),
             // Only a source held with all its frames reports any (docs/adr/0011).
-            onProgress: ({ done, total }) => options?.onProgress?.(done / total),
+            onProgress: ({ done, total, firstFrame }) => {
+              if (firstFrame) {
+                if (reservation.released || reservation.firstFrame) return;
+                reservation.firstFrame = true;
+                options?.onFirstFrame?.();
+                return;
+              }
+              options?.onProgress?.(done / total);
+            },
           },
         );
         lifecycle.check(reservation.generation);

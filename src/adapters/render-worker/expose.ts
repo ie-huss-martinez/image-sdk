@@ -127,13 +127,41 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
           // Every frame is decoded once, so the source holds only frames
           // that can be drawn (docs/adr/0011).
           const { bytes, gif } = await readGif(file, own);
-          const animation = await checkGifFrames(bytes, gif, {
-            signal,
-            progress: (done, total) => progress({ done, total }),
-          });
-          const first = new Uint8ClampedArray(animation.store.frame(0));
-          const bitmap = await bitmapOf(first, gif.width, gif.height);
+          // The first frame is drawable as soon as it's decoded, under the
+          // source's id, while the rest are checked: the page can show it.
+          let first: Promise<ImageBitmap> | undefined;
+          const discardFirst = () => {
+            first?.then((bitmap) => {
+              if (sources.get(id) === bitmap) sources.delete(id);
+              bitmap.close();
+            });
+          };
+          let animation: GifSource;
+          try {
+            animation = await checkGifFrames(bytes, gif, {
+              signal,
+              progress: (done, total, screen) => {
+                progress({ done, total });
+                if (done !== 1) return;
+                // A copy now: the store's screen moves on with the next frame.
+                const pixels = new Uint8ClampedArray(screen);
+                first = bitmapOf(pixels, gif.width, gif.height).then((bitmap) => {
+                  if (!signal.aborted) {
+                    sources.set(id, bitmap);
+                    progress({ done, total, firstFrame: true });
+                  }
+                  return bitmap;
+                });
+              },
+            });
+          } catch (error) {
+            discardFirst();
+            throw error;
+          }
+          const bitmap = await (first ??
+            bitmapOf(new Uint8ClampedArray(animation.store.frame(0)), gif.width, gif.height));
           if (signal.aborted) {
+            if (sources.get(id) === bitmap) sources.delete(id);
             bitmap.close();
             throw signal.reason;
           }
