@@ -1,7 +1,14 @@
 import { checkFile, coreLimits } from "@hussmartinez/sdk-core";
 import { describe, expect, it } from "vitest";
+import { EMPTY_KEEPABLE_METADATA, type ImageProbe, NO_METADATA } from "../model/source.js";
 import { isImageError } from "./image-error.js";
-import { imageLimitDefinitions, imageLimits } from "./image-limits.js";
+import {
+  ANIMATION_LIMITS,
+  animationLimits,
+  checkFileLimits,
+  imageLimitDefinitions,
+  imageLimits,
+} from "./image-limits.js";
 
 function thrownBy(run: () => unknown): unknown {
   try {
@@ -108,5 +115,60 @@ describe("imageLimits", () => {
     expect(() => imageLimits.resolve({ maxLayers: { maximum: 10, warn: 5 } as never })).toThrow(
       TypeError,
     );
+  });
+});
+
+describe("an animation's limits (docs/adr/0011)", () => {
+  const probe: ImageProbe = {
+    format: "gif",
+    stored: { width: 100, height: 50 },
+    oriented: { width: 100, height: 50 },
+    orientation: 1,
+    frames: 10,
+    hasAlpha: false,
+    decodedPixelBound: 10 * 100 * 50,
+    metadata: NO_METADATA,
+    keepable: EMPTY_KEEPABLE_METADATA,
+  };
+
+  it("counts every frame of a file held with its frames, and one of a still", () => {
+    const policy = imageLimits.resolve({ maxFrames: 9, maxDecodedSize: 100_000 });
+    // As an animation: ten frames, 200,000 bytes.
+    expect(() => checkFileLimits(policy, 1, probe)).toThrow(/maxFrames/);
+    expect(() => checkFileLimits(policy, 1, probe, "all")).toThrow(/maxFrames/);
+    // As a still: one frame, 20,000 bytes.
+    expect(checkFileLimits(policy, 1, probe, "first")).toEqual([]);
+    // A still is held to its own size.
+    const small = imageLimits.resolve({ maxDecodedSize: 19_999 });
+    expect(() => checkFileLimits(small, 1, probe, "first")).toThrow();
+    // And it's warned of by its own size: 20,000 bytes reaches a warning at 20,000.
+    const near = imageLimits.resolve({ maxDecodedSize: { maximum: 30_000, warning: 20_000 } });
+    expect(checkFileLimits(near, 1, probe, "first")).toEqual(["maxDecodedSize"]);
+  });
+
+  it("says which of an animation's limits a file is over and near, without throwing", () => {
+    expect(ANIMATION_LIMITS).toEqual(["maxFrames", "maxDecodedSize", "maxAnimationPixels"]);
+    expect(animationLimits(imageLimits.resolve(), probe)).toEqual({ over: [], near: [] });
+    expect(
+      animationLimits(
+        imageLimits.resolve({
+          maxFrames: 9,
+          maxDecodedSize: { maximum: 1_000_000, warning: 200_000 },
+          maxAnimationPixels: 4_999,
+        }),
+        probe,
+      ),
+    ).toEqual({ over: ["maxFrames", "maxAnimationPixels"], near: ["maxDecodedSize"] });
+    // At a limit exactly is within it.
+    expect(
+      animationLimits(
+        imageLimits.resolve({ maxFrames: 10, maxDecodedSize: 200_000, maxAnimationPixels: 5_000 }),
+        probe,
+      ).over,
+    ).toEqual([]);
+    // The engine's own ceiling on frames counts as the frames limit, whatever the policy allows.
+    const generous = imageLimits.resolve({ maxFrames: 100_000 });
+    expect(animationLimits(generous, probe, 9).over).toEqual(["maxFrames"]);
+    expect(animationLimits(generous, probe, 10).over).toEqual([]);
   });
 });

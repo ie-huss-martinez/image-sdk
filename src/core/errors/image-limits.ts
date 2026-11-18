@@ -30,10 +30,12 @@ import { ImageError } from "./image-error.js";
  * per pixel. `maxImagePixels` is the same limit, with the same name, code
  * and unit, as `pdf-sdk`'s. `maxImageDimension` is a side length, in pixels.
  *
- * `maxAnimationPixels` is the size of an animation's screen. It isn't a
- * limit on what opens: a file over it opens as its first frame, a still.
- * It's what an animation's working set, several screens, needs to stay
- * below a still's (docs/adr/0011).
+ * `maxAnimationPixels` is the size of an animation's screen: an
+ * animation's working set is several screens, so it needs a lower ceiling
+ * than a still's. With `maxFrames` and, across its frames,
+ * `maxDecodedSize`, it's a limit on holding a file as an animation, not on
+ * what opens: an animated file over any of them opens as its first frame,
+ * a still (docs/adr/0011). As a still it's held to the others.
  *
  * @public
  */
@@ -147,22 +149,71 @@ export const PER_FILE_LIMITS = [
  * `ImageError` with the limit's code (ADR 0004). Returns the limits whose
  * warning threshold the file reaches.
  *
+ * @param frames - What of an animated file is to be held: `"all"` its
+ *   frames, the default, which counts every frame against `maxFrames` and
+ *   `maxDecodedSize`; `"first"` its first frame, a still, which counts one
+ *   (docs/adr/0011).
  * @public
  */
 export function checkFileLimits(
   policy: ImageFilePolicy,
   fileSize: number,
   probe: ImageProbe,
+  frames: "first" | "all" = "all",
 ): ImageLimitName[] {
   const { width, height } = probe.oriented;
   const actual: Record<(typeof PER_FILE_LIMITS)[number], number> = {
     maxFileSize: fileSize,
     maxImageDimension: Math.max(width, height),
     maxImagePixels: width * height,
-    maxFrames: probe.frames,
-    maxDecodedSize: probe.decodedPixelBound * 4,
+    maxFrames: frames === "all" ? probe.frames : 1,
+    maxDecodedSize: (frames === "all" ? probe.decodedPixelBound : width * height) * 4,
   };
   return PER_FILE_LIMITS.filter((limit) => policy.check(limit, actual[limit]) === "warning");
+}
+
+/**
+ * The limits on holding a file as an animation (docs/adr/0011): its frames,
+ * what they could decode to, and its screen. A file over one of them isn't
+ * refused: it's held as its first frame, a still.
+ *
+ * @public
+ */
+export const ANIMATION_LIMITS = [
+  "maxFrames",
+  "maxDecodedSize",
+  "maxAnimationPixels",
+] as const satisfies readonly ImageLimitName[];
+
+/**
+ * Which of {@link ANIMATION_LIMITS} a probed file is over, and which it's
+ * near, as an animation. It never throws: a file over one opens as a still.
+ *
+ * @param ceiling - The most frames the engine holds whatever the policy
+ *   says, such as `MAX_ANIMATION_FRAMES`: over it counts as over `maxFrames`.
+ * @public
+ */
+export function animationLimits(
+  policy: ImageFilePolicy,
+  probe: ImageProbe,
+  ceiling = Number.POSITIVE_INFINITY,
+): { readonly over: ImageLimitName[]; readonly near: ImageLimitName[] } {
+  const actual: Record<(typeof ANIMATION_LIMITS)[number], number> = {
+    maxFrames: probe.frames,
+    maxDecodedSize: probe.decodedPixelBound * 4,
+    maxAnimationPixels: probe.oriented.width * probe.oriented.height,
+  };
+  const over: ImageLimitName[] = [];
+  const near: ImageLimitName[] = [];
+  for (const limit of ANIMATION_LIMITS) {
+    try {
+      if (policy.check(limit, actual[limit]) === "warning") near.push(limit);
+    } catch {
+      over.push(limit);
+    }
+  }
+  if (probe.frames > ceiling && !over.includes("maxFrames")) over.push("maxFrames");
+  return { over, near };
 }
 
 /**

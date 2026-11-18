@@ -14,11 +14,11 @@ export default [
     name: "Server-safe core (.), with the shared code it loads",
     // The core never loads the React editor's chunks, nor the interface's
     // text, which the React entry holds (docs/adr/0012). Measured at
-    // 25.8 kB (19.7 kB minified) with animations (docs/adr/0011): sources
+    // 26.0 kB (19.9 kB minified) with animations (docs/adr/0011): sources
     // that hold their frames, the session that opens them, with its
-    // progress and the animation's own size limit, and a host's animated
-    // plan applied as commands; 1.0 kB over the 24.8 kB of the plan's
-    // format version 4: the
+    // progress, the limits on holding an animation and the still it opens
+    // as over them, and a host's animated plan applied as commands; 1.2 kB
+    // over the 24.8 kB of the plan's format version 4: the
     // animation's frames and loop count, their commands and the document's
     // frame counts (docs/adr/0011), 1.3 kB over version 3's 23.6 kB; the
     // keyed-list reducer; the
@@ -30,10 +30,10 @@ export default [
     // text of errors and warnings.
     path: ["dist/index.js", "dist/shared/core-*.js"],
     brotli: true,
-    limit: "26 kB",
+    limit: "27 kB",
   },
   {
-    // The core's 25.8 kB and the editor. Measured at 48.7 kB (37.5 kB
+    // The core's 26.0 kB and the editor. Measured at 49.0 kB (37.7 kB
     // minified) with the editor's tools up to drawing (docs/adr/0013,
     // docs/adr/0015), the names of the frame commands for undo, and an
     // animation's open: its progress and its notices (docs/adr/0011):
@@ -42,15 +42,15 @@ export default [
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "49 kB",
+    limit: "50 kB",
   },
   {
-    // The React entry and the element's own mount: measured at 49.7 kB
-    // (38.2 kB minified).
+    // The React entry and the element's own mount: measured at 50.0 kB
+    // (38.4 kB minified).
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "50 kB",
+    limit: "51 kB",
   },
   {
     name: "Stylesheet (./styles.css)",

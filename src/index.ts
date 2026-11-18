@@ -22,6 +22,8 @@ export type {
   ImageLimitName,
 } from "./core/errors/image-limits.js";
 export {
+  ANIMATION_LIMITS,
+  animationLimits,
   checkFileLimits,
   checkOutputLimits,
   imageLimitDefinitions,

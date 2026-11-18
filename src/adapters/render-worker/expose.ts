@@ -113,8 +113,11 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
             details: { format: own.format, problem: "the probe describes another file" },
           });
         }
-        checkFileLimits(imageLimits.resolve(limits), file.size, own);
-        if (frames === "all" && own.format === "gif" && own.frames > 1) {
+        // Held as a still, a file counts one frame against the limits; held
+        // with its frames, every one (docs/adr/0011).
+        const all = frames === "all" && own.format === "gif" && own.frames > 1;
+        checkFileLimits(imageLimits.resolve(limits), file.size, own, all ? "all" : "first");
+        if (all) {
           // An animation's working set is several screens, so its screen
           // has a lower ceiling than a still's. The session opens a file
           // over it as a still; asked for directly, it's refused.

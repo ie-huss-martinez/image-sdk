@@ -88,10 +88,13 @@ export function createFakeEngine(): FakeEngine {
         throw new TypeError(`Source "${id}" is already registered.`);
       }
       // Its own probe, under the policy, before anything decodes.
+      const own = await engine.probe(file);
       checkFileLimits(
         options?.filePolicy ?? imageLimits.resolve(),
         file.size,
-        await engine.probe(file),
+        own,
+        // A still counts one frame; a source with its frames, every one.
+        options?.frames === "all" && own.frames > 1 ? "all" : "first",
       );
       const fake = await readFake(file);
       const decoded = fake.decodesAs ?? orientedSize(fake, fake.orientation);

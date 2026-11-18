@@ -8,6 +8,7 @@ import {
 import { asImageError, throwIfAborted } from "../errors/error-helpers.js";
 import { ImageError, isImageError } from "../errors/image-error.js";
 import {
+  animationLimits,
   checkFileLimits,
   checkOutputLimits,
   type ImageFilePolicy,
@@ -26,6 +27,7 @@ import {
   type ImageLayer,
   type ImagePlan,
   type ImageStroke,
+  MAX_ANIMATION_FRAMES,
 } from "../model/plan.js";
 import type {
   ImageKeepableMetadata,
@@ -475,8 +477,9 @@ function checkSource(
   policy: ImageFilePolicy,
   file: Blob,
   probe: ImageProbe,
+  frames: "first" | "all",
 ): readonly ImageLimitName[] {
-  const near = checkFileLimits(policy, file.size, probe);
+  const near = checkFileLimits(policy, file.size, probe, frames);
   // A new document holds this one source: the previous one's are released.
   const bytes = decodedBytes(probe);
   if (policy.check("maxSessionSize", bytes) === "warning") near.push("maxSessionSize");
@@ -755,20 +758,25 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
             policy.check("maxFileSize", file.size);
             const probe = await engine.probe(file, { signal });
             throwIfAborted(signal);
-            const near = [...checkSource(policy, file, probe)];
-            if (ticket !== opens) throw superseded();
-            // An animation is held with all its frames when its screen is
-            // within `maxAnimationPixels`; over it, the file opens as its
-            // first frame, as it always did (docs/adr/0011).
-            const size = probe.oriented.width * probe.oriented.height;
-            // A host that wants stills only asked for none: the limit isn't consulted.
+            // An animation is held with all its frames when it's within
+            // the limits on one: its frames, what they could decode to, and
+            // its screen. Over any of them the file opens as its first
+            // frame, a still, and the snapshot's warnings name the limit: an
+            // animation that can't be held opens as a still and says so
+            // (docs/adr/0011). A host that wants stills only asked for
+            // none, and the limits aren't consulted.
             const wanted = probe.frames > 1 && options.animations !== false;
-            const within = wanted ? fits("maxAnimationPixels", size) : undefined;
-            const animated = wanted && within !== false;
-            // Near the size an animation may be ("warning"), or over it and
-            // so a still (`false`): the snapshot's warnings name the limit
-            // either way.
-            if (within !== undefined) near.push("maxAnimationPixels");
+            const limits = wanted
+              ? animationLimits(policy, probe, MAX_ANIMATION_FRAMES)
+              : { over: [], near: [] };
+            const animated = wanted && limits.over.length === 0;
+            // What it's held as is what's refused or warned of: a still
+            // counts one frame.
+            const near = [...checkSource(policy, file, probe, animated ? "all" : "first")];
+            for (const limit of [...limits.over, ...limits.near]) {
+              if (!near.includes(limit)) near.push(limit);
+            }
+            if (ticket !== opens) throw superseded();
             const info = await engine.register(id, file, probe, {
               filePolicy: policy,
               signal,
@@ -854,7 +862,8 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
             policy.check("maxFileSize", file.size);
             const probe = await engine.probe(file, { signal });
             throwIfAborted(signal);
-            checkFileLimits(policy, file.size, probe);
+            // A layer's source is a still: an animated file's first frame.
+            checkFileLimits(policy, file.size, probe, "first");
             const info = await engine.register(id, file, probe, { filePolicy: policy, signal });
             registered = true;
             throwIfAborted(signal);
@@ -866,7 +875,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         if (started !== generation || plan === null || source === null) throw superseded();
 
         // From here to the end nothing awaits, so nothing can change under us.
-        const near = checkFileLimits(policy, file.size, probe);
+        const near = checkFileLimits(policy, file.size, probe, "first");
         // Every source held, and this one.
         if (policy.check("maxFiles", extras.size + 2) === "warning") near.push("maxFiles");
         near.push(...makeRoom(info.decodedBytes));

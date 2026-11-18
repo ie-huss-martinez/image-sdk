@@ -1,6 +1,6 @@
 import { CloseIcon, IconButton } from "@hussmartinez/ui/react";
 import { type ReactNode, useId, useState } from "react";
-import type { ImageLimitName } from "../../core/errors/image-limits.js";
+import { ANIMATION_LIMITS, type ImageLimitName } from "../../core/errors/image-limits.js";
 import type { ImageSessionSource } from "../../core/session/session.js";
 import { useImageDocument, useImageMessages } from "../hooks.js";
 
@@ -36,16 +36,23 @@ export function StageNotices(): ReactNode {
   const notices: Notice[] = [];
   /** An animated file that's open as a still: its first frame. */
   const firstFrameOnly = source.frames === 1 && source.fileFrames > 1;
+  /** And it's a still because it's over a limit on animations (docs/adr/0011). */
+  const tooLarge = firstFrameOnly && ANIMATION_LIMITS.some((limit) => warnings.includes(limit));
+  if (tooLarge) {
+    // One notice says why it's a still, whichever limits it's over.
+    notices.push({
+      key: `${source.id}:animationTooLarge`,
+      text: messages.t("notices.animationTooLarge"),
+    });
+  }
   for (const limit of warnings) {
     // The session reports only per-file limits when it opens an image.
     if (limit === "maxSessionSize" || limit === "maxLayers") continue;
+    // Said already, above: these are why the file is a still.
+    if (tooLarge && (ANIMATION_LIMITS as readonly string[]).includes(limit)) continue;
     notices.push({
       key: `${source.id}:${limit}`,
-      // Over the size an animation may be, the file is open as a still: that's what to say.
-      text:
-        limit === "maxAnimationPixels" && firstFrameOnly
-          ? messages.t("notices.animationTooLarge")
-          : t(`warnings.${limit}`, warningValues(limit, source)),
+      text: t(`warnings.${limit}`, warningValues(limit, source)),
     });
   }
   // An animation that isn't all there, or isn't open as one (docs/adr/0011).
@@ -57,7 +64,7 @@ export function StageNotices(): ReactNode {
         listed: source.fileFrames,
       }),
     });
-  } else if (firstFrameOnly && !warnings.includes("maxAnimationPixels")) {
+  } else if (firstFrameOnly && !tooLarge) {
     notices.push({ key: `${source.id}:firstFrame`, text: messages.t("notices.firstFrame") });
   }
   if (source.metadata.colourProfile) {

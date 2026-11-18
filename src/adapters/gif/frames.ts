@@ -108,9 +108,12 @@ function tableAt(bytes: Uint8Array, offset: number, bits: number): GifColourTabl
  * file before it's used, the table is bounded at {@link MAX_GIF_FRAMES},
  * and a malformed file fails with `INVALID_IMAGE`, never a hang.
  *
+ * @param only - `"first"` stops after the first frame, for a file held as
+ *   a still: then `complete` is `false`, since the rest isn't read, and a
+ *   file of any number of frames is read.
  * @throws `ImageError` with `INVALID_IMAGE`, or `TOO_MANY_FRAMES` past 4,096 frames.
  */
-export function readGifFrames(bytes: Uint8Array): GifFile {
+export function readGifFrames(bytes: Uint8Array, only: "all" | "first" = "all"): GifFile {
   need(bytes, 0, 13, "the logical screen descriptor");
   const signature = ascii(bytes, 0, 6);
   if (signature !== "GIF87a" && signature !== "GIF89a") throw invalid("gif", "not a GIF");
@@ -234,6 +237,8 @@ export function readGifFrames(bytes: Uint8Array): GifFile {
       delay = 0;
       disposal = 0;
       transparent = null;
+      // A still needs its first frame and nothing after it, however many follow.
+      if (only === "first") break;
     } catch (error) {
       // After a whole frame, what can't be read is where the file's frames end.
       if (frames.length > 0 && isImageError(error) && error.code === "INVALID_IMAGE") break;

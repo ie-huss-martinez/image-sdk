@@ -357,6 +357,63 @@ describe("the image session (ADR 0003)", () => {
       expect(near.session.getSnapshot().warnings).toEqual([]);
     });
 
+    it("opens an animation over maxFrames or maxDecodedSize as its first frame, never refusing it", async () => {
+      // Five frames, over a limit of four.
+      const frames = setup({ filePolicy: { maxFrames: { maximum: 4, warning: 2 } } });
+      const source = await frames.session.open(animated());
+      expect(source).toMatchObject({ frames: 1, fileFrames: 5, incomplete: false, timing: null });
+      expect(frames.session.getSnapshot()).toMatchObject({
+        error: null,
+        warnings: ["maxFrames"],
+        plan: createPlan(source.id),
+      });
+      expect(frames.engine.sources.get(source.id)?.frames).toBe(1);
+      expect((await frames.session.export({ type: "png" })).blob.size).toBeGreaterThan(0);
+
+      // Five frames of 40 × 20 could decode to 16,000 bytes: over 10,000, though one frame is 3,200.
+      const decoded = setup({
+        filePolicy: { maxDecodedSize: { maximum: 10_000, warning: 5_000 } },
+      });
+      const held = await decoded.session.open(animated());
+      expect(held).toMatchObject({ frames: 1, fileFrames: 5 });
+      expect(decoded.session.getSnapshot()).toMatchObject({
+        error: null,
+        warnings: ["maxDecodedSize"],
+      });
+
+      // Over two of them at once: both are named, once each.
+      const both = setup({ filePolicy: { maxFrames: 4, maxAnimationPixels: 500 } });
+      await both.session.open(animated());
+      expect(both.session.getSnapshot().warnings).toEqual(["maxFrames", "maxAnimationPixels"]);
+
+      // At the limits exactly, it's an animation.
+      const at = setup({ filePolicy: { maxFrames: 5, maxDecodedSize: 16_000 } });
+      expect((await at.session.open(animated())).frames).toBe(5);
+    });
+
+    it("still refuses a file whose first frame alone is over a limit", async () => {
+      // One frame of 40 × 20 is 3,200 bytes and 800 pixels.
+      const decoded = setup({ filePolicy: { maxDecodedSize: 3_000 } });
+      expect(await code(decoded.session.open(animated()))).toEqual([
+        "DECODED_SIZE_TOO_LARGE",
+        "maxDecodedSize",
+      ]);
+      const pixels = setup({ filePolicy: { maxImagePixels: 700 } });
+      expect(await code(pixels.session.open(animated()))).toEqual([
+        "IMAGE_TOO_LARGE",
+        "maxImagePixels",
+      ]);
+      expect(pixels.session.getSnapshot().status).toBe("empty");
+    });
+
+    it("adds an animation over its limits as a layer: its first frame", async () => {
+      const { session } = setup({ filePolicy: { maxFrames: 4 } });
+      await session.open(await file());
+      const added = await session.insertImage(animated());
+      expect(added).toMatchObject({ frames: 1, fileFrames: 5 });
+      expect(session.getSnapshot().plan?.layers).toHaveLength(1);
+    });
+
     it("opens every file as a still when the host asks for no animations", async () => {
       const { session, engine } = setup({ animations: false });
       const steps: unknown[] = [];

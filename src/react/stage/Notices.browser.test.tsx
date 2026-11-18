@@ -185,6 +185,31 @@ describe("an animation's notices (docs/adr/0011)", () => {
     expect(exported?.blob.size).toBeGreaterThan(0);
   });
 
+  it("opens an animation over maxFrames or maxDecodedSize as its first frame, and says so once", async () => {
+    // Four frames of 12 × 9: over three frames, and over 1,000 bytes across them.
+    for (const filePolicy of [
+      { maxFrames: 3 },
+      { maxDecodedSize: 1_000 },
+      { maxFrames: 3, maxDecodedSize: 1_000, maxAnimationPixels: 100 },
+    ]) {
+      const editor = await mounted({ filePolicy });
+      await editor.open(animation(4));
+      const snapshot = session(editor)?.getSnapshot();
+      expect(snapshot).toMatchObject({ status: "ready", error: null });
+      expect(snapshot?.plan?.animation).toBeNull();
+      expect(snapshot?.source).toMatchObject({ frames: 1, fileFrames: 4 });
+      // One notice, whichever limits it's over, and no error.
+      expect(texts()).toEqual([
+        expect.stringContaining(
+          "This animation is too large to edit as an animation. Its first frame is open as a still image.",
+        ),
+      ]);
+      expect((await session(editor)?.export({ type: "png" }))?.blob.size).toBeGreaterThan(0);
+      await act(async () => root?.unmount());
+      host?.remove();
+    }
+  });
+
   it("opens an animation within the limit as one, with a warning when it's near it", async () => {
     const editor = await mounted({
       filePolicy: { maxAnimationPixels: { maximum: 200, warning: 50 } },

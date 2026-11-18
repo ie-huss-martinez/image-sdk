@@ -430,6 +430,80 @@ describe("a GIF held with all its frames (docs/adr/0011)", () => {
     expect(at.frames).toBe(5);
   });
 
+  it("holds a file over an animation's limits as its first frame, and refuses it only with all its frames", async () => {
+    const own = engine();
+    const file = blobOf(BYTES);
+    const probe = await own.probe(file);
+    // Five frames of 12 × 9: over four frames, and over 1,000 bytes across them.
+    for (const [overrides, code] of [
+      [{ maxFrames: 4 }, "TOO_MANY_FRAMES"],
+      [{ maxDecodedSize: 1_000 }, "DECODED_SIZE_TOO_LARGE"],
+    ] as const) {
+      const filePolicy = imageLimits.resolve(overrides);
+      const error = await own.register("all", file, probe, { frames: "all", filePolicy }).then(
+        () => undefined,
+        (thrown: unknown) => thrown,
+      );
+      expect(isImageError(error, code), code).toBe(true);
+      // As a still it counts one frame, and registers.
+      const still = await own.register(`still-${code}`, file, probe, { filePolicy });
+      expect(still).toMatchObject({ frames: 1, timing: null, width: 12, height: 9 });
+    }
+    // But not when its first frame alone is over a limit.
+    const small = imageLimits.resolve({ maxDecodedSize: 400 });
+    const error = await own.register("small", file, probe, { filePolicy: small }).then(
+      () => undefined,
+      (thrown: unknown) => thrown,
+    );
+    expect(isImageError(error, "DECODED_SIZE_TOO_LARGE")).toBe(true);
+  });
+
+  it("opens the first frame of a file with more frames than any animation holds", async () => {
+    // 4,097 frames of one pixel: one more than the frame table keeps.
+    const many = writeGif({
+      width: 3,
+      height: 2,
+      palette: FOUR,
+      loop: 0,
+      frames: [
+        { pixels: pattern(3, 2, 4), delay: 1 },
+        ...Array.from({ length: 4_096 }, () => ({
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
+          pixels: [1],
+          delay: 1,
+        })),
+      ],
+    });
+    const own = engine();
+    const file = blobOf(many);
+    const probe = await own.probe(file);
+    expect(probe.frames).toBe(4_097);
+    // The default policy allows 300 frames: as a still, it isn't asked.
+    const still = await own.register("s", file, probe);
+    expect(still).toMatchObject({ frames: 1, width: 3, height: 2 });
+    const exported = await pixelsOf(
+      await createImageProcessor(own).export({ plan: createPlan("s"), format: { type: "png" } }),
+    );
+    const first = await pixelsOf(
+      blobOf(
+        writeGif({ width: 3, height: 2, palette: FOUR, frames: [{ pixels: pattern(3, 2, 4) }] }),
+      ),
+    );
+    expect(differing(exported.data, first.data)).toBe(0);
+    // With all its frames it's refused, whatever the policy allows.
+    const generous = imageLimits.resolve({ maxFrames: 10_000 });
+    const error = await own
+      .register("all", file, probe, { frames: "all", filePolicy: generous })
+      .then(
+        () => undefined,
+        (thrown: unknown) => thrown,
+      );
+    expect(isImageError(error, "TOO_MANY_FRAMES")).toBe(true);
+  });
+
   it("frees a source's frames when it's released", async () => {
     const { own } = await held(BYTES);
     await own.release("s");
