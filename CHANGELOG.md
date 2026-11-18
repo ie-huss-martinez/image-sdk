@@ -1,5 +1,108 @@
 # @hussmartinez/image-sdk
 
+## 0.7.0
+
+### Minor Changes
+
+- [#104](https://github.com/ie-huss-martinez/image-sdk/pull/104) [`c05da4f`](https://github.com/ie-huss-martinez/image-sdk/commit/c05da4fcd0493ee41d534085d34594a519b190b6) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The editor plays an animation ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)). An animated GIF shows a bar under the stage with Play, a frame scrubber, and which frame is shown with its delay.
+  
+  - **Nothing plays on its own.** An animation opens paused on its first frame. Play shows when it's pressed; `Space` plays and pauses from anywhere in the editor except on a control, as the family's play-pause shortcut does. Moving the scrubber pauses.
+  - **A new tool, `image.play`,** carries that shortcut. It isn't on the toolbar, since the bar has Play; a host that lists its own `tools` adds it to keep Space.
+  - **Playing keeps the file's timing** and its loop count, and stops on the last frame when the count is spent. A delay under 2 hundredths of a second plays as 10, as browsers play it; the plan and the export keep it as it is.
+  - **The export dialog exports the frame shown** to PNG, JPEG and WebP, and every frame to GIF. Opening it stops playing.
+  - **`ImageEditorState` gains `playback`,** the frame shown and whether it's playing: view state, outside the plan and its undo history.
+  - A still image's editor looks as it did: the bar only appears for an animation.
+
+- [#98](https://github.com/ie-huss-martinez/image-sdk/pull/98) [`281580d`](https://github.com/ie-huss-martinez/image-sdk/commit/281580dfea7b00fc84d037e231f226025bd4316b) Thanks [@hussmartinez](https://github.com/hussmartinez)! - A host can keep every file a still: `animations: false` ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)).
+  
+  - **`createImageSession({ animations: false })`,** the `animations` prop of `ImageEditor` and `ImageEditorProvider`, and the `animations` property of `<hm-image-editor>`. It's `true` when omitted.
+  - **With `false`, an animated file opens as its first frame,** as it did before 0.7.0, and its frames aren't decoded. The editor says "This file is an animation. Its first frame is open as a still image."
+  - It's the way to say so: `maxAnimationPixels` is a limit on an animation's size, not a switch.
+
+- [#105](https://github.com/ie-huss-martinez/image-sdk/pull/105) [`24bf9fe`](https://github.com/ie-huss-martinez/image-sdk/commit/24bf9fe1d3143a38aaee70d3508bc4933ea4c166) Thanks [@hussmartinez](https://github.com/hussmartinez)! - An animation shows its first frame while it opens ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)). Every frame of an animated GIF is checked once as it opens, which takes a few seconds for a large file. The editor now shows the first frame on the stage as soon as it's decoded, with the progress and Cancel at the stage's foot, instead of an empty stage. While playing, Play shows a Pause icon.
+  
+  - **`ImageRegisterOptions.onFirstFrame`:** called once a source registered with all its frames has its first frame ready, before the rest are checked. From then until `register` settles, a renderer of the same engine may draw a still plan of that source.
+  - **`ImageSessionSnapshot.openingFrame`:** the opening animation's first frame, as a source id and size a renderer may draw, while it opens. `null` otherwise.
+  - The editor shows it only when no image is open yet. Opening another file over one that's open keeps the open one on the stage, since it stays editable until the new one is ready.
+  
+  **If you have your own `ImageEngine` or `ImageRenderer`:** nothing changes unless you want this. An engine that never calls `onFirstFrame` gives no early frame, and the editor shows the progress alone, as before.
+
+- [#106](https://github.com/ie-huss-martinez/image-sdk/pull/106) [`a3df4dc`](https://github.com/ie-huss-martinez/image-sdk/commit/a3df4dc8dfe8413d6dcfc34187159fad3d5b2ad7) Thanks [@hussmartinez](https://github.com/hussmartinez)! - An animation's frames can be edited in the editor ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)). A Frames tool (`image.frames`, shortcut `F`) is on the toolbar for an animated image. It opens a panel in the inspector that lists the frames in the order they play, each with a thumbnail and a name such as "Frame 3, 0.10 seconds".
+  
+  - **Editing:** move a frame earlier or later, duplicate it, delete it, reverse the order, set a frame's delay or every frame's, and choose whether the animation plays once, a number of times or for ever. Each is one undo step, and moves, copies, deletions and reversals are announced. The list works from the keyboard as the layers list does: the arrows between frames, `Alt` (`Option` on macOS) with Up and Down to move one, and `Delete` to remove one.
+  - **The selected frame is the frame shown,** so the list, the scrubber and the stage always agree. Selecting a frame pauses playing.
+  - **Thumbnails are drawn only for the rows in view,** at most 24 at once, and released when their rows scroll away or the panel closes.
+  - **`ImageFramesPanel`** is exported from `./react` for hosts that lay out their own editor, as `ImageLayersPanel` is. `ImageEditorState["tool"]` can now be `"frames"`.
+  - **The toolbar leaves out a group with no tool to show,** such as the frames group for a still image, so a still's toolbar is as it was.
+
+- [#101](https://github.com/ie-huss-martinez/image-sdk/pull/101) [`e15ca6f`](https://github.com/ie-huss-martinez/image-sdk/commit/e15ca6fe30d4f5f5662cfc396701a84bce765451) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Export to GIF ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)): `processor.export({ plan, format: { type: "gif" } })`, `session.export({ type: "gif" })`, and a GIF choice in the export dialog.
+  
+  - **An animated plan exports every frame,** in its order, with its delays and loop count; a still exports one frame that plays once. Everything else in the plan, the crop, the turn, develop, the layers and the redactions, applies to every frame.
+  - **Every frame is written whole,** with its own palette of up to 255 colours and one transparent colour, and clears the screen before the next. So a transparent area never shows the frame before, and nothing a redaction covers in one frame can show through another. A pixel under half opaque is written transparent: a GIF has no partial transparency. A file can come out larger than the GIF it was opened from.
+  - **A GIF carries no metadata.** The fields you keep aren't written to it, the session's `kept` is empty, and the dialog says so.
+  - **Bounded before it starts:** frames × output pixels × 4 bytes over `maxDecodedSize` fails with `DECODED_SIZE_TOO_LARGE`. Progress is reported by frame, and the export can be cancelled between frames.
+  - **A second worker writes the file,** started on the first GIF export and stopped after a while without work. It's inlined like the render worker, needing no new Content Security Policy directive. **If you self-host the assets,** copy `dist/assets/` again: it now holds `image/job.worker.js` beside `image/render.worker.js`.
+  - **The encoder is `gifenc` 1.0.3** (MIT), bundled into that worker and credited in the package's new `NOTICE` file.
+  - **`ImageExportFormat` gains `{ type: "gif" }`.** Code that switches over `format.type` needs a case for it. **If you pass your own `ImageProcessor`,** the editor's dialog and `session.export` can now ask it for a GIF: handle it, or reject it with `UNSUPPORTED_FORMAT`, which the dialog shows with the catalogue's text.
+
+- [#96](https://github.com/ie-huss-martinez/image-sdk/pull/96) [`dc5ba28`](https://github.com/ie-huss-martinez/image-sdk/commit/dc5ba2819a4ac34c8ea3545889fc0efbe39b0fa4) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The engine can hold a GIF with all its frames, and draw any of them ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)). The editor and the session still open every file as a still: this is for hosts that use the engine, the processor and the renderer directly, and for the releases that follow.
+  
+  - **`engine.register(id, file, probe, { frames: "all" })`** holds every frame of an animated GIF. Each frame is decoded once to check it, so the call takes as long as that: `onProgress` reports each frame, and `signal` cancels it. The default, `"first"`, is a still, as before.
+  - **`ImageSourceInfo` gains `timing` and `incomplete`.** `timing` is the file's loop count and each frame's delay, `null` for a still. `incomplete` is `true` when the file's frames ended early, before its end or at a frame that couldn't be decoded: the frames before that are the source's. `frames` is how many it holds, and `decodedBytes` what the worker holds for it, which for an animation isn't every frame.
+  - **`frame` on an export's job and on a render's view** names which of the plan's `animation.frames` to draw, 0 when omitted. A frame the plan doesn't have is a `RangeError`.
+  - **A plan with an animation is drawn only over a source registered with its frames.** Otherwise it's refused with `UNSUPPORTED_PLAN`, as before.
+  
+  **If you have your own `ImageEngine`:** return `timing: null` and `incomplete: false` from `register` for a still. The engine's contract tests check both.
+
+- [#97](https://github.com/ie-huss-martinez/image-sdk/pull/97) [`a5ed827`](https://github.com/ie-huss-martinez/image-sdk/commit/a5ed827e94afcdaff7cd1618dc70407e3cba8515) Thanks [@hussmartinez](https://github.com/hussmartinez)! - An animated GIF opens as an animation ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)): the session's plan lists its frames with the file's timing, and the frame commands edit them. Playing, a timeline and writing a GIF come next; until then the editor shows the first frame, and an export is one frame.
+  
+  - **`session.open` gives an animated plan** for a GIF of several frames: `plan.animation` plays the source's frames in order, with the file's delays and loop count. Each frame is decoded once while it opens, so a long animation takes a moment: the snapshot's new `progress` says how many frames are checked, the stage shows it as a progress bar, and Cancel stops it.
+  - **Nothing that opened before is refused.** A GIF whose screen is over the new `maxAnimationPixels` limit (8 megapixels, with a warning at 2) opens as its first frame, a still, as before, and the editor says why. Animated PNG and WebP still open as their first frame, and the editor now says that too.
+  - **A damaged animation opens as the frames before the damage,** and the editor says how many opened. The source's `incomplete` is `true`.
+  - **`ImageSessionSource.fileFrames`** is how many frames the file lists, beside `frames`, how many the source holds.
+  - **`session.export(format, { frame })`** exports one frame of an animation: an index into `plan.animation.frames`, 0 when omitted.
+  - **`applyPlan` takes an animation's changes** as one step: frames added, removed, reordered and retimed, and the loop count. It refuses a plan that would make a still play or an animation a still.
+  - **`maxFrames` applies to commands that add frames,** with `TOO_MANY_FRAMES`.
+  - **New texts** in the catalogue: `warnings.maxAnimationPixels` and `errors.ANIMATION_TOO_LARGE`, and in the editor's, `editor.checkingFrames` and four `notices.` keys.
+  
+  **What may need a change**
+  
+  - **If you have your own `ImageProcessor` or `ImageRenderer`:** a GIF that used to reach it as a still now has a plan with an `animation`. Pass `animation` to `checkPlanSupport` once it draws the job's or the view's `frame`; until then it refuses such a plan with `UNSUPPORTED_PLAN`, where it drew the first frame before. To keep every file a still, create the session with `animations: false`, or give the editor or the element `animations={false}`.
+  - **If you store plans:** a GIF's plan now has an `animation`, which document version 4 holds.
+  - **If you read `plan.animation`:** it's no longer always `null` after an open.
+
+- [#92](https://github.com/ie-huss-martinez/image-sdk/pull/92) [`d589510`](https://github.com/ie-huss-martinez/image-sdk/commit/d589510155bf03ede3aafd1dbdbbbca2967d0517) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Add the animation to the plan: format version 4 ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)). This release adds the model, the commands and the format. Opening a file as an animation, playing it and writing a GIF come in later releases: until then every opened image is a still, and a renderer refuses an animated plan with `UNSUPPORTED_PLAN`.
+  
+  - **`ImagePlan.animation` is `ImageAnimation | null`.** An animation is a loop count and `frames`: each an `ImageFrame` with a `key`, the `frame` of the base's source it shows, and its `delay` in hundredths of a second. A frame holds no pixels, so two may show the same one. Everything else in the plan applies to every frame.
+  - **Frame commands,** each with an exact inverse: `image.insertFrames`, `image.removeFrames`, `image.moveFrames`, `image.reverseFrames`, `image.updateFrames` (delays) and `image.setLoop`. An animation keeps at least one frame and holds at most `MAX_ANIMATION_FRAMES` (4,096).
+  - **New refusals** in `ImageCommandRejection`: `not-animated`, `unknown-frame`, `invalid-frame`, `invalid-delay`, `invalid-loop`, `no-frames` and `too-many-frames`. A frame command on a still is `not-animated`.
+  - **Keys are unique among layers, redactions and frames.**
+  
+  **Format version 4**
+  
+  - `toImagePlanDocument` writes version 4, and `readImagePlanDocument` reads versions 1 to 4. A version 3 document reads to the same plan, each of its sources with one frame.
+  - A reader from 0.6 or earlier refuses a version 4 document with `UNSUPPORTED_FORMAT` and `unknown-format-version`, which an application can show as "update the application". Keep documents at the version their readers have until every reader is updated.
+  - The schemas are `formats/hm-image-plan/v4.schema.json` and `formats/hm-image-command/v4.schema.json`; earlier versions' stay.
+  
+  **What to change**
+  
+  - **`ImagePlanDocumentSource` has a required `frames`,** 1 for a still. If you build the `sources` you pass to `toImagePlanDocument` yourself, add it; the session's own sources (`ImageSourceInfo`) already have it.
+  - **`createImageReducer`'s function may return `frames`** with a source's size (`ImageReducerSource`). A source that gives none has one frame, so existing callers work unchanged.
+  - **Code that assumed `plan.animation` is `null`** should check it. A custom renderer or processor should pass `animation` to `checkPlanSupport` only once it plays one.
+
+- [#99](https://github.com/ie-huss-martinez/image-sdk/pull/99) [`21f2dcd`](https://github.com/ie-huss-martinez/image-sdk/commit/21f2dcda9420919573aac5459debcf302ffdcb80) Thanks [@hussmartinez](https://github.com/hussmartinez)! - An animation the SDK can't hold opens as its first frame, and says so ([ADR 0011](https://github.com/ie-huss-martinez/image-sdk/blob/main/docs/adr/0011-gif-and-animation.md)). It's one rule for the three limits on animations: `maxFrames`, `maxDecodedSize` across the frames, and `maxAnimationPixels`.
+  
+  - **Files that 0.6.0 refused now open.** An animated GIF, PNG or WebP with more frames than `maxFrames` (300), or whose frames could decode to more than `maxDecodedSize` (1 GB), was refused with `TOO_MANY_FRAMES` or `DECODED_SIZE_TOO_LARGE`, though only its first frame was ever shown. It now opens as its first frame, a still, and the editor says "This animation is too large to edit as an animation. Its first frame is open as a still image."
+  - **The snapshot's `warnings` name the limits** such a file was over. A still's own limits still refuse: a file whose first frame alone is over `maxImagePixels`, `maxImageDimension`, `maxFileSize` or `maxDecodedSize` fails as before.
+  - **`engine.register` counts what it's asked to hold:** one frame for a still, the default, and every frame with `frames: "all"`, which is where the animation limits' codes can still be raised.
+  - **`checkFileLimits(policy, size, probe, frames?)`** takes `"first"` or `"all"`, and counts every frame when it isn't told, as before. `ANIMATION_LIMITS` and `animationLimits(policy, probe)` say which of the three a file is over and near, without throwing.
+  
+  **If you relied on the refusal:** a host that showed `TOO_MANY_FRAMES` for a long animation now gets a still and a warning in the snapshot. To refuse such files, check `animationLimits(policy, probe).over` before opening.
+
+### Patch Changes
+
+- [#103](https://github.com/ie-huss-martinez/image-sdk/pull/103) [`cd2a8a9`](https://github.com/ie-huss-martinez/image-sdk/commit/cd2a8a953acd737de2fcc527bb05d3a3962c23ea) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The export summary no longer says details are kept in a WebP file. WebP exports carry no metadata, as they never have, but the dialog listed the fields you filled in under "Kept in the file", and `session.export` reported them in `kept`. Now, for WebP as for GIF, `kept` is empty and the dialog says "A WebP file carries no details: these aren't written to it." PNG and JPEG keep the fields as before.
+
 ## 0.6.0
 
 ### Minor Changes
