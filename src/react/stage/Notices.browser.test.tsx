@@ -260,6 +260,21 @@ describe("an animation's notices (docs/adr/0011)", () => {
     expect(document.querySelector('[role="alert"]')?.textContent ?? "").toBe("");
   });
 
+  it("opens an animation as its first frame when the host asks for no animations, and says so", async () => {
+    const editor = await mounted({ animations: false });
+    await editor.open(animation(4));
+    const snapshot = session(editor)?.getSnapshot();
+    expect(snapshot?.plan?.animation).toBeNull();
+    expect(snapshot?.source).toMatchObject({ frames: 1, fileFrames: 4 });
+    expect(snapshot?.warnings).toEqual([]);
+    // What it is, without a reason that isn't the reason: it isn't too large.
+    expect(texts()).toEqual([
+      expect.stringContaining(
+        "This file is an animation. Its first frame is open as a still image.",
+      ),
+    ]);
+  });
+
   it("says nothing of an animation well within the limit", async () => {
     const editor = await mounted();
     await editor.open(animation(4));

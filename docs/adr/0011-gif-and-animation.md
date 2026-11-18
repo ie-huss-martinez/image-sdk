@@ -9,6 +9,7 @@
 - **Amended:** 2026-11-17, as the frame store was built: the reserved disposal methods' mapping is measured, and how the cache is planned, under "What the worker holds"
 - **Amended:** 2026-11-17, as the engine came to hold frames: how a source is registered with them, what it reports, and how a call names the frame it draws, under "Holding a source with its frames"
 - **Amended:** 2026-11-18, as the session came to open animations: a file over `maxAnimationPixels` opens as its first frame with a notice, where this record refused it; and what the session does, under "Opening an animation in the session"
+- **Amended:** 2026-11-18: `animations: false` keeps every file a still, under "Opening an animation in the session"
 
 ## Context
 
@@ -90,6 +91,7 @@ The frame table ends where the file stops being a GIF, and the probe counts the 
 ### Opening an animation in the session
 
 - **The session decides, from the probe.** A file of several frames whose screen is within `maxAnimationPixels` is registered with all its frames; any other is registered as before. So the engine's check of every frame runs only for a file that will be an animation.
+- **A host can ask for stills only:** `animations: false` on the session, the editor and the element, `true` when omitted. Then every file is registered as before, and an animated one says it's open as its first frame. It's an option of its own because a limit used as a switch is a trap: `maxAnimationPixels` says how large an animation may be, and setting it to almost nothing to mean "never" would read as a limit and warn as one.
 - **The plan it makes** plays the source's frames in order, with the file's delays and loop count, under the keys `frame-1`, `frame-2` and so on. A source that holds one frame, because the file has one, is too large, isn't a GIF, or lost every frame after its first, gets a still's plan.
 - **The snapshot says how the open is going:** `progress` is the frames checked of those the file lists, while an animation is being opened, and `null` otherwise. The stage shows it as a progress bar named for the open, with the count in words, and Cancel beside it.
 - **A source says what the file had:** `fileFrames` is the frames the file lists, beside `frames`, the frames held. An animated file open as a still has more of the first than the second.

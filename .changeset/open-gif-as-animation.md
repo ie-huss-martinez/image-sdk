@@ -15,6 +15,6 @@ An animated GIF opens as an animation ([ADR 0011](https://github.com/ie-huss-mar
 
 **What may need a change**
 
-- **If you have your own `ImageProcessor` or `ImageRenderer`:** a GIF that used to reach it as a still now has a plan with an `animation`. Pass `animation` to `checkPlanSupport` once it draws the job's or the view's `frame`; until then it refuses such a plan with `UNSUPPORTED_PLAN`, where it drew the first frame before. To keep every file a still, give the session a `filePolicy` with `maxAnimationPixels: 1`: a limit must be positive, and one pixel is under any animation.
+- **If you have your own `ImageProcessor` or `ImageRenderer`:** a GIF that used to reach it as a still now has a plan with an `animation`. Pass `animation` to `checkPlanSupport` once it draws the job's or the view's `frame`; until then it refuses such a plan with `UNSUPPORTED_PLAN`, where it drew the first frame before. To keep every file a still, create the session with `animations: false`, or give the editor or the element `animations={false}`.
 - **If you store plans:** a GIF's plan now has an `animation`, which document version 4 holds.
 - **If you read `plan.animation`:** it's no longer always `null` after an open.

@@ -505,6 +505,7 @@ export function ImageEditorProvider(props: ImageEditorProviderProps): ReactNode;
 
 // @public
 export interface ImageEditorProviderProps {
+    readonly animations?: boolean;
     readonly assetsUrl?: string | URL;
     readonly children?: ReactNode;
     // Warning: (ae-forgotten-export) The symbol "ImageEngine" needs to be exported by the entry point react.d.ts
