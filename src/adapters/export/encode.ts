@@ -18,7 +18,7 @@ const MIME_TYPES = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp" } 
 export async function encodePlan(
   source: ImageBitmap,
   plan: ImagePlan,
-  format: ImageExportFormat,
+  format: Exclude<ImageExportFormat, { readonly type: "gif" }>,
   signal?: AbortSignal,
   sources?: (id: string) => ImageBitmap | undefined,
 ): Promise<Blob> {

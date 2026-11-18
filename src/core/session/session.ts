@@ -1043,9 +1043,13 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
           width: size.width,
           height: size.height,
           removed: PRESENCE.filter((kind) => from.metadata[kind]),
-          kept: (Object.keys(exported.metadata) as (keyof ImageKeepableMetadata)[]).filter(
-            (field) => exported.metadata[field] !== "",
-          ),
+          // A GIF carries no details: nothing the user kept is written (docs/adr/0011).
+          kept:
+            format.type === "gif"
+              ? []
+              : (Object.keys(exported.metadata) as (keyof ImageKeepableMetadata)[]).filter(
+                  (field) => exported.metadata[field] !== "",
+                ),
         };
       } catch (reason) {
         const failure = isImageError(reason) ? reason : asImageError(reason);

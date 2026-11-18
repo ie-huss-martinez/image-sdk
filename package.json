@@ -42,7 +42,8 @@
   },
   "files": [
     "dist",
-    "formats"
+    "formats",
+    "NOTICE"
   ],
   "packageManager": "pnpm@12.18.0",
   "engines": {

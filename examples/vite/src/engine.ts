@@ -1,4 +1,9 @@
-import { createImageEngine, isImageError } from "@hussmartinez/image-sdk";
+import {
+  createImageEngine,
+  createImageProcessor,
+  createPlan,
+  isImageError,
+} from "@hussmartinez/image-sdk";
 
 /** What one run of the engine produced, for the page and the end-to-end tests. */
 export interface EngineOutcome {
@@ -62,17 +67,61 @@ async function run(file: Blob, selfHosted: boolean): Promise<EngineOutcome> {
   }
 }
 
+/** What exporting an animation to GIF produced, for the end-to-end tests. */
+export interface GifOutcome {
+  /** `exported`, or the `ImageError` code. */
+  readonly status: string;
+  readonly type?: string;
+  /** The delays of the written file's frames, read back. */
+  readonly delays?: readonly number[];
+}
+
+/** Opens an animated GIF with all its frames and exports it to GIF, as a host would (docs/adr/0011). */
+async function exportGif(file: Blob, selfHosted: boolean): Promise<GifOutcome> {
+  const engine = createImageEngine(selfHosted ? { assetsUrl: "/image-sdk/" } : {});
+  const processor = createImageProcessor(engine);
+  try {
+    const source = await engine.register("source", file, await engine.probe(file), {
+      frames: "all",
+    });
+    const delays = source.timing?.delays ?? [0];
+    const plan = {
+      ...createPlan("source"),
+      animation: {
+        loop: 0,
+        frames: delays.map((delay, frame) => ({ key: `f${frame}`, frame, delay: delay + 1 })),
+      },
+    };
+    const blob = await processor.export({ plan, format: { type: "gif" } });
+    // Read back through the same engine, as any GIF is opened.
+    const written = await engine.register("written", blob, await engine.probe(blob), {
+      frames: "all",
+    });
+    return { status: "exported", type: blob.type, delays: written.timing?.delays ?? [] };
+  } catch (error) {
+    return { status: isImageError(error) ? error.code : "error" };
+  } finally {
+    await processor.destroy();
+    await engine.destroy();
+  }
+}
+
 declare global {
   interface Window {
     /** The hooks the end-to-end tests call. */
     imageSdk: {
       run(bytes: ArrayBuffer, selfHosted: boolean): Promise<EngineOutcome>;
+      exportGif(bytes: ArrayBuffer, selfHosted: boolean): Promise<GifOutcome>;
       readonly violations: readonly string[];
     };
   }
 }
 
-window.imageSdk = { run: (bytes, selfHosted) => run(new Blob([bytes]), selfHosted), violations };
+window.imageSdk = {
+  run: (bytes, selfHosted) => run(new Blob([bytes]), selfHosted),
+  exportGif: (bytes, selfHosted) => exportGif(new Blob([bytes]), selfHosted),
+  violations,
+};
 
 const input = document.querySelector<HTMLInputElement>("#file");
 const selfHostedBox = document.querySelector<HTMLInputElement>("#self-hosted");

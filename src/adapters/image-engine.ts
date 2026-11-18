@@ -51,6 +51,17 @@ export interface EngineInternals {
   readonly getSnapshot: () => boolean;
   readonly subscribe: (listener: () => void) => () => void;
   readonly has: (id: string) => boolean;
+  /**
+   * Loads the job worker's code, on the first GIF export, and returns how to
+   * start it and where it comes from (docs/adr/0011). Each processor starts
+   * its own.
+   */
+  readonly loadJobWorker: () => Promise<{
+    readonly start: () => WorkerLike;
+    readonly asset: string;
+  }>;
+  /** The version the job worker must report: this package's. */
+  readonly version: string;
 }
 
 /** Where an engine made by {@link createImageEngine} keeps its internals. */
@@ -74,6 +85,11 @@ export interface EngineEnvironment {
   readonly version: string;
   /** Where the worker comes from, for the version error's details. */
   readonly asset?: string;
+  /** Loads the job worker's code, as `loadWorker` does the render worker's (docs/adr/0011). */
+  readonly loadJobWorker?: () => Promise<{
+    readonly start: () => WorkerLike;
+    readonly asset: string;
+  }>;
 }
 
 /**
@@ -116,6 +132,20 @@ export function createImageEngine(options: ImageEngineOptions = {}): ImageEngine
           return new Worker(workerUrl, { type: "module", name: "hm-image-render" });
         }
       : async () => (await import("./render-worker/inline-worker.js")).createInlineWorker,
+    // The job worker comes from the same place as the render worker: inlined,
+    // or the host's assets (docs/adr/0011).
+    loadJobWorker: asset
+      ? async () => {
+          const url = asset("image/job.worker.js");
+          return {
+            start: () => new Worker(url, { type: "module", name: "hm-image-job" }),
+            asset: url,
+          };
+        }
+      : async () => ({
+          start: (await import("./job-worker/inline-job-worker.js")).createInlineJobWorker,
+          asset: "inline",
+        }),
     version: __IMAGE_SDK_VERSION__,
     get asset() {
       return workerUrl ?? "inline";
@@ -221,6 +251,15 @@ export function createEngine(
       getSnapshot: lifecycle.getSnapshot,
       subscribe: lifecycle.subscribe,
       has: (id) => ids.get(id)?.registered === true,
+      loadJobWorker: async () => {
+        if (!environment.loadJobWorker) {
+          throw new ImageError("UNSUPPORTED_FORMAT", "This engine can't write GIFs.", {
+            details: { format: "gif" },
+          });
+        }
+        return environment.loadJobWorker();
+      },
+      version: environment.version,
     },
 
     probe(file: Blob, options?: ImageCallOptions): Promise<ImageProbe> {

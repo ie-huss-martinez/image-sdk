@@ -62,6 +62,28 @@ export interface RenderWorkerContract {
     };
     readonly output: Blob;
   };
+  /**
+   * Renders one frame of a plan at its output size, as for an export, and
+   * returns its RGBA pixels, not premultiplied, as a buffer the page
+   * transfers on to the job worker (docs/adr/0011). The output is checked
+   * against the output limits, and `count` frames of it against
+   * `maxDecodedSize`, before anything is drawn.
+   */
+  readonly frame: {
+    readonly input: {
+      readonly plan: ImagePlan;
+      /** Which of the plan's animation's frames: 0 for a still. */
+      readonly frame: number;
+      /** How many frames the export writes, for the bound on all of them. */
+      readonly count: number;
+      readonly limits: Readonly<Record<(typeof OUTPUT_LIMITS)[number] | "maxDecodedSize", number>>;
+    };
+    readonly output: {
+      readonly width: number;
+      readonly height: number;
+      readonly pixels: ArrayBuffer;
+    };
+  };
   /** Takes a canvas the page transferred, for the preview (docs/adr/0002). */
   readonly attachCanvas: {
     readonly input: { readonly id: string; readonly canvas: OffscreenCanvas };

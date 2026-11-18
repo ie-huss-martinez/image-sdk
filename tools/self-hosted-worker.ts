@@ -14,13 +14,21 @@ export function versionDefine(version = PACKAGE_VERSION): Record<string, string>
   return { __IMAGE_SDK_VERSION__: JSON.stringify(version) };
 }
 
-const ENTRY = fileURLToPath(new URL("../src/workers/render.worker.ts", import.meta.url));
+/** The workers a host may serve itself, by their file under `dist/assets/image/` (docs/adr/0002, docs/adr/0011). */
+export const WORKERS = {
+  "render.worker.js": fileURLToPath(new URL("../src/workers/render.worker.ts", import.meta.url)),
+  "job.worker.js": fileURLToPath(new URL("../src/workers/job.worker.ts", import.meta.url)),
+} as const;
+export type WorkerFile = keyof typeof WORKERS;
 
 /**
- * Builds the self-hosted render worker: one minified ES module with no
- * imports, the same code as the inlined worker (docs/adr/0002).
+ * Builds a self-hosted worker: one minified ES module with no imports, the
+ * same code as the inlined worker (docs/adr/0002).
  */
-export async function buildSelfHostedWorker(version = PACKAGE_VERSION): Promise<string> {
+export async function buildSelfHostedWorker(
+  version = PACKAGE_VERSION,
+  file: WorkerFile = "render.worker.js",
+): Promise<string> {
   const result = await build({
     configFile: false,
     logLevel: "silent",
@@ -30,26 +38,28 @@ export async function buildSelfHostedWorker(version = PACKAGE_VERSION): Promise<
       minify: true,
       target: "es2022",
       sourcemap: false,
-      lib: { entry: ENTRY, formats: ["es"], fileName: () => "render.worker.js" },
+      lib: { entry: WORKERS[file], formats: ["es"], fileName: () => file },
       rolldownOptions: { output: { codeSplitting: false, minify: true } },
     },
   });
   const outputs = (Array.isArray(result) ? result : [result]) as Rolldown.RolldownOutput[];
   const chunk = outputs.flatMap((output) => output.output).find((file) => file.type === "chunk");
-  if (chunk?.type !== "chunk") throw new Error("The self-hosted render worker didn't build.");
+  if (chunk?.type !== "chunk") throw new Error(`The self-hosted ${file} didn't build.`);
   return chunk.code;
 }
 
-/** Writes the self-hosted worker to `dist/assets/image/render.worker.js`. */
+/** Writes the self-hosted workers to `dist/assets/image/`. */
 export function selfHostedWorker(): Plugin {
   return {
     name: "hm-self-hosted-render-worker",
     async generateBundle() {
-      this.emitFile({
-        type: "asset",
-        fileName: "assets/image/render.worker.js",
-        source: await buildSelfHostedWorker(),
-      });
+      for (const file of Object.keys(WORKERS) as WorkerFile[]) {
+        this.emitFile({
+          type: "asset",
+          fileName: `assets/image/${file}`,
+          source: await buildSelfHostedWorker(PACKAGE_VERSION, file),
+        });
+      }
     },
   };
 }
@@ -68,15 +78,18 @@ export function testAssets(): Plugin {
     name: "hm-test-assets",
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
-        const match = /^\/hm-test-assets(-stale)?\/image\/render\.worker\.js(?:\?|$)/.exec(
-          request.url ?? "",
-        );
+        const match =
+          /^\/hm-test-assets(-stale)?\/image\/(render\.worker\.js|job\.worker\.js)(?:\?|$)/.exec(
+            request.url ?? "",
+          );
         if (!match) return next();
         const version = match[1] ? "0.0.0-stale" : PACKAGE_VERSION;
+        const file = match[2] as WorkerFile;
+        const key = `${version}/${file}`;
         try {
-          if (!workers.has(version)) workers.set(version, buildSelfHostedWorker(version));
+          if (!workers.has(key)) workers.set(key, buildSelfHostedWorker(version, file));
           response.setHeader("Content-Type", "text/javascript");
-          response.end(await workers.get(version));
+          response.end(await workers.get(key));
         } catch (error) {
           next(error);
         }

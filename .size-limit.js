@@ -73,4 +73,13 @@ export default [
     brotli: true,
     limit: "24 kB",
   },
+  {
+    // The job worker, inlined as a minified string and loaded on the first
+    // GIF export (docs/adr/0011): gifenc and the SDK's GIF writer. Measured
+    // at 6.8 kB; docs/adr/0011 expected about 8 kB.
+    name: "Job worker, inlined (lazy)",
+    path: "dist/lazy/inline-job-worker-*.js",
+    brotli: true,
+    limit: "7 kB",
+  },
 ];

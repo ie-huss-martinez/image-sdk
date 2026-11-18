@@ -9,7 +9,7 @@ import { bitmapOf, decodeUpright, readGif } from "../decode/decode.js";
 import { encodePlan } from "../export/encode.js";
 import { drawPreview } from "../export/preview.js";
 import { forgetSanitised } from "../export/redact.js";
-import { renderSize } from "../export/render.js";
+import { renderPlan, renderSize } from "../export/render.js";
 import { checkGifFrames, type GifSource } from "../gif/source.js";
 import { probeImage } from "../probe/probe.js";
 import type { RenderWorkerContract } from "./contract.js";
@@ -174,6 +174,8 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         });
       },
       async export({ plan, format, frame, limits }, { signal }) {
+        // A GIF is written frame by frame through the job worker (docs/adr/0011).
+        if (format.type === "gif") throw new TypeError("A GIF is exported frame by frame.");
         const base = await baseOf(plan, frame);
         try {
           const source = base.bitmap;
@@ -183,6 +185,31 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
           checkOutputLimits(policy, renderSize(plan, source));
           if (plan.redactions.length > 0) checkCopies(policy, plan, source);
           return await encodePlan(source, plan, format, signal, (id) => sources.get(id));
+        } finally {
+          done(base);
+        }
+      },
+      async frame({ plan, frame, count, limits }, { signal }) {
+        const base = await baseOf(plan, frame);
+        try {
+          const source = base.bitmap;
+          const policy = imageLimits.resolve(limits);
+          const size = renderSize(plan, source);
+          checkOutputLimits(policy, size);
+          // Every frame the export writes is this size: all of them are
+          // bounded before the first is drawn (docs/adr/0011).
+          policy.check("maxDecodedSize", count * size.width * size.height * 4);
+          if (plan.redactions.length > 0) checkCopies(policy, plan, source);
+          const canvas = await renderPlan(source, plan, false, signal, (id) => sources.get(id));
+          const context = canvas.getContext("2d", { colorSpace: "srgb" });
+          if (!context) throw new Error("The worker has no 2D canvas.");
+          const { data } = context.getImageData(0, 0, canvas.width, canvas.height, {
+            colorSpace: "srgb",
+          });
+          canvas.width = 0;
+          canvas.height = 0;
+          if (signal.aborted) throw signal.reason;
+          return { width: size.width, height: size.height, pixels: data.buffer };
         } finally {
           done(base);
         }

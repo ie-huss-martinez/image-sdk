@@ -4,13 +4,13 @@ This guide describes the shipped adapters and editor. Custom engines and process
 
 ## Workers and assets
 
-The default engine starts its render worker lazily, on the first call that needs it. It probes file headers and metadata, checks resource bounds, decodes, draws the preview and encodes exports in that worker. The editor transfers its canvas to the worker. It loads no remote decoder, model, font or telemetry endpoint.
+The default engine starts its render worker lazily, on the first call that needs it. It probes file headers and metadata, checks resource bounds, decodes, draws the preview and encodes exports in that worker. A GIF export also starts a job worker, which writes the file from the frames the render worker draws, and stops after a while without work. The editor transfers its canvas to the worker. It loads no remote decoder, model, font or telemetry endpoint.
 
 By default the worker code is bundled into the package and starts from a `blob:` URL. The application still serves its JavaScript chunks and styles as usual. For a policy that excludes blob workers, self-host the packaged assets:
 
 1. Copy the installed package's **entire `dist/assets/` directory** to your application's static assets. Resolve the package directory through `@hussmartinez/image-sdk/package.json` in build tooling; `dist/` is not a public JavaScript import path.
-2. Preserve the directory layout. The current package ships `image/render.worker.js` under that directory. For example, copying to `public/image-sdk/` must serve `/image-sdk/image/render.worker.js` as JavaScript, rather than an HTML application fallback.
-3. Set `assetsUrl` to that directory, on the editor or on `createImageEngine`. Use your own origin; the worker is a module worker.
+2. Preserve the directory layout. The current package ships `image/render.worker.js` and `image/job.worker.js` under that directory. For example, copying to `public/image-sdk/` must serve `/image-sdk/image/render.worker.js` and `/image-sdk/image/job.worker.js` as JavaScript, rather than an HTML application fallback.
+3. Set `assetsUrl` to that directory, on the editor or on `createImageEngine`. Use your own origin; both workers are module workers, and the same `worker-src` covers both.
 
 ```tsx
 <ImageEditor assetsUrl="/image-sdk/" />

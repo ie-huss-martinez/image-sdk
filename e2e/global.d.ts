@@ -21,6 +21,11 @@ interface Window {
       decodedBytes?: number;
       quadrants?: readonly (readonly number[])[];
     }>;
+    /** Opens an animated GIF with all its frames, exports it to GIF and reads the file back. */
+    exportGif(
+      bytes: ArrayBuffer,
+      selfHosted: boolean,
+    ): Promise<{ status: string; type?: string; delays?: readonly number[] }>;
     readonly violations: readonly string[];
   };
   imageCapabilities: {

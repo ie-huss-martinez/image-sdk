@@ -287,6 +287,8 @@ export type ImageExportFormat = {
 } | {
     readonly type: "webp";
     readonly quality?: number;
+} | {
+    readonly type: "gif";
 };
 
 // @public
