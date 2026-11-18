@@ -27,6 +27,8 @@ export interface RenderWorkerContract {
       readonly limits: Readonly<Record<(typeof PER_FILE_LIMITS)[number], number>>;
       /** Whether an animated file is held with every frame, or as its first (docs/adr/0011). */
       readonly frames: "first" | "all";
+      /** The most pixels the screen of a file held with every frame may have: `maxAnimationPixels`. */
+      readonly animationPixels: number;
     };
     readonly output: ImageSize & {
       /** The frames held: 1 for a still. */

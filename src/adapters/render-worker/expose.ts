@@ -103,7 +103,7 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
   exposeWorker<RenderWorkerContract>(
     {
       probe: ({ file }) => probeImage(createWindowReader(file)),
-      async register({ id, file, probe, limits, frames }, { signal, progress }) {
+      async register({ id, file, probe, limits, frames, animationPixels }, { signal, progress }) {
         if (sources.has(id)) throw new TypeError(`The source id "${id}" is already in use.`);
         // The page's probe is input like any other: the worker probes the
         // file itself, and decodes only what its own probe bounds.
@@ -115,6 +115,12 @@ export function exposeRenderWorker(options?: ExposeWorkerOptions): void {
         }
         checkFileLimits(imageLimits.resolve(limits), file.size, own);
         if (frames === "all" && own.format === "gif" && own.frames > 1) {
+          // An animation's working set is several screens, so its screen
+          // has a lower ceiling than a still's. The session opens a file
+          // over it as a still; asked for directly, it's refused.
+          imageLimits
+            .resolve({ maxAnimationPixels: animationPixels })
+            .check("maxAnimationPixels", own.oriented.width * own.oriented.height);
           // Every frame is decoded once, so the source holds only frames
           // that can be drawn (docs/adr/0011).
           const { bytes, gif } = await readGif(file, own);

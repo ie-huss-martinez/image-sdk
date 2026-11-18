@@ -10,7 +10,7 @@ import { ImageError } from "./image-error.js";
 
 /**
  * The image SDK's limit definitions: sdk-core's core limits with image
- * defaults, plus five for images (ADR 0004).
+ * defaults, plus six for images (ADR 0004, docs/adr/0011).
  *
  * | Limit | Code | Default maximum | Default warning |
  * |---|---|---|---|
@@ -21,6 +21,7 @@ import { ImageError } from "./image-error.js";
  * | `maxImagePixels` | `IMAGE_TOO_LARGE` | 50 megapixels | 24 megapixels |
  * | `maxImageDimension` | `IMAGE_DIMENSION_TOO_LARGE` | 16,384 pixels | none |
  * | `maxFrames` | `TOO_MANY_FRAMES` | 300 | 100 |
+ * | `maxAnimationPixels` | `ANIMATION_TOO_LARGE` | 8 megapixels | 2 megapixels |
  * | `maxSessionSize` | `SESSION_TOO_LARGE` | 1 GB | 500 MB |
  * | `maxLayers` | `TOO_MANY_LAYERS` | 256 | none |
  * | `maxDrawingPoints` | `TOO_MANY_POINTS` | 200,000 | 100,000 |
@@ -28,6 +29,11 @@ import { ImageError } from "./image-error.js";
  * Sizes are decimal: 1 MB is 1,000,000 bytes. Decoded sizes count 4 bytes
  * per pixel. `maxImagePixels` is the same limit, with the same name, code
  * and unit, as `pdf-sdk`'s. `maxImageDimension` is a side length, in pixels.
+ *
+ * `maxAnimationPixels` is the size of an animation's screen. It isn't a
+ * limit on what opens: a file over it opens as its first frame, a still.
+ * It's what an animation's working set, several screens, needs to stay
+ * below a still's (docs/adr/0011).
  *
  * @public
  */
@@ -42,6 +48,12 @@ export const imageLimitDefinitions = {
   },
   maxImageDimension: { code: "IMAGE_DIMENSION_TOO_LARGE", unit: "pixels", default: 16_384 },
   maxFrames: { code: "TOO_MANY_FRAMES", unit: "count", default: 300, warning: 100 },
+  maxAnimationPixels: {
+    code: "ANIMATION_TOO_LARGE",
+    unit: "pixels",
+    default: 8_000_000,
+    warning: 2_000_000,
+  },
   maxSessionSize: {
     code: "SESSION_TOO_LARGE",
     unit: "bytes",

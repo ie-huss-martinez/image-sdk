@@ -165,6 +165,8 @@
 
   .hm-image-stage-opening {
     display: flex;
+    /* A progress bar, its count and Cancel wrap on a narrow stage. */
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: var(--hm-gap-normal);

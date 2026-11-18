@@ -39,6 +39,7 @@ describe("imageLimits", () => {
       maxImagePixels: { maximum: 50_000_000, warning: 24_000_000 },
       maxImageDimension: { maximum: 16_384, warning: infinity },
       maxFrames: { maximum: 300, warning: 100 },
+      maxAnimationPixels: { maximum: 8_000_000, warning: 2_000_000 },
       maxSessionSize: { maximum: 1_000_000_000, warning: 500_000_000 },
       maxLayers: { maximum: 256, warning: infinity },
       maxDrawingPoints: { maximum: 200_000, warning: 100_000 },

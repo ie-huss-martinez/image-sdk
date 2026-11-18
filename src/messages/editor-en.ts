@@ -16,6 +16,7 @@ export const imageEditorText = /* @__PURE__ */ defineMessages({
   "editor.choose": "Choose an image",
   "editor.dropHint": "or drop it here",
   "editor.opening": "Opening the image…",
+  "editor.checkingFrames": "Checking frames: {done, number} of {total, number}",
   "editor.cancel": "Cancel",
   "editor.opened": "Image opened, {width, number} × {height, number}.",
   "editor.undid": "Undid {action}.",
@@ -213,6 +214,16 @@ export const imageEditorText = /* @__PURE__ */ defineMessages({
   "inspector.info": "Info",
   "notices.label": "Notices",
   "notices.dismiss": "Dismiss",
+  "notices.incomplete": /* @__PURE__ */ plural("frames", {
+    one: "This animation's file is damaged. Only its first frame could be opened, of {listed, number}.",
+    other:
+      "This animation's file is damaged. {frames, number} of its {listed, number} frames could be opened.",
+  }),
+  "notices.incompleteEnd":
+    "This animation's file is damaged at its end. All {frames, number} of its frames were opened.",
+  "notices.animationTooLarge":
+    "This animation is too large to edit as an animation. Its first frame is open as a still image.",
+  "notices.firstFrame": "This file is an animation. Its first frame is open as a still image.",
   "notices.colourProfile":
     "This image has a colour profile. Colours outside sRGB will be clipped in the exported file.",
   "info.panel": "Image info",

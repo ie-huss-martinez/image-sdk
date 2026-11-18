@@ -267,7 +267,7 @@ export class ImageError extends SdkError<ImageErrorCode> {
 }
 
 // @public
-export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "INVALID_DOCUMENT" | "UNSUPPORTED_PLAN" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS" | "TOO_MANY_POINTS";
+export type ImageErrorCode = SdkCoreErrorCode | "INVALID_IMAGE" | "UNSUPPORTED_FORMAT" | "DECODE_FAILED" | "INVALID_COMMAND" | "INVALID_DOCUMENT" | "UNSUPPORTED_PLAN" | "IMAGE_TOO_LARGE" | "IMAGE_DIMENSION_TOO_LARGE" | "TOO_MANY_FRAMES" | "ANIMATION_TOO_LARGE" | "SESSION_TOO_LARGE" | "TOO_MANY_LAYERS" | "TOO_MANY_POINTS";
 
 // @public
 export type ImageExportFormat = {
@@ -402,6 +402,12 @@ export const imageLimitDefinitions: {
         readonly default: 300;
         readonly warning: 100;
     };
+    readonly maxAnimationPixels: {
+        readonly code: "ANIMATION_TOO_LARGE";
+        readonly unit: "pixels";
+        readonly default: 8000000;
+        readonly warning: 2000000;
+    };
     readonly maxSessionSize: {
         readonly code: "SESSION_TOO_LARGE";
         readonly unit: "bytes";
@@ -472,6 +478,7 @@ export const imageMessages: {
         readonly one: "This animation has {actual, number} frames, which is over the {maximum}-frame limit.";
         readonly other: "This animation has {actual, number} frames, which is over the {maximum, number}-frame limit.";
     };
+    readonly "errors.ANIMATION_TOO_LARGE": "This animation is too large to open with all its frames. Its first frame can still be opened.";
     readonly "errors.SESSION_TOO_LARGE": "The open images would use {actual, fileSize} of memory, which is over the {maximum, fileSize} limit. Close an image, or clear the undo history, and try again.";
     readonly "errors.TOO_MANY_LAYERS": {
         readonly $plural: "maximum";
@@ -488,6 +495,7 @@ export const imageMessages: {
         readonly one: "This animation has {actual} frame.";
         readonly other: "This animation has {actual, number} frames, and may be slow to edit and export.";
     };
+    readonly "warnings.maxAnimationPixels": "This animation is large, and may be slow to play, edit and export.";
     readonly "warnings.maxSessionSize": "The open images use {actual, fileSize} of memory. Clearing the undo history frees memory.";
     readonly "warnings.maxLayers": {
         readonly $plural: "actual";
@@ -738,6 +746,7 @@ export interface ImageSession {
     export(format: ImageExportFormat, options?: {
         readonly signal?: AbortSignal;
         readonly onProgress?: (fraction: number) => void;
+        readonly frame?: number;
     }): Promise<ImageSessionExport>;
     // (undocumented)
     getSnapshot(): ImageSessionSnapshot;
@@ -794,6 +803,10 @@ export interface ImageSessionSnapshot {
     readonly inserting: boolean;
     readonly opening: boolean;
     readonly plan: ImagePlan | null;
+    readonly progress: {
+        readonly done: number;
+        readonly total: number;
+    } | null;
     readonly source: ImageSessionSource | null;
     readonly sources: readonly ImageSessionSource[];
     readonly status: "empty" | "opening" | "ready";
@@ -802,6 +815,7 @@ export interface ImageSessionSnapshot {
 
 // @public
 export interface ImageSessionSource extends ImageSourceInfo {
+    readonly fileFrames: number;
     readonly fileSize: number;
     readonly keepable: ImageKeepableMetadata;
     readonly metadata: ImageMetadataPresence;

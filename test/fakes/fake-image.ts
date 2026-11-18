@@ -22,6 +22,17 @@ export interface FakeImageFile {
   readonly declaredHeight?: number;
   /** A decoder that returns another size than the header's, as a hostile file might cause. */
   readonly decodesAs?: { readonly width: number; readonly height: number };
+  /**
+   * An animation: every frame shows the same pixels. `delays` has one entry
+   * for each frame the file lists; `decodes` is how many of them decode,
+   * all when omitted; `cut` says the file ends before its end.
+   */
+  readonly animation?: {
+    readonly loop: number | null;
+    readonly delays: readonly number[];
+    readonly decodes?: number;
+    readonly cut?: boolean;
+  };
 }
 
 /** The fakes' export format. */

@@ -46,6 +46,8 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
     other:
       "This animation has {actual, number} frames, which is over the {maximum, number}-frame limit.",
   }),
+  "errors.ANIMATION_TOO_LARGE":
+    "This animation is too large to open with all its frames. Its first frame can still be opened.",
   "errors.SESSION_TOO_LARGE":
     "The open images would use {actual, fileSize} of memory, which is over the {maximum, fileSize} limit. Close an image, or clear the undo history, and try again.",
   "errors.TOO_MANY_LAYERS": /* @__PURE__ */ plural("maximum", {
@@ -61,6 +63,8 @@ export const imageMessages = /* @__PURE__ */ defineMessages({
     one: "This animation has {actual} frame.",
     other: "This animation has {actual, number} frames, and may be slow to edit and export.",
   }),
+  "warnings.maxAnimationPixels":
+    "This animation is large, and may be slow to play, edit and export.",
   "warnings.maxSessionSize":
     "The open images use {actual, fileSize} of memory. Clearing the undo history frees memory.",
   "warnings.maxLayers": /* @__PURE__ */ plural("actual", {

@@ -13,7 +13,8 @@ interface Notice {
 /** A limit warning's values, from what the session knows of the source. */
 function warningValues(limit: ImageLimitName, source: ImageSessionSource) {
   if (limit === "maxFileSize") return { actual: source.fileSize };
-  if (limit === "maxFrames") return { actual: source.frames };
+  // The frames the file lists: an animation open as a still holds one.
+  if (limit === "maxFrames") return { actual: source.fileFrames };
   return {};
 }
 
@@ -33,13 +34,31 @@ export function StageNotices(): ReactNode {
 
   const t = messages.t as (key: string, values?: Record<string, number>) => string;
   const notices: Notice[] = [];
+  /** An animated file that's open as a still: its first frame. */
+  const firstFrameOnly = source.frames === 1 && source.fileFrames > 1;
   for (const limit of warnings) {
     // The session reports only per-file limits when it opens an image.
     if (limit === "maxSessionSize" || limit === "maxLayers") continue;
     notices.push({
       key: `${source.id}:${limit}`,
-      text: t(`warnings.${limit}`, warningValues(limit, source)),
+      // Over the size an animation may be, the file is open as a still: that's what to say.
+      text:
+        limit === "maxAnimationPixels" && firstFrameOnly
+          ? messages.t("notices.animationTooLarge")
+          : t(`warnings.${limit}`, warningValues(limit, source)),
     });
+  }
+  // An animation that isn't all there, or isn't open as one (docs/adr/0011).
+  if (source.incomplete) {
+    notices.push({
+      key: `${source.id}:incomplete`,
+      text: t(source.frames < source.fileFrames ? "notices.incomplete" : "notices.incompleteEnd", {
+        frames: source.frames,
+        listed: source.fileFrames,
+      }),
+    });
+  } else if (firstFrameOnly && !warnings.includes("maxAnimationPixels")) {
+    notices.push({ key: `${source.id}:firstFrame`, text: messages.t("notices.firstFrame") });
   }
   if (source.metadata.colourProfile) {
     notices.push({ key: `${source.id}:colourProfile`, text: messages.t("notices.colourProfile") });

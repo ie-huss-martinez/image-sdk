@@ -246,6 +246,8 @@ export function createEngine(
             file,
             probe,
             frames: options?.frames ?? "first",
+            animationPixels: (options?.filePolicy ?? imageLimits.resolve()).limits
+              .maxAnimationPixels.maximum,
             // The maxima cross to the worker, which checks them against its
             // own probe (docs/adr/0004).
             limits: Object.fromEntries(

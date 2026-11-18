@@ -32,6 +32,7 @@ const ALL_CODES: Record<ImageErrorCode, true> = {
   IMAGE_TOO_LARGE: true,
   IMAGE_DIMENSION_TOO_LARGE: true,
   TOO_MANY_FRAMES: true,
+  ANIMATION_TOO_LARGE: true,
   SESSION_TOO_LARGE: true,
   TOO_MANY_LAYERS: true,
   TOO_MANY_POINTS: true,

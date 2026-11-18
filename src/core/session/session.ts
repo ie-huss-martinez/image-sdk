@@ -21,6 +21,7 @@ import { createImageKey } from "../model/keys.js";
 import { fittedImageSize, newLayerBox } from "../model/layer-placement.js";
 import {
   createPlan,
+  type ImageAnimation,
   type ImageImageLayer,
   type ImageLayer,
   type ImagePlan,
@@ -50,6 +51,12 @@ export interface ImageSessionSource extends ImageSourceInfo {
   readonly metadata: ImageMetadataPresence;
   /** The fields the user may choose to keep, as the file had them. */
   readonly keepable: ImageKeepableMetadata;
+  /**
+   * How many frames the file lists. More than `frames` when an animated
+   * file is open as its first frame, or when its frames ended early
+   * (docs/adr/0011).
+   */
+  readonly fileFrames: number;
 }
 
 /**
@@ -81,6 +88,12 @@ export interface ImageSessionSnapshot {
   readonly inserting: boolean;
   /** Whether a file is being opened. The current document stays until it's ready. */
   readonly opening: boolean;
+  /**
+   * How far the open of an animation has got: the frames checked, of those
+   * the file lists (docs/adr/0011). `null` when nothing is being opened,
+   * and for a still.
+   */
+  readonly progress: { readonly done: number; readonly total: number } | null;
   /** Whether an export is in progress. */
   readonly exporting: boolean;
   /** The limits the last open, edit or export came near: at or above their warnings. */
@@ -212,10 +225,17 @@ export interface ImageSession {
    * `maxProcessingTime` aborts the processor's signal with
    * `PROCESSING_TIME_EXCEEDED`. Custom adapters must observe that signal;
    * a session cannot preempt an arbitrary adapter that ignores it.
+   *
+   * An animation exports as one frame to these formats: `frame`, an index
+   * into the plan's `animation.frames`, 0 when omitted (docs/adr/0011).
    */
   export(
     format: ImageExportFormat,
-    options?: { readonly signal?: AbortSignal; readonly onProgress?: (fraction: number) => void },
+    options?: {
+      readonly signal?: AbortSignal;
+      readonly onProgress?: (fraction: number) => void;
+      readonly frame?: number;
+    },
   ): Promise<ImageSessionExport>;
   /** Releases every source the session holds. Later calls throw. */
   destroy(): Promise<void>;
@@ -322,6 +342,40 @@ function defaultLayer(
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
+/**
+ * The commands that turn one animation into another (docs/adr/0011). A
+ * frame the two share by key shows the same frame of the source: the
+ * session refuses a plan where it doesn't, before this is called. An
+ * animation always keeps a frame, so new frames go in before the last of
+ * the old ones could go.
+ */
+function animationCommands(from: ImageAnimation, to: ImageAnimation): ImageCommand[] {
+  const commands: ImageCommand[] = [];
+  if (from.loop !== to.loop) commands.push({ type: "image.setLoop", loop: to.loop });
+  if (same(from.frames, to.frames)) return commands;
+  const before = new Set(from.frames.map((frame) => frame.key));
+  const after = new Set(to.frames.map((frame) => frame.key));
+  const added = to.frames.filter((frame) => !before.has(frame.key));
+  const removed = from.frames.filter((frame) => !after.has(frame.key)).map((frame) => frame.key);
+  if (added.length > 0) {
+    commands.push({ type: "image.insertFrames", at: from.frames.length, frames: added });
+  }
+  if (removed.length > 0) commands.push({ type: "image.removeFrames", keys: removed });
+  // Now the frames are the kept ones in their old order, then the new ones.
+  const order = [
+    ...from.frames.filter((frame) => after.has(frame.key)).map((frame) => frame.key),
+    ...added.map((frame) => frame.key),
+  ];
+  const wanted = to.frames.map((frame) => frame.key);
+  if (!same(order, wanted)) commands.push({ type: "image.setFrameOrder", keys: wanted });
+  const delays = new Map(from.frames.map((frame) => [frame.key, frame.delay]));
+  const updates = to.frames
+    .filter((frame) => delays.has(frame.key) && delays.get(frame.key) !== frame.delay)
+    .map((frame) => ({ key: frame.key, props: { delay: frame.delay } }));
+  if (updates.length > 0) commands.push({ type: "image.updateFrames", updates });
+  return commands;
+}
+
 /** The commands that turn `from` into `to`, field by field. */
 export function commandsBetween(from: ImagePlan, to: ImagePlan): ImageCommand[] {
   const commands: ImageCommand[] = [];
@@ -359,6 +413,9 @@ export function commandsBetween(from: ImagePlan, to: ImagePlan): ImageCommand[] 
       commands.push({ type: "image.insertLayers", at: 0, layers: to.layers });
     }
   }
+  if (from.animation !== null && to.animation !== null) {
+    commands.push(...animationCommands(from.animation, to.animation));
+  }
   if (!same(from.redactions, to.redactions)) {
     // The whole list is replaced: one step, whatever changed in it.
     if (from.redactions.length > 0) {
@@ -382,6 +439,27 @@ const PRESENCE: readonly (keyof ImageMetadataPresence)[] = [
   "colourProfile",
   "other",
 ];
+
+/**
+ * The plan for a newly opened source (docs/adr/0011): a still's, or for a
+ * source held with several frames, one that plays them in order with the
+ * file's timing.
+ */
+function planFor(info: ImageSourceInfo): ImagePlan {
+  const plan = createPlan(info.id);
+  if (info.timing === null || info.frames < 2) return plan;
+  return {
+    ...plan,
+    animation: {
+      loop: info.timing.loop,
+      frames: info.timing.delays.map((delay, frame) => ({
+        key: `frame-${frame + 1}`,
+        frame,
+        delay,
+      })),
+    },
+  };
+}
 
 /** A probed image's decoded bytes, as the session counts them (ADR 0004). */
 const decodedBytes = (probe: ImageProbe) => probe.oriented.width * probe.oriented.height * 4;
@@ -430,6 +508,8 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
   /** Each open's number: only the latest may become the document. */
   let opens = 0;
   let opening = 0;
+  /** The latest open's frames checked, while it checks them. */
+  let progress: { readonly done: number; readonly total: number } | null = null;
   let exporting = 0;
   let inserting = 0;
   /** Which document an async result belongs to. */
@@ -449,6 +529,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     historyTrimmed: history.trimmed,
     inserting: !destroyed && inserting > 0,
     opening: !destroyed && opening > 0,
+    progress: !destroyed && opening > 0 ? progress : null,
     exporting: !destroyed && exporting > 0,
     warnings,
     error,
@@ -511,10 +592,10 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     return bytes;
   };
 
-  /** Whether the session may hold this many decoded bytes: `false`, or the check's outcome. */
-  const fits = (bytes: number) => {
+  /** Whether a value is within a limit: `false`, or the check's outcome. */
+  const fits = (limit: ImageLimitName, value: number) => {
     try {
-      return policy.check("maxSessionSize", bytes);
+      return policy.check(limit, value);
     } catch {
       return false;
     }
@@ -529,12 +610,12 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
   const makeRoom = (bytes: number): readonly ImageLimitName[] => {
     const warned = (outcome: unknown): ImageLimitName[] =>
       outcome === "warning" ? ["maxSessionSize"] : [];
-    const now = fits(heldBytes() + bytes);
+    const now = fits("maxSessionSize", heldBytes() + bytes);
     if (now !== false) return warned(now);
     for (let dropped = 1; dropped <= history.dropOrder.length; dropped += 1) {
       const kept = referenced(dropped);
       const freed = new Set([...extras.keys()].filter((id) => !kept.has(id)));
-      const after = fits(heldBytes(freed) + bytes);
+      const after = fits("maxSessionSize", heldBytes(freed) + bytes);
       if (after === false) continue;
       history.drop(dropped);
       releaseUnreferenced();
@@ -555,6 +636,9 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
     // lowered limit can still be edited and emptied (ADR 0004).
     const items = state.layers.length + state.redactions.length;
     if (items > from.layers.length + from.redactions.length) policy.check("maxLayers", items);
+    // And frames: duplicating can't pass what opening allows (docs/adr/0011).
+    const frames = state.animation?.frames.length ?? 0;
+    if (frames > (from.animation?.frames.length ?? 0)) policy.check("maxFrames", frames);
     // The same for drawn points: only a step that adds some is checked.
     const points = drawingPoints(state);
     if (points > drawingPoints(from)) policy.check("maxDrawingPoints", points);
@@ -665,11 +749,40 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
             policy.check("maxFileSize", file.size);
             const probe = await engine.probe(file, { signal });
             throwIfAborted(signal);
-            const near = checkSource(policy, file, probe);
+            const near = [...checkSource(policy, file, probe)];
             if (ticket !== opens) throw superseded();
-            const info = await engine.register(id, file, probe, { filePolicy: policy, signal });
+            // An animation is held with all its frames when its screen is
+            // within `maxAnimationPixels`; over it, the file opens as its
+            // first frame, as it always did (docs/adr/0011).
+            const size = probe.oriented.width * probe.oriented.height;
+            const within = probe.frames > 1 ? fits("maxAnimationPixels", size) : undefined;
+            const animated = probe.frames > 1 && within !== false;
+            // Near the size an animation may be ("warning"), or over it and
+            // so a still (`false`): the snapshot's warnings name the limit
+            // either way.
+            if (within !== undefined) near.push("maxAnimationPixels");
+            const info = await engine.register(id, file, probe, {
+              filePolicy: policy,
+              signal,
+              ...(animated
+                ? {
+                    frames: "all" as const,
+                    onProgress: (fraction: number) => {
+                      // Only the latest open's frames are the snapshot's.
+                      if (ticket !== opens || destroyed) return;
+                      const done = Math.round(fraction * probe.frames);
+                      if (progress?.done === done) return;
+                      progress = { done, total: probe.frames };
+                      publish();
+                    },
+                  }
+                : {}),
+            });
             registered = true;
             throwIfAborted(signal);
+            // What an animation holds is known only now: the new document
+            // holds this one source.
+            if (info.frames > 1) policy.check("maxSessionSize", info.decodedBytes);
             return { probe, near, info };
           },
           openOptions,
@@ -684,8 +797,9 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
           fileSize: file.size,
           metadata: probe.metadata,
           keepable: probe.keepable,
+          fileFrames: probe.frames,
         };
-        plan = createPlan(id);
+        plan = planFor(info);
         history.clear();
         generation += 1;
         warnings = near;
@@ -706,6 +820,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         throw failure;
       } finally {
         opening -= 1;
+        if (ticket === opens) progress = null;
         if (!destroyed) publish();
       }
     },
@@ -752,6 +867,7 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
           fileSize: file.size,
           metadata: probe.metadata,
           keepable: probe.keepable,
+          fileFrames: probe.frames,
         };
         extras.set(id, added);
         held = true;
@@ -804,15 +920,38 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
         Array.isArray(next.redactions) &&
         Array.isArray(next.layers) &&
         (next.animation === null || typeof next.animation === "object");
-      // A still stays a still: no command gives a plan an animation
-      // (docs/adr/0011), so a plan with one isn't for this image.
-      if (plan !== null && shaped && next.animation !== null && plan.animation === null) {
-        const failure = new ImageError("INVALID_COMMAND", "The open image isn't an animation.", {
-          details: { reason: "not-animated" },
-        });
+      // A still stays a still, and an animation an animation: no command
+      // gives a plan an animation or takes it away (docs/adr/0011), so a
+      // plan that differs in that isn't for this image.
+      if (plan !== null && shaped && (next.animation === null) !== (plan.animation === null)) {
+        const failure = new ImageError(
+          "INVALID_COMMAND",
+          plan.animation === null
+            ? "The open image isn't an animation."
+            : "The open image is an animation, and the plan has none.",
+          { details: { reason: plan.animation === null ? "not-animated" : "no-frames" } },
+        );
         error = failure;
         publish();
         throw failure;
+      }
+      if (plan !== null && shaped && next.base.source === plan.base.source) {
+        // A frame is the frame of the source it shows: one that shows
+        // another under the same key can't be reached by any command.
+        const before = new Map(plan.animation?.frames.map((frame) => [frame.key, frame.frame]));
+        const moved = next.animation?.frames.find(
+          (frame) => before.has(frame.key) && before.get(frame.key) !== frame.frame,
+        );
+        if (moved) {
+          const failure = new ImageError(
+            "INVALID_COMMAND",
+            "A frame can't show another frame of the source and keep its key.",
+            { details: { reason: "duplicate-key" } },
+          );
+          error = failure;
+          publish();
+          throw failure;
+        }
       }
       if (plan === null || !shaped || next.base.source !== plan.base.source) {
         const failure = new ImageError(
@@ -858,7 +997,11 @@ export function createImageSession(options: ImageSessionOptions): ImageSession {
           async (signal) => {
             throwIfAborted(signal);
             const blob = await processor.export(
-              { plan: exported, format },
+              {
+                plan: exported,
+                format,
+                ...(exportOptions.frame === undefined ? {} : { frame: exportOptions.frame }),
+              },
               {
                 filePolicy: policy,
                 signal,
