@@ -21,6 +21,15 @@ export interface AddStrokesCommand {
 }
 
 // @public
+export const ANIMATION_LIMITS: readonly ["maxFrames", "maxDecodedSize", "maxAnimationPixels"];
+
+// @public
+export function animationLimits(policy: ImageFilePolicy, probe: ImageProbe, ceiling?: number): {
+    readonly over: ImageLimitName[];
+    readonly near: ImageLimitName[];
+};
+
+// @public
 export function applyMatrix(matrix: ImageMatrix, point: {
     readonly x: number;
     readonly y: number;
@@ -48,7 +57,7 @@ export function backingSize(view: ImageView): {
 };
 
 // @public
-export function checkFileLimits(policy: ImageFilePolicy, fileSize: number, probe: ImageProbe): ImageLimitName[];
+export function checkFileLimits(policy: ImageFilePolicy, fileSize: number, probe: ImageProbe, frames?: "first" | "all"): ImageLimitName[];
 
 // @public
 export function checkOutputLimits(policy: ImageFilePolicy, size: {

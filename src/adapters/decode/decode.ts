@@ -68,8 +68,8 @@ export async function readGif(
 /**
  * A GIF's first frame, by the SDK's own decoder (docs/adr/0011): the browser's
  * decoder never sees a GIF. The file is read whole, which the file policy's
- * size limit already allowed, its frame table is read and checked against
- * the probe, and its first frame is composed over a transparent screen.
+ * size limit already allowed, its first frame is read and its screen checked
+ * against the probe's, and that frame is composed over a transparent screen.
  *
  * A malformed file fails with the decoder's own `INVALID_IMAGE`, never
  * `DECODE_FAILED`: it's our code that refused it, and it says why.
@@ -79,7 +79,15 @@ async function decodeGif(
   probe: ImageProbe,
   environment: DecodeEnvironment,
 ): Promise<ImageBitmap> {
-  const { bytes, gif } = await readGif(file, probe);
+  // A still is its first frame: the frames after it aren't read, so a file
+  // with more frames than an animation may hold still opens as one.
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const gif = readGifFrames(bytes, "first");
+  if (gif.width !== probe.stored.width || gif.height !== probe.stored.height) {
+    throw new ImageError("INVALID_IMAGE", "The GIF's frames differ from what its probe read.", {
+      details: { format: "gif", problem: "the frame table differs from the probe" },
+    });
+  }
   const screen = createGifComposer(bytes, gif).next();
   return (environment.fromPixels ?? bitmapOf)(screen, gif.width, gif.height);
 }

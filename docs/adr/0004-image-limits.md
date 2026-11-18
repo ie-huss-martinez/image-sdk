@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-12
-- **Amended by:** [0011](0011-gif-and-animation.md): `maxAnimationPixels`, and what an animated source counts against `maxSessionSize`
+- **Amended by:** [0011](0011-gif-and-animation.md): `maxAnimationPixels`; what an animated source counts against `maxSessionSize`; and an animated file over `maxFrames`, over `maxDecodedSize` across its frames or over `maxAnimationPixels` isn't refused, but opens as its first frame, held to a still's limits
 
 ## Context
 
