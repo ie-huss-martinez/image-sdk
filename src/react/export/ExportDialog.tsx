@@ -30,6 +30,7 @@ import {
   useImageMessages,
   useImageSession,
 } from "../hooks.js";
+import { shownFrame } from "../stage/ImageStage.js";
 import { ExportListenerContext } from "./export-listener.js";
 
 /**
@@ -224,8 +225,13 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     controller.current = running;
     setPhase({ kind: "exporting", progress: 0 });
     try {
-      const result = await session.export(formatOf(current), {
+      const format = formatOf(current);
+      const result = await session.export(format, {
         signal: running.signal,
+        // An animation exports as the frame shown, except to GIF, which writes them all (docs/adr/0011).
+        ...(plan.animation !== null && format.type !== "gif"
+          ? { frame: shownFrame(plan, editor.playback.frame) }
+          : {}),
         onProgress: (progress) =>
           setPhase((now) => (now.kind === "exporting" ? { kind: "exporting", progress } : now)),
       });

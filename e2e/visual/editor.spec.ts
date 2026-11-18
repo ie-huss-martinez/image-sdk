@@ -1,6 +1,11 @@
 import { applyVisualVariant, visualVariants } from "@hussmartinez/sdk-config/testing/visual";
 import { expect, type Page, test } from "@playwright/test";
-import { fixture, jpegWithPrivateMetadata, quadrantsPngWithColourProfile } from "../fixtures.js";
+import {
+  fixture,
+  gifWithBackground,
+  jpegWithPrivateMetadata,
+  quadrantsPngWithColourProfile,
+} from "../fixtures.js";
 import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**
@@ -73,6 +78,15 @@ const EDITOR: Readonly<Record<string, State>> = {
     await expect(page.getByRole("button", { name: "Choose an image" })).toBeVisible();
   },
   open: opened,
+  // An animation's bar, on its second frame, paused, with Play focused (docs/adr/0011).
+  animation: async (page) => {
+    await open(gifWithBackground("after disposal 2"))(page);
+    const bar = page.getByRole("region", { name: "Animation" });
+    await expect(bar).toBeVisible({ timeout: FIRST_RENDER_TIMEOUT });
+    await bar.getByRole("slider", { name: "Frame" }).press("ArrowRight");
+    await expect(bar).toContainText("Frame 2 of 2");
+    await bar.getByRole("button", { name: "Play" }).focus();
+  },
   crop: async (page) => {
     await opened(page);
     await page.getByRole("button", { name: "Rotate left" }).focus();

@@ -11,6 +11,7 @@ import {
   LayersIcon,
   OpenIcon,
   PenIcon,
+  PlayIcon,
   RectangleIcon,
   RedactIcon,
   RedoIcon,
@@ -32,6 +33,7 @@ import {
 export const imageIcons: Readonly<Record<string, IconComponent>> = {
   open: OpenIcon,
   undo: UndoIcon,
+  play: PlayIcon,
   redo: RedoIcon,
   "rotate-left": RotateLeftIcon,
   "rotate-right": RotateRightIcon,

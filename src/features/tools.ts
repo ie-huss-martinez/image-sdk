@@ -12,6 +12,7 @@ import {
 import { layersTool } from "./layers/layers-tool.js";
 import { openTool } from "./open/open-tool.js";
 import { rotateLeftTool, rotateRightTool } from "./orientation/orientation-tools.js";
+import { playTool } from "./playback/play-tool.js";
 import { redactTool } from "./redact/redact-tool.js";
 import type { ImageTool } from "./tool-types.js";
 import { zoomFitTool, zoomInTool, zoomOutTool } from "./zoom/zoom-tools.js";
@@ -42,6 +43,7 @@ export const imageTools: readonly ImageTool[] = [
   zoomOutTool,
   zoomFitTool,
   exportTool,
+  playTool,
 ];
 
 /** The toolbar's default groups (docs/adr/0007). */

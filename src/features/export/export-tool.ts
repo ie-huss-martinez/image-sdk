@@ -23,7 +23,15 @@ export const exportTool: ImageTool = {
     isEnabled: ({ snapshot, editor }) => snapshot.plan !== null && editor.tool !== "crop",
     run: ({ editor }) =>
       editor.set((state) =>
-        state.tool === "crop" ? state : { ...state, ...NO_TOOL, dialog: "export" },
+        state.tool === "crop"
+          ? state
+          : {
+              ...state,
+              ...NO_TOOL,
+              dialog: "export",
+              // The frame shown is the one exported: playing stops on it (docs/adr/0011).
+              playback: { ...state.playback, playing: false },
+            },
       ),
   }),
   unavailable: ({ snapshot, editor }) =>
