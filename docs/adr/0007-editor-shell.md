@@ -5,6 +5,7 @@
 - **Amended:** 2026-11-15: `features` and `theme` on `<ImageEditor>` are defined, under "The React API"; and `renderer` is dropped from its props, since the engine already decides where pixels come from and a renderer attaches to the one canvas the stage creates. A factory can be added later without breaking anything
 - **Amended:** 2026-11-17: Export works while Redact or Layers is open and ends the tool; while a crop is unapplied it waits and says why. See "Export while a tool is open"
 - **Amended:** 2026-11-17: the crop frame resizes with `Shift` and the arrows, not `Alt`, which is the browser's Back and Forward with Left and Right; and there's no 10-pixel step. See "Checked against browser and system defaults"
+- **Amended:** 2026-11-19: a slider's keys make one step per press, and one per key held down, as in every family editor, where a burst of presses was one step 500 ms after the last; ui's `Slider` says when a gesture ends and cancels it with Escape. See "Gestures: preview while they run, one step when they end"
 
 ## Context
 
@@ -51,8 +52,10 @@ Below a container width of 720 px the inspector moves under the stage. Sizes com
 A slider drag, a held arrow key on a slider, or a crop-frame drag changes the image many times a second. Each change is a render, but it isn't an edit until the gesture ends:
 
 - **While a gesture runs,** the stage renders a **transient plan**: the session's plan with the gesture's change applied, checked by the same reducer, without executing it. The session, its history and the host's `onChange` don't see it.
-- **When it ends,** on `pointerup`, on a slider's `change`, on `Enter`, or 500 ms after the last key of a keyboard adjustment, the shell executes **one command** with the final value. So a drag is one undo step, and `onChange` fires once.
-- **`Escape` cancels a gesture,** and the stage renders the session's plan again. So does losing focus during a pointer drag.
+- **When it ends,** the shell executes **one command** with the final value. So a drag is one undo step, and `onChange` fires once.
+  - **A slider's gesture** ends as ui's `Slider` reports it through `onValueCommit` ([ui 0.13](https://github.com/ie-huss-martinez/ui/blob/main/packages/ui/CHANGELOG.md)): when the pointer is let go, when the last key held is let go, or when focus leaves first. So each key press is one step, and so is a key held down however many times it repeats. This is the family's rule, as in audio-sdk and video-sdk. Until 2026-11-19, a burst of separate presses was one step, 500 ms after the last; that made image the only editor in the family whose undo merged presses, and it ended on a timer, so a slow machine ended it at a different place from a fast one.
+  - **A drag on the stage,** of the crop, a redaction or a layer frame, ends on `pointerup` or `Enter`. Their arrow keys still end 500 ms after the last key, as typing in a text layer does.
+- **`Escape` cancels a gesture,** and the stage renders the session's plan again. On a slider, ui's `Slider` puts the value back where the gesture started and calls `onValueCancel` (ui 0.15), whether it was a drag or a key held down, and the rest of that gesture is ignored. Escape with no gesture in progress is left to the editor. Losing focus during a pointer drag on the stage cancels it too; on a slider it ends the gesture as one step, as ui decides.
 - **A value that the reducer refuses** never reaches the stage: the control clamps to the command's range first, and the reducer's `INVALID_COMMAND` would only mean a bug.
 
 ### The crop frame
@@ -162,7 +165,7 @@ A browser that can't encode WebP fails the export with `UNSUPPORTED_FORMAT` ([AD
 - **axe** on every designed state, and with each panel and the crop frame open, in all three engines.
 - **Screenshots** of each designed state, in light and dark, compact and comfortable, on Chromium in the pinned image ([sdk-core ADR 0048](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0048-visual-regression-for-sdk-editors.md)). The states are listed in `e2e/visual/editor.spec.ts`.
 - **Keyboard only, end to end:** open through the drop zone's button; crop with the frame's keys and with the panel's fields; rotate, flip and undo; adjust with a slider's keys; choose a filter; and export, checking the summary. Each step checks where focus is.
-- **One step per gesture:** a slider drag, a burst of arrow keys on a slider, and a crop drag each add one undo step and call `onChange` once; `Escape` during each restores the plan, with no step.
+- **One step per gesture:** a slider drag, each press of an arrow key on a slider, a key held down on it, and a crop drag each add one undo step and call `onChange` once; `Escape` during each restores the plan, with no step.
 - **Shortcuts** don't fire in fields or on sliders, and `Space` on a button presses it.
 - **The canvas** has `role="img"` and its name, and isn't focusable.
 - **StrictMode:** mounting, unmounting and mounting again leaves one canvas and one renderer, and every source released ([ADR 0002](0002-workers-and-assets.md)).

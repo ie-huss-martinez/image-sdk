@@ -22,7 +22,7 @@ catalog:
   # screenshots depend on its Chromium build (sdk-core ADR 0048).
   "@playwright/test": 1.65.1
   "@hussmartinez/sdk-core": ^0.4.4
-  "@hussmartinez/ui": ^0.14.4
+  "@hussmartinez/ui": ^0.15.0
   "@microsoft/api-extractor": ^7.60.1
   "@size-limit/file": ^14.3.0
   "@types/node": ^24.19.2
