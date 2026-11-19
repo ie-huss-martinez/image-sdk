@@ -16,6 +16,7 @@ import {
 import type { ImageSize } from "../../core/model/source.js";
 import { type ImageView, placement } from "../../core/ports/image-renderer.js";
 import { useImageEditorState, useImageMessages } from "../hooks.js";
+import { createKeyRun } from "../key-run.js";
 import { newRedactionKey, useRedactActions } from "./use-redact.js";
 
 type Handle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
@@ -90,6 +91,8 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
   >(undefined);
   /** The key whose frame takes focus once it's rendered: one just added or selected by the panel. */
   const focusNext = useRef<string | null>(null);
+  /** The arrow keys held on a frame: one step per press, and per key held down. */
+  const keys = useRef(createKeyRun());
 
   const selected = state.redact?.selected ?? null;
   const exists = plan.redactions.some((redaction) => redaction.key === selected);
@@ -148,6 +151,8 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
   const onFramePointerDown =
     (redaction: ImageRedaction, handle: Handle | "move") => (event: PointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
+      // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
+      if (keys.current.handOff()) actions.commit();
       event.preventDefault();
       event.stopPropagation();
       actions.select(redaction.key);
@@ -168,6 +173,8 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
 
   const onBackgroundPointerDown = (event: PointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
+    // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
+    if (keys.current.handOff()) actions.commit();
     event.preventDefault();
     capture(event);
     const at = onComposition(event);
@@ -242,9 +249,12 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      // Escape during a drag cancels the drag; otherwise it ends redacting.
+      // Escape during a drag, or while arrow keys are held, cancels it;
+      // otherwise it ends redacting.
       if (drag.current) {
         drag.current = undefined;
+        actions.cancel();
+      } else if (keys.current.cancel()) {
         actions.cancel();
       } else {
         actions.done();
@@ -276,14 +286,26 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
     event.preventDefault();
     // Handled here, so the editor's shortcuts don't also take the arrows.
     event.stopPropagation();
+    // While a pointer drags, the arrows don't move the frame: the drag owns the gesture.
+    if (drag.current) return;
+    // A run cancelled with Escape is ignored until its keys are let go.
+    if (!keys.current.press(event.key)) return;
     const [dx, dy] = arrow;
     // As seen on screen, whatever the plan's rotation and flips: Shift moves
     // the right edge with Left and Right, and the bottom edge with Up and Down.
     const moved = event.shiftKey
       ? dragged(shown(redaction), dx !== 0 ? "e" : "s", dx, dy)
       : dragged(shown(redaction), "move", dx, dy);
+    // Shown at once; it's a step when the last key held is let go.
     actions.moving(redaction.key, toScene(moved));
-    actions.commit(true);
+  };
+  const onKeyUp = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (ARROWS[event.key] && keys.current.release(event.key)) actions.commit();
+  };
+  // Focus leaving with a key held ends its run as one step: the key let go
+  // elsewhere isn't seen.
+  const onBlur = () => {
+    if (keys.current.leave()) actions.commit();
   };
 
   const count = plan.redactions.length;
@@ -319,6 +341,8 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
             }}
             onFocus={() => actions.select(redaction.key)}
             onKeyDown={onKeyDown(redaction)}
+            onKeyUp={onKeyUp}
+            onBlur={onBlur}
             onPointerDown={onFramePointerDown(redaction, "move")}
             {...pointer}
           >

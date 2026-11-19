@@ -29,8 +29,8 @@ export interface RedactActions {
   drawing(key: string, rect: ImageRect): void;
   /** Shows a redaction's region while it's moved or resized, in scene pixels. */
   moving(key: string, region: ImageRect): void;
-  /** Ends the gesture as one step: at once, or after the keyboard's delay. */
-  commit(soon?: boolean): void;
+  /** Ends the gesture as one step: a drag let go, or the last arrow key held let go. */
+  commit(): void;
   /** Ends the gesture with no step. */
   cancel(): void;
   /** Sets a redaction's region at once, as one step: a number field. */
@@ -146,11 +146,7 @@ export function useRedactActions(): RedactActions {
           },
         ]);
       },
-      commit(soon = false) {
-        if (soon) {
-          gesture.commitSoon();
-          return;
-        }
+      commit() {
         const drew = gesture.active() && count();
         gesture.commit();
         if (drew !== false && count() > drew) {

@@ -5,7 +5,7 @@ import type { ImageSession } from "../core/session/session.js";
 import type { ImageEditorState } from "../features/editor-state.js";
 import { useImageInternals } from "./hooks.js";
 
-/** How long after the last key of a keyboard adjustment its gesture ends (docs/adr/0007). */
+/** How long after the last keystroke typing in a text layer becomes one step (docs/adr/0007). Arrow keys on a frame make a step per press, not after a delay. */
 export const KEYBOARD_COMMIT_DELAY = 500;
 
 /**
@@ -20,7 +20,7 @@ export interface Gesture {
   preview(commands: readonly ImageCommand[]): void;
   /** Ends the gesture now: its commands execute as one step, if it has any. */
   commit(): void;
-  /** Ends the gesture after the keyboard delay, unless it continues before then. */
+  /** Ends the gesture after the typing delay, unless it continues before then: typing in a text layer. */
   commitSoon(): void;
   /** Ends the gesture with no step, and the stage shows the session's plan again. */
   cancel(): void;
