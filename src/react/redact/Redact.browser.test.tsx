@@ -332,6 +332,29 @@ describe("redacting (docs/adr/0010)", () => {
     expect(changes).toHaveLength(count + 1);
     await pointer(frames()[0] ?? null, "pointerup", centre.x, centre.y);
     expect(changes).toHaveLength(count + 1);
+    // A key held after Escape stays ignored through a press of the pointer,
+    // until it's let go.
+    const arrow = (type: string, repeat = false) =>
+      act(async () => {
+        frames()[0]?.dispatchEvent(
+          new KeyboardEvent(type, { key: "ArrowRight", repeat, bubbles: true, cancelable: true }),
+        );
+      });
+    await arrow("keydown");
+    expect(description(frames()[0])).toContain("from 25, 15");
+    await act(async () => {
+      frames()[0]?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+      );
+    });
+    expect(description(frames()[0])).toContain("from 24, 15");
+    await pointer(frames()[0] ?? null, "pointerdown", centre.x, centre.y);
+    await pointer(frames()[0] ?? null, "pointerup", centre.x, centre.y);
+    await arrow("keydown", true);
+    expect(description(frames()[0])).toContain("from 24, 15");
+    await arrow("keyup");
+    expect(redactions()[0]).toMatchObject({ x: 24 });
+    expect(changes).toHaveLength(count + 1);
   });
 
   it("moves as seen on screen when the image is turned", async () => {

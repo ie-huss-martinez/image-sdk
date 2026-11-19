@@ -152,7 +152,7 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
     (redaction: ImageRedaction, handle: Handle | "move") => (event: PointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
-      if (keys.current.leave()) actions.commit();
+      if (keys.current.handOff()) actions.commit();
       event.preventDefault();
       event.stopPropagation();
       actions.select(redaction.key);
@@ -174,7 +174,7 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
   const onBackgroundPointerDown = (event: PointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
-    if (keys.current.leave()) actions.commit();
+    if (keys.current.handOff()) actions.commit();
     event.preventDefault();
     capture(event);
     const at = onComposition(event);

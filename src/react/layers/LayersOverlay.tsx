@@ -196,7 +196,7 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
     (event: PointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
-      if (keys.current.leave()) actions.commit();
+      if (keys.current.handOff()) actions.commit();
       event.preventDefault();
       event.stopPropagation();
       actions.select(layer.key);

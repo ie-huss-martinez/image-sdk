@@ -910,6 +910,29 @@ describe("the layers (docs/adr/0013)", () => {
     expect(changes).toHaveLength(count + 1);
     await pointer(target(), "pointerup", centre.x, centre.y);
     expect(changes).toHaveLength(count + 1);
+    // A key held after Escape stays ignored through a press of the pointer,
+    // until it's let go.
+    const arrow = (type: string, repeat = false) =>
+      act(async () => {
+        target()?.dispatchEvent(
+          new KeyboardEvent(type, { key: "ArrowRight", repeat, bubbles: true, cancelable: true }),
+        );
+      });
+    await arrow("keydown");
+    expect(description(target())).toContain("from 38, 20");
+    await act(async () => {
+      target()?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+      );
+    });
+    expect(description(target())).toContain("from 37, 20");
+    await pointer(target(), "pointerdown", centre.x, centre.y);
+    await pointer(target(), "pointerup", centre.x, centre.y);
+    await arrow("keydown", true);
+    expect(description(target())).toContain("from 37, 20");
+    await arrow("keyup");
+    expect(layer("over")).toMatchObject({ x: 37 });
+    expect(changes).toHaveLength(count + 1);
   });
 
   it("moves and resizes as seen on screen when the image is turned and mirrored", async () => {

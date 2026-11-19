@@ -18,6 +18,12 @@ export interface KeyRun {
   cancel(): boolean;
   /** Focus leaving. Returns whether there was a run to commit. */
   leave(): boolean;
+  /**
+   * A pointer taking the gesture. Returns whether there was a run to
+   * commit first. Keys still held after Escape stay ignored until they're
+   * let go, as they would be without the pointer.
+   */
+  handOff(): boolean;
 }
 
 export function createKeyRun(): KeyRun {
@@ -45,6 +51,11 @@ export function createKeyRun(): KeyRun {
       running = false;
       cancelled = held.size > 0;
       return true;
+    },
+    handOff() {
+      const ended = running && !cancelled;
+      running = false;
+      return ended;
     },
     leave() {
       held.clear();

@@ -28,6 +28,21 @@ describe("a frame's run of arrow keys (docs/adr/0007)", () => {
     expect(run.release("ArrowRight")).toBe(true);
   });
 
+  it("hands a run to a pointer: committed first, or still ignored after Escape until let go", () => {
+    const run = createKeyRun();
+    expect(run.handOff()).toBe(false);
+    run.press("ArrowRight");
+    expect(run.handOff()).toBe(true);
+    expect(run.release("ArrowRight")).toBe(false);
+    // Cancelled, then handed over: the held key's repeats stay ignored.
+    run.press("ArrowRight");
+    run.cancel();
+    expect(run.handOff()).toBe(false);
+    expect(run.press("ArrowRight")).toBe(false);
+    expect(run.release("ArrowRight")).toBe(false);
+    expect(run.press("ArrowRight")).toBe(true);
+  });
+
   it("ends a run when focus leaves, since its keys are let go elsewhere", () => {
     const run = createKeyRun();
     expect(run.leave()).toBe(false);
