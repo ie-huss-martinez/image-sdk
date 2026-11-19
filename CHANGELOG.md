@@ -1,5 +1,11 @@
 # @hussmartinez/image-sdk
 
+## 0.7.3
+
+### Patch Changes
+
+- [#114](https://github.com/ie-huss-martinez/image-sdk/pull/114) [`813a6d9`](https://github.com/ie-huss-martinez/image-sdk/commit/813a6d918b1dc5d62765fdc1ce833e95bb9a86bd) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The SDK now depends on `@hussmartinez/ui` `^0.14.4`. In a right-to-left page, the toolbar's Undo and Redo icons now point the way the text reads: Undo toward the start of the line, on the right. Two announcements made at the same moment are now both read out, where only the last was before.
+
 ## 0.7.2
 
 ### Patch Changes
