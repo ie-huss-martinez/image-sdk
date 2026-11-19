@@ -126,10 +126,14 @@ async function opened(
 }
 
 /** Dispatches a key, and says whether its default was prevented. */
+/** A key pressed and let go, as a person presses it: a step for a frame's arrow (docs/adr/0007). */
 async function key(target: Element | null | undefined, init: KeyboardEventInit) {
   const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
   await act(async () => {
     target?.dispatchEvent(event);
+  });
+  await act(async () => {
+    target?.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, ...init }));
   });
   return event.defaultPrevented;
 }
@@ -552,9 +556,10 @@ describe("the layers (docs/adr/0013)", () => {
     await key(frame("under"), { key: "ArrowLeft" });
     await afterKeys();
     expect(layer("under")).toMatchObject({ x: 9 });
-    // Each was one step; the button mirrors it back.
+    // Each press was one step; the button mirrors it back.
     expect(session().undo()).toBe(true);
-    expect(session().undo()).toBe(true);
+    expect(layer("under")).toMatchObject({ flipX: true, x: 10, width: 22 });
+    expect(session().undo() && session().undo()).toBe(true);
     expect(layer("under")).toMatchObject({ flipX: true, x: 10, width: 20 });
     await click(named("Mirror"));
     expect(layer("under")?.flipX).toBe(false);
@@ -660,13 +665,15 @@ describe("the layers (docs/adr/0013)", () => {
     expect(await key(target(), { key: "ArrowRight" })).toBe(true);
     expect(await key(target(), { key: "ArrowDown", shiftKey: true })).toBe(true);
     expect(await key(target(), { key: "ArrowLeft", altKey: true })).toBe(false);
-    expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 30 }, to: { x: 20, y: 10 } });
-    expect(description(target())).toContain("From 42, 30 to 22, 11.");
-    await afterKeys();
     expect(arrowLayer()).toMatchObject({ from: { x: 42, y: 30 }, to: { x: 22, y: 11 } });
-    // One step for the burst.
+    expect(description(target())).toContain("From 42, 30 to 22, 11.");
+    // One step per press: three to undo.
     await act(async () => {
       expect(session().undo()).toBe(true);
+    });
+    expect(arrowLayer()).toMatchObject({ from: { x: 42, y: 30 }, to: { x: 22, y: 10 } });
+    await act(async () => {
+      expect(session().undo() && session().undo()).toBe(true);
     });
     expect(arrowLayer()).toMatchObject({ from: { x: 40, y: 30 }, to: { x: 20, y: 10 } });
     await rendered();
@@ -802,7 +809,7 @@ describe("the layers (docs/adr/0013)", () => {
     expect(document.querySelector(".hm-image-layers-problem")).toBeNull();
   });
 
-  it("moves and resizes a frame with keys, as one step once they stop", async () => {
+  it("moves and resizes a frame with keys, one step per press", async () => {
     const changes: ImagePlan[] = [];
     const { session, layer } = await opened(LAYERS, { onChange: (plan) => changes.push(plan) });
     await layering();
@@ -818,17 +825,57 @@ describe("the layers (docs/adr/0013)", () => {
       expect(await key(target(), { key: "ArrowLeft", [modifier]: true }), modifier).toBe(false);
       expect(await key(target(), { key: "Delete", [modifier]: true }), modifier).toBe(false);
     }
-    // Not an edit yet: the stage shows a transient plan with the moved layer.
-    expect(changes).toHaveLength(count);
-    expect(layer("over")).toMatchObject({ x: 36, y: 20, width: 16, height: 12 });
-    expect(description(target())).toContain("17 × 11 pixels, from 33, 25");
-    await afterKeys();
+    // Each press is a step.
     expect(layer("over")).toMatchObject({ x: 33, y: 25, width: 17, height: 11 });
-    expect(changes).toHaveLength(count + 1);
+    expect(description(target())).toContain("17 × 11 pixels, from 33, 25");
+    expect(changes).toHaveLength(count + 10);
     expect(document.activeElement).toBe(target());
-    // One step for the whole burst of keys.
     expect(session().undo()).toBe(true);
-    expect(layer("over")).toMatchObject({ x: 36, y: 20, width: 16, height: 12 });
+    expect(layer("over")).toMatchObject({ x: 33, y: 25, width: 17, height: 12 });
+  });
+
+  it("makes a key held down one step, cancels it with Escape, and ends it when focus leaves", async () => {
+    const changes: ImagePlan[] = [];
+    const { layer } = await opened(LAYERS, { onChange: (plan) => changes.push(plan) });
+    await layering();
+    const target = () => frame("over");
+    const down = (init: KeyboardEventInit) =>
+      act(async () => {
+        target()?.dispatchEvent(
+          new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init }),
+        );
+      });
+    const up = (init: KeyboardEventInit) =>
+      act(async () => {
+        target()?.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, ...init }));
+      });
+    await act(async () => target()?.focus());
+    const count = changes.length;
+    // Held down, it repeats: shown at once, and one step when it's let go.
+    for (let i = 0; i < 4; i += 1) await down({ key: "ArrowRight", repeat: i > 0 });
+    expect(description(target())).toContain("from 40, 20");
+    expect(layer("over")).toMatchObject({ x: 36 });
+    expect(changes).toHaveLength(count);
+    await up({ key: "ArrowRight" });
+    expect(layer("over")).toMatchObject({ x: 40 });
+    expect(changes).toHaveLength(count + 1);
+    // Escape while it's held: back where it was, and the rest of it is ignored.
+    await down({ key: "ArrowLeft" });
+    expect(description(target())).toContain("from 39, 20");
+    await down({ key: "Escape" });
+    expect(description(target())).toContain("from 40, 20");
+    await down({ key: "ArrowLeft", repeat: true });
+    expect(description(target())).toContain("from 40, 20");
+    await up({ key: "ArrowLeft" });
+    expect(layer("over")).toMatchObject({ x: 40 });
+    expect(changes).toHaveLength(count + 1);
+    // The layers are still shown: that Escape cancelled the key, not the tool.
+    expect(target()).not.toBeNull();
+    // Focus leaving with a key held ends it as one step.
+    await down({ key: "ArrowDown" });
+    await act(async () => named("Mirror")?.focus());
+    expect(layer("over")).toMatchObject({ x: 40, y: 21 });
+    expect(changes).toHaveLength(count + 2);
   });
 
   it("moves and resizes as seen on screen when the image is turned and mirrored", async () => {

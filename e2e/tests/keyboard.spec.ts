@@ -116,7 +116,7 @@ test("edits and exports with the keyboard alone, with focus where it belongs", a
   await expect(area).toBeFocused();
   for (let i = 0; i < 2; i += 1) await page.keyboard.press("ArrowLeft");
   for (let i = 0; i < 3; i += 1) await page.keyboard.press("Shift+ArrowRight");
-  // One step, once the keys stop: a quarter of the cropped image, moved and widened.
+  // A step per press: a quarter of the cropped image, moved and widened.
   await expect
     .poll(async () => (await plan(page)).redactions)
     .toEqual([
@@ -135,8 +135,9 @@ test("edits and exports with the keyboard alone, with focus where it belongs", a
   await tabTo(page, page.getByRole("button", { name: "Done" }));
   await page.keyboard.press("Enter");
   await expect(flip).toBeFocused();
+  // Undo takes back the last press.
   await page.keyboard.press(undo);
-  expect((await plan(page)).redactions[0]).toMatchObject({ x: 16, width: 10 });
+  expect((await plan(page)).redactions[0]).toMatchObject({ x: 14, width: 12 });
   await page.keyboard.press(process.platform === "darwin" ? "Meta+Shift+z" : "Control+Shift+z");
   expect((await plan(page)).redactions[0]).toMatchObject({ x: 14, width: 13 });
 

@@ -66,12 +66,17 @@ async function opened(extra: { onChange?: (plan: ImagePlan) => void } = {}) {
   return { handle, session, redactions };
 }
 
-const key = (target: Element | null, init: KeyboardEventInit) =>
-  act(async () => {
+/** A key pressed and let go, as a person presses it: a step for a frame's arrow (docs/adr/0007). */
+const key = async (target: Element | null, init: KeyboardEventInit) => {
+  await act(async () => {
     target?.dispatchEvent(
       new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init }),
     );
   });
+  await act(async () => {
+    target?.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, ...init }));
+  });
+};
 const pointer = (target: Element | null, type: string, x: number, y: number) =>
   act(async () => {
     target?.dispatchEvent(
@@ -213,7 +218,7 @@ describe("redacting (docs/adr/0010)", () => {
     await until(() => frames().length === 0, "the frame to go");
   });
 
-  it("moves and resizes with keys, as one step once they stop, and shows it on the stage meanwhile", async () => {
+  it("moves and resizes with keys, one step per press and one per key held down", async () => {
     const changes: ImagePlan[] = [];
     const { session, redactions, handle } = await opened({
       onChange: (plan) => changes.push(plan),
@@ -239,18 +244,60 @@ describe("redacting (docs/adr/0010)", () => {
       });
       expect(event.defaultPrevented, modifier).toBe(false);
     }
-    // Not an edit yet: the stage shows a transient plan with the moved area.
-    expect(changes).toHaveLength(count);
-    expect(redactions()[0]).toMatchObject({ x: 23, y: 15, width: 15, height: 10 });
-    expect(description(frames()[0])).toContain("16 × 9 pixels, from 20, 25");
-    await afterKeys();
+    // Each press is a step.
     expect(redactions()[0]).toMatchObject({ x: 20, y: 25, width: 16, height: 9 });
-    expect(changes).toHaveLength(count + 1);
+    expect(changes).toHaveLength(count + 15);
     expect(document.activeElement).toBe(frames()[0]);
-    // One step for the whole burst of keys.
     expect(session().undo()).toBe(true);
-    expect(redactions()[0]).toMatchObject({ x: 23, y: 15, width: 15, height: 10 });
+    expect(redactions()[0]).toMatchObject({ x: 20, y: 25, width: 16, height: 10 });
+    expect(session().redo()).toBe(true);
     expect(handle.current).not.toBeNull();
+  });
+
+  it("makes a key held down one step, cancels it with Escape, and ends it when focus leaves", async () => {
+    const changes: ImagePlan[] = [];
+    const { redactions } = await opened({ onChange: (plan) => changes.push(plan) });
+    await redacting();
+    await click(button("Add area"));
+    await until(() => frames().length === 1, "the frame");
+    const target = () => frames()[0] ?? null;
+    const down = (init: KeyboardEventInit) =>
+      act(async () => {
+        target()?.dispatchEvent(
+          new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init }),
+        );
+      });
+    const up = (init: KeyboardEventInit) =>
+      act(async () => {
+        target()?.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, ...init }));
+      });
+    await act(async () => target()?.focus());
+    const count = changes.length;
+    // Held down, it repeats: shown at once, and one step when it's let go.
+    for (let i = 0; i < 4; i += 1) await down({ key: "ArrowRight", repeat: i > 0 });
+    expect(description(frames()[0])).toContain("from 27, 15");
+    expect(redactions()[0]).toMatchObject({ x: 23 });
+    expect(changes).toHaveLength(count);
+    await up({ key: "ArrowRight" });
+    expect(redactions()[0]).toMatchObject({ x: 27 });
+    expect(changes).toHaveLength(count + 1);
+    // Escape while it's held: back where it was, and the rest of it is ignored.
+    await down({ key: "ArrowLeft" });
+    expect(description(frames()[0])).toContain("from 26, 15");
+    await down({ key: "Escape" });
+    expect(description(frames()[0])).toContain("from 27, 15");
+    await down({ key: "ArrowLeft", repeat: true });
+    expect(description(frames()[0])).toContain("from 27, 15");
+    await up({ key: "ArrowLeft" });
+    expect(redactions()[0]).toMatchObject({ x: 27 });
+    expect(changes).toHaveLength(count + 1);
+    // Redacting is still on: that Escape cancelled the key, not the tool.
+    expect(frames()).toHaveLength(1);
+    // Focus leaving with a key held ends it as one step.
+    await down({ key: "ArrowDown" });
+    await act(async () => button("Add area")?.focus());
+    expect(redactions()[0]).toMatchObject({ x: 27, y: 16 });
+    expect(changes).toHaveLength(count + 2);
   });
 
   it("moves as seen on screen when the image is turned", async () => {

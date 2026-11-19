@@ -72,8 +72,8 @@ export interface LayerActions {
    * an arrow's ends.
    */
   moving(key: string, props: Readonly<Record<string, unknown>>): void;
-  /** Ends the gesture as one step: at once, or after the keyboard's delay. */
-  commit(soon?: boolean): void;
+  /** Ends the gesture as one step: a drag let go, or the last arrow key held let go. */
+  commit(): void;
   /** Ends the gesture with no step. */
   cancel(): void;
   /** Sets some of a layer's fields at once, as one step: a field of the panel. */
@@ -162,9 +162,8 @@ export function useLayerActions(): LayerActions {
       moving(key, props) {
         gesture.preview([{ type: "image.updateLayers", updates: [{ key, props }] }]);
       },
-      commit(soon = false) {
-        if (soon) gesture.commitSoon();
-        else gesture.commit();
+      commit() {
+        gesture.commit();
       },
       cancel() {
         gesture.cancel();

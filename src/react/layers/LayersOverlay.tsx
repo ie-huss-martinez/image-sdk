@@ -19,6 +19,7 @@ import { type ImageRect, sceneRectToComposition } from "../../core/model/redacti
 import type { ImageSize } from "../../core/model/source.js";
 import { type ImageView, placement } from "../../core/ports/image-renderer.js";
 import { useImageEditorState, useImageMessages } from "../hooks.js";
+import { createKeyRun } from "../key-run.js";
 import {
   boxOf,
   handleCursor,
@@ -95,6 +96,8 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
   >(undefined);
   /** The key whose frame takes focus once it's rendered: the one selected after a removal. */
   const focusNext = useRef<string | null>(null);
+  /** The arrow keys held on a frame: one step per press, and per key held down. */
+  const keys = useRef(createKeyRun());
 
   const frameOf = (key: string) =>
     overlay.current?.querySelector<HTMLElement>(`[data-hm-layer="${CSS.escape(key)}"]`);
@@ -234,9 +237,12 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      // Escape during a drag cancels the drag; otherwise it closes the layers.
+      // Escape during a drag, or while arrow keys are held, cancels it;
+      // otherwise it closes the layers.
       if (drag.current) {
         drag.current = undefined;
+        actions.cancel();
+      } else if (keys.current.cancel()) {
         actions.cancel();
       } else {
         actions.done();
@@ -266,10 +272,20 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
     event.preventDefault();
     // Handled here, so the editor's shortcuts don't also take the arrows.
     event.stopPropagation();
+    // A run cancelled with Escape is ignored until its keys are let go.
+    if (!keys.current.press(event.key)) return;
     const fields = nudgeOf(layer, arrow[0], arrow[1], event.shiftKey);
     if (!fields) return;
+    // Shown at once; it's a step when the last key held is let go.
     actions.moving(layer.key, fields);
-    actions.commit(true);
+  };
+  const onKeyUp = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (ARROWS[event.key] && keys.current.release(event.key)) actions.commit();
+  };
+  // Focus leaving with a key held ends its run as one step: the key let go
+  // elsewhere isn't seen.
+  const onBlur = () => {
+    if (keys.current.leave()) actions.commit();
   };
 
   const count = plan.layers.length;
@@ -307,6 +323,8 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
           tabIndex: layer.key === tabStop ? 0 : -1,
           onFocus: () => actions.select(layer.key),
           onKeyDown: onKeyDown(layer),
+          onKeyUp,
+          onBlur,
           onPointerDown: onFramePointerDown(layer, "move"),
           ...pointer,
         };

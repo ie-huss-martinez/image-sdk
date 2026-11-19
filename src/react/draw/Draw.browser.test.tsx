@@ -104,10 +104,14 @@ const click = (element: Element | null | undefined) =>
     if (!element) throw new Error("nothing to click");
     (element as HTMLElement).click();
   });
+/** A key pressed and let go, as a person presses it: a step for a frame's arrow (docs/adr/0007). */
 async function key(target: Element | null | undefined, init: KeyboardEventInit) {
   const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
   await act(async () => {
     target?.dispatchEvent(event);
+  });
+  await act(async () => {
+    target?.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, ...init }));
   });
   return event.defaultPrevented;
 }
