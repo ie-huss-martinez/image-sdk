@@ -1,5 +1,13 @@
 # @hussmartinez/image-sdk
 
+## 0.8.0
+
+### Minor Changes
+
+- [#117](https://github.com/ie-huss-martinez/image-sdk/pull/117) [`3f08d37`](https://github.com/ie-huss-martinez/image-sdk/commit/3f08d3748a1235dbd9dda6306ea943b49d267812) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The Adjust and Filters sliders now make one undo step per key press, and one for a key held down, as the other editors in the family do. Before, a quick run of separate presses became one step, half a second after the last. A drag is still one step, and Escape during a drag or while a key is held still puts the slider back, with no step.
+  
+  The SDK now depends on `@hussmartinez/ui` `^0.15.0`, whose `Slider` decides when a gesture ends and cancels it with Escape.
+
 ## 0.7.3
 
 ### Patch Changes
