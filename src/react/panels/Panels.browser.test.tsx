@@ -6,7 +6,6 @@ import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle } from "../editor/types.js";
-import { KEYBOARD_COMMIT_DELAY } from "../gesture.js";
 
 let unloadStyles: () => void = () => {};
 beforeAll(async () => {
@@ -98,6 +97,7 @@ describe("the Adjust panel (docs/adr/0007)", () => {
   it("previews a slider drag without an edit, then commits one step on release", async () => {
     const { session, changes, start } = await opened();
     const exposure = slider("Adjust", 2);
+    await fire(exposure, new PointerEvent("pointerdown", { bubbles: true }));
     for (const value of [10, 20, 30]) await move(exposure, value);
     expect(exposure.value).toBe("30");
     expect(session().getSnapshot()).toMatchObject({
@@ -115,31 +115,63 @@ describe("the Adjust panel (docs/adr/0007)", () => {
     });
   });
 
-  it("commits a burst of keys once, a moment after the last", async () => {
+  it("commits one step per key press, and one for a key held down", async () => {
     const { session, changes, start } = await opened();
     const contrast = slider("Adjust", 5);
-    for (const value of [1, 2, 3, 4]) {
-      await move(contrast, value);
+    contrast.focus();
+    // Each keydown renders before the next, as a key's repeats do.
+    const press = async (repeats = 0) => {
+      for (let i = 0; i <= repeats; i += 1) {
+        await fire(
+          contrast,
+          new KeyboardEvent("keydown", {
+            key: "ArrowRight",
+            repeat: i > 0,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      }
       await fire(contrast, new KeyboardEvent("keyup", { key: "ArrowRight", bubbles: true }));
-    }
-    expect(session().getSnapshot().plan?.base.develop.contrast).toBe(0);
-    await act(
-      async () => new Promise((resolve) => setTimeout(resolve, KEYBOARD_COMMIT_DELAY + 100)),
-    );
-    expect(session().getSnapshot().plan?.base.develop.contrast).toBe(4);
-    expect(changes).toHaveLength(start + 1);
+    };
+    await press();
+    await press();
+    expect(session().getSnapshot().plan?.base.develop.contrast).toBe(2);
+    expect(changes).toHaveLength(start + 2);
+    // Held down, it repeats: one step when it's let go.
+    await press(3);
+    expect(session().getSnapshot().plan?.base.develop.contrast).toBe(6);
+    expect(changes).toHaveLength(start + 3);
+    expect(session().undo()).toBe(true);
+    expect(session().getSnapshot().plan?.base.develop.contrast).toBe(2);
   });
 
-  it("cancels with Escape, and commits when focus leaves", async () => {
+  it("cancels a drag or a held key with Escape, and commits when focus leaves", async () => {
     const { session, changes, start } = await opened();
     const tint = slider("Adjust", 1);
+    const pressEscape = () =>
+      fire(tint, new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    // A drag: back where it started, with no step, even once it's let go.
+    await fire(tint, new PointerEvent("pointerdown", { bubbles: true }));
     await move(tint, -40);
+    await pressEscape();
+    expect(tint.value).toBe("0");
+    await fire(tint, new PointerEvent("pointerup", { bubbles: true }));
+    expect(session().getSnapshot().plan?.base.develop.tint).toBe(0);
+    expect(changes).toHaveLength(start);
+    // A held key.
+    tint.focus();
     await fire(
       tint,
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+      new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }),
     );
+    expect(tint.value).toBe("-1");
+    await pressEscape();
+    await fire(tint, new KeyboardEvent("keyup", { key: "ArrowLeft", bubbles: true }));
     expect(tint.value).toBe("0");
     expect(changes).toHaveLength(start);
+    // Focus leaving ends a drag as one step.
+    await fire(tint, new PointerEvent("pointerdown", { bubbles: true }));
     await move(tint, 25);
     await fire(tint, new FocusEvent("focusout", { bubbles: true }));
     expect(session().getSnapshot().plan?.base.develop.tint).toBe(25);
@@ -181,6 +213,7 @@ describe("the Filters panel (docs/adr/0007)", () => {
     await choose("Mono");
     expect(session().getSnapshot().plan?.base.filter).toEqual({ preset: "mono", strength: 100 });
     const strength = slider("Filters", 0);
+    await fire(strength, new PointerEvent("pointerdown", { bubbles: true }));
     for (const value of [80, 60, 45]) await move(strength, value);
     await fire(strength, new PointerEvent("pointerup", { bubbles: true }));
     expect(session().getSnapshot().plan?.base.filter).toEqual({ preset: "mono", strength: 45 });

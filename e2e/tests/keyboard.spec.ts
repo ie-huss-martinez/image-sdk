@@ -84,7 +84,7 @@ test("edits and exports with the keyboard alone, with focus where it belongs", a
   expect((await plan(page)).base.crop).toEqual({ x: 2, y: 0, width: 38, height: 32 });
   await expect(flip).toBeFocused();
 
-  // Adjust with a slider's keys: one step when the keys stop.
+  // Adjust with a slider's keys: one step per press.
   const temperature = page.getByRole("slider", { name: "Temperature" });
   await tabTo(page, temperature);
   for (let i = 0; i < 3; i += 1) await page.keyboard.press("ArrowRight");
