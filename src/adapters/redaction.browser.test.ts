@@ -105,6 +105,18 @@ afterEach(async () => {
   for (const engine of engines.splice(0)) await engine.destroy();
 });
 
+/**
+ * Destroys one engine, by reference, and takes it off the list. A property
+ * run releases its own engine this way, never the list's last: a run that
+ * outlives its test, after a timeout, then can't destroy the engine of the
+ * test running next.
+ */
+async function release(engine: ImageEngine): Promise<void> {
+  const at = engines.indexOf(engine);
+  if (at >= 0) engines.splice(at, 1);
+  await engine.destroy();
+}
+
 /** An engine and a processor over sources `a` and `b`. */
 async function pair(a: Uint8ClampedArray, b: Uint8ClampedArray) {
   const engine = createImageEngine();
@@ -232,18 +244,47 @@ const pixelated = (rect: ImageRect, key = "p"): ImageRedaction => ({
   ...rect,
 });
 
+describe("the redaction tests' own isolation", () => {
+  it("lets a property run that outlives its test release only its own engine", async () => {
+    // A run of a property that timed out goes on in the background: it makes
+    // its engine, and releases it after the next test has made its own.
+    let made: () => void = () => {};
+    const ownMade = new Promise<void>((resolve) => {
+      made = resolve;
+    });
+    let finish: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const ghost = (async () => {
+      const { engine } = await pair(noise(1), noise(2));
+      made();
+      await gate;
+      await release(engine);
+    })();
+    await ownMade;
+    // The next test's engine, made while the ghost run still holds its own.
+    const { engine, processor } = await pair(noise(3), noise(4));
+    finish();
+    await ghost;
+    expect(engines).toEqual([engine]);
+    const exported = await processor.export({ plan: createPlan("a"), format: { type: "png" } });
+    expect(exported.size).toBeGreaterThan(0);
+  });
+});
+
 describe("redaction doesn't interfere (docs/adr/0010)", () => {
   it("exports the same bytes from sources that differ only inside a solid region, for any plan", async () => {
     const base = noise(1);
     await fc.assert(
       fc.asyncProperty(region, edits, fc.constantFrom(...FORMATS), async (rect, edit, format) => {
-        const { processor } = await pair(
+        const { engine, processor } = await pair(
           base,
           differing(base, (x, y) => inside(x, y, rect)),
         );
         const both = await exports(processor, planWith(edit, [solid(rect)]), format);
         await processor.destroy();
-        await engines.pop()?.destroy();
+        await release(engine);
         if (both) expect(sameBytes(...both)).toBe(true);
       }),
       { numRuns: 60 },
@@ -282,10 +323,10 @@ describe("redaction doesn't interfere (docs/adr/0010)", () => {
           shuffledWithin(base, blocks),
           (x, y) => inside(x, y, rect) && !inside(x, y, rendered),
         );
-        const { processor } = await pair(base, rearranged);
+        const { engine, processor } = await pair(base, rearranged);
         const both = await exports(processor, planWith(edit, [pixelated(rect)]), format);
         await processor.destroy();
-        await engines.pop()?.destroy();
+        await release(engine);
         if (both) expect(sameBytes(...both)).toBe(true);
       }),
       { numRuns: 60 },
