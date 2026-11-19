@@ -1,5 +1,11 @@
 # @hussmartinez/image-sdk
 
+## 0.9.0
+
+### Minor Changes
+
+- [#119](https://github.com/ie-huss-martinez/image-sdk/pull/119) [`b7ca340`](https://github.com/ie-huss-martinez/image-sdk/commit/b7ca34017219c3ea0b83ada3a7a6e3a46157b6a9) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Moving or resizing a redaction or a layer with the arrow keys now makes one undo step per key press, and one for a key held down, as the sliders do. Before, a quick run of presses became one step, half a second after the last. Escape while an arrow key is held puts the frame back where it was, and leaves the tool open; Escape with nothing in progress still closes it. Typing in a text layer is unchanged: one step half a second after the last keystroke.
+
 ## 0.8.0
 
 ### Minor Changes
