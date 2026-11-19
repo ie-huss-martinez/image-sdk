@@ -878,6 +878,40 @@ describe("the layers (docs/adr/0013)", () => {
     expect(changes).toHaveLength(count + 2);
   });
 
+  it("keeps a pointer drag and a run of arrow keys from committing each other", async () => {
+    const changes: ImagePlan[] = [];
+    const { layer } = await opened(LAYERS, { onChange: (plan) => changes.push(plan) });
+    await layering();
+    const target = () => frame("over");
+    await act(async () => target()?.focus());
+    const count = changes.length;
+    const box = target()?.getBoundingClientRect();
+    if (!box) throw new Error("no frame");
+    const centre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+    // An arrow pressed during a drag neither moves the frame nor commits the drag.
+    await pointer(target(), "pointerdown", centre.x, centre.y);
+    await pointer(target(), "pointermove", centre.x + 30, centre.y + 15);
+    await key(target(), { key: "ArrowRight" });
+    expect(changes).toHaveLength(count);
+    expect(layer("over")).toMatchObject({ x: 36, y: 20 });
+    // So a cancelled drag still leaves the layer where it was.
+    await pointer(target(), "pointercancel", centre.x + 30, centre.y + 15);
+    expect(description(target())).toContain("from 36, 20");
+    expect(changes).toHaveLength(count);
+    // A press while a key is held ends the key's run first, as its own step.
+    await act(async () => {
+      target()?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }),
+      );
+    });
+    expect(description(target())).toContain("from 37, 20");
+    await pointer(target(), "pointerdown", centre.x, centre.y);
+    expect(layer("over")).toMatchObject({ x: 37 });
+    expect(changes).toHaveLength(count + 1);
+    await pointer(target(), "pointerup", centre.x, centre.y);
+    expect(changes).toHaveLength(count + 1);
+  });
+
   it("moves and resizes as seen on screen when the image is turned and mirrored", async () => {
     const { session, layer } = await opened();
     await act(async () =>

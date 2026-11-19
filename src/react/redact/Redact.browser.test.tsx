@@ -300,6 +300,40 @@ describe("redacting (docs/adr/0010)", () => {
     expect(changes).toHaveLength(count + 2);
   });
 
+  it("keeps a pointer drag and a run of arrow keys from committing each other", async () => {
+    const changes: ImagePlan[] = [];
+    const { redactions } = await opened({ onChange: (plan) => changes.push(plan) });
+    await redacting();
+    await click(button("Add area"));
+    await until(() => frames().length === 1, "the frame");
+    const count = changes.length;
+    const box = frames()[0]?.getBoundingClientRect();
+    if (!box) throw new Error("no frame");
+    const centre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+    // An arrow pressed during a drag neither moves the frame nor commits the drag.
+    await pointer(frames()[0] ?? null, "pointerdown", centre.x, centre.y);
+    await pointer(frames()[0] ?? null, "pointermove", centre.x + 40, centre.y + 20);
+    await key(frames()[0] ?? null, { key: "ArrowRight" });
+    expect(changes).toHaveLength(count);
+    expect(redactions()[0]).toMatchObject({ x: 23, y: 15 });
+    // So a cancelled drag still leaves the area where it was.
+    await pointer(frames()[0] ?? null, "pointercancel", centre.x + 40, centre.y + 20);
+    expect(description(frames()[0])).toContain("from 23, 15");
+    expect(changes).toHaveLength(count);
+    // A press while a key is held ends the key's run first, as its own step.
+    await act(async () => {
+      frames()[0]?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }),
+      );
+    });
+    expect(description(frames()[0])).toContain("from 24, 15");
+    await pointer(frames()[0] ?? null, "pointerdown", centre.x, centre.y);
+    expect(redactions()[0]).toMatchObject({ x: 24 });
+    expect(changes).toHaveLength(count + 1);
+    await pointer(frames()[0] ?? null, "pointerup", centre.x, centre.y);
+    expect(changes).toHaveLength(count + 1);
+  });
+
   it("moves as seen on screen when the image is turned", async () => {
     const { session, redactions } = await opened();
     session().execute({

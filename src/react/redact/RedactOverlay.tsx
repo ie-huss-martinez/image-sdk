@@ -151,6 +151,8 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
   const onFramePointerDown =
     (redaction: ImageRedaction, handle: Handle | "move") => (event: PointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
+      // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
+      if (keys.current.leave()) actions.commit();
       event.preventDefault();
       event.stopPropagation();
       actions.select(redaction.key);
@@ -171,6 +173,8 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
 
   const onBackgroundPointerDown = (event: PointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
+    // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
+    if (keys.current.leave()) actions.commit();
     event.preventDefault();
     capture(event);
     const at = onComposition(event);
@@ -282,6 +286,8 @@ export function RedactOverlay(props: RedactOverlayProps): ReactNode {
     event.preventDefault();
     // Handled here, so the editor's shortcuts don't also take the arrows.
     event.stopPropagation();
+    // While a pointer drags, the arrows don't move the frame: the drag owns the gesture.
+    if (drag.current) return;
     // A run cancelled with Escape is ignored until its keys are let go.
     if (!keys.current.press(event.key)) return;
     const [dx, dy] = arrow;

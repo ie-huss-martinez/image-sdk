@@ -195,6 +195,8 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
     (layer: ImageLayer, part: LayerHandle | "move" | "from" | "to") =>
     (event: PointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
+      // A pointer takes the gesture: a run of arrow keys still going ends first, as its own step.
+      if (keys.current.leave()) actions.commit();
       event.preventDefault();
       event.stopPropagation();
       actions.select(layer.key);
@@ -272,6 +274,8 @@ export function LayersOverlay(props: LayersOverlayProps): ReactNode {
     event.preventDefault();
     // Handled here, so the editor's shortcuts don't also take the arrows.
     event.stopPropagation();
+    // While a pointer drags, the arrows don't move the frame: the drag owns the gesture.
+    if (drag.current) return;
     // A run cancelled with Escape is ignored until its keys are let go.
     if (!keys.current.press(event.key)) return;
     const fields = nudgeOf(layer, arrow[0], arrow[1], event.shiftKey);
