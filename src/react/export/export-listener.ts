@@ -20,6 +20,6 @@ export interface ImageExportReport {
 }
 
 /** Hears about every export the dialog finishes; the element provides it. */
-export const ExportListenerContext = createContext<((report: ImageExportReport) => void) | null>(
-  null,
-);
+export const ExportListenerContext = /* @__PURE__ */ createContext<
+  ((report: ImageExportReport) => void) | null
+>(null);

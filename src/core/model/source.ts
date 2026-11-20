@@ -149,7 +149,7 @@ export interface ImageThumbnail {
  *
  * @public
  */
-export const NO_METADATA: ImageMetadataPresence = Object.freeze({
+export const NO_METADATA: ImageMetadataPresence = /* @__PURE__ */ Object.freeze({
   location: false,
   camera: false,
   timestamps: false,
@@ -163,7 +163,7 @@ export const NO_METADATA: ImageMetadataPresence = Object.freeze({
  *
  * @public
  */
-export const EMPTY_KEEPABLE_METADATA: ImageKeepableMetadata = Object.freeze({
+export const EMPTY_KEEPABLE_METADATA: ImageKeepableMetadata = /* @__PURE__ */ Object.freeze({
   title: "",
   description: "",
   artist: "",

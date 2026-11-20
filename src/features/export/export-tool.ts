@@ -1,6 +1,11 @@
 import { defineTool } from "@hussmartinez/sdk-core";
 import { NO_TOOL } from "../editor-state.js";
-import type { ImageTool, ImageToolContext, ImageToolState } from "../tool-types.js";
+import {
+  type ImageTool,
+  type ImageToolContext,
+  type ImageToolState,
+  withReason,
+} from "../tool-types.js";
 
 /**
  * Opens the export dialog, which shows a summary before anything is written
@@ -14,8 +19,8 @@ import type { ImageTool, ImageToolContext, ImageToolState } from "../tool-types.
  *   it's applied, and exporting would have to guess between applying and
  *   cancelling it.
  */
-export const exportTool: ImageTool = {
-  .../* @__PURE__ */ defineTool<ImageToolState, ImageToolContext, undefined>({
+export const exportTool: ImageTool = /* @__PURE__ */ withReason(
+  /* @__PURE__ */ defineTool<ImageToolState, ImageToolContext, undefined>({
     id: "image.export",
     label: "tools.export",
     icon: "export",
@@ -34,6 +39,6 @@ export const exportTool: ImageTool = {
             },
       ),
   }),
-  unavailable: ({ snapshot, editor }) =>
+  ({ snapshot, editor }) =>
     snapshot.plan !== null && editor.tool === "crop" ? "tools.exportWhileCropping" : undefined,
-};
+);

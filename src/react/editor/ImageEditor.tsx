@@ -334,7 +334,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
  *
  * @public
  */
-export const ImageEditor = forwardRef(function ImageEditor(
+export const ImageEditor = /* @__PURE__ */ forwardRef(function ImageEditor(
   props: ImageEditorProps,
   ref: ForwardedRef<ImageEditorHandle>,
 ): ReactNode {

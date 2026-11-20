@@ -26,13 +26,21 @@ export const LAYER_NAMES: KeyedListNames = { unknown: "unknown-layer", item: "la
 const COMMON = ["key", "kind", "name", "visible", "opacity"] as const;
 const BOX = ["x", "y", "width", "height", "rotation", "flipX"] as const;
 /** Each kind's fields, after those every layer has: a box and its own, or its own alone. */
-const OWN: Readonly<Record<ImageLayerKind, readonly string[]>> = {
-  text: [...BOX, "text", "font", "bold", "colour", "align"],
-  shape: [...BOX, "shape", "fill", "stroke"],
-  image: [...BOX, "source", "crop"],
-  drawing: ["x", "y", "strokes"],
-  arrow: ["from", "to", "colour", "width"],
-};
+const OWN = /* @__PURE__ */ ownFields();
+/**
+ * Builds {@link OWN}. A function, so the call can be marked free of side
+ * effects: a bundle that doesn't use the layer commands drops it (sdk-core
+ * ADR 0056).
+ */
+function ownFields(): Readonly<Record<ImageLayerKind, readonly string[]>> {
+  return {
+    text: [...BOX, "text", "font", "bold", "colour", "align"],
+    shape: [...BOX, "shape", "fill", "stroke"],
+    image: [...BOX, "source", "crop"],
+    drawing: ["x", "y", "strokes"],
+    arrow: ["from", "to", "colour", "width"],
+  };
+}
 /**
  * The fields of a kind that `image.updateLayers` doesn't set: a drawing's
  * strokes change only through the stroke commands, so an undo step holds
@@ -47,7 +55,11 @@ const KINDS_BY_VERSION: Readonly<Record<2 | 3, readonly string[]>> = {
   3: LAYER_KINDS,
 };
 /** Every field some kind has, for telling another kind's field from an unknown one. */
-const ANY_OWN = new Set(Object.values(OWN).flat());
+const ANY_OWN: ReadonlySet<string> = /* @__PURE__ */ anyOwnField(OWN);
+/** Builds {@link ANY_OWN}, as a function for the same reason as {@link ownFields}. */
+function anyOwnField(own: Readonly<Record<string, readonly string[]>>): ReadonlySet<string> {
+  return new Set(Object.values(own).flat());
+}
 
 /**
  * The characters text can't hold: the C0 controls other than a line feed,

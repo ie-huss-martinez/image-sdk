@@ -12,9 +12,9 @@ export interface ImageViewState {
 }
 
 /** The fitted view, with no pan. */
-export const FITTED: ImageViewState = Object.freeze({
+export const FITTED: ImageViewState = /* @__PURE__ */ Object.freeze({
   zoom: 1,
-  pan: Object.freeze({ x: 0, y: 0 }),
+  pan: /* @__PURE__ */ Object.freeze({ x: 0, y: 0 }),
 });
 
 /** The zoom range, and the step of the zoom tools. */

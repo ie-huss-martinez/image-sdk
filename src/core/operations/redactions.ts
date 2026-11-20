@@ -23,7 +23,7 @@ export const REDACTION_NAMES: KeyedListNames = { unknown: "unknown-redaction", i
 
 const MODES: readonly string[] = REDACTION_MODES;
 const REGION = ["x", "y", "width", "height"] as const;
-const PROPS = ["mode", ...REGION, "colour"];
+const PROPS = ["mode", "x", "y", "width", "height", "colour"];
 /** The pattern the schema uses too. */
 const COLOUR = /^#[0-9a-f]{6}$/;
 

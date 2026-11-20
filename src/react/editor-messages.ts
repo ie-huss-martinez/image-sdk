@@ -20,11 +20,16 @@ import { imageMessages } from "../messages/en.js";
  *
  * @public
  */
-export const imageEditorMessages = /* @__PURE__ */ defineMessages({
-  ...imageMessages,
-  ...uiMessages,
-  ...imageEditorText,
-});
+export const imageEditorMessages = /* @__PURE__ */ editorCatalogue();
+
+/**
+ * Builds {@link imageEditorMessages}. A function, so the call can be marked
+ * free of side effects: the spreads of the other catalogues otherwise keep
+ * all the text in every bundle that imports this module (sdk-core ADR 0056).
+ */
+function editorCatalogue() {
+  return defineMessages({ ...imageMessages, ...uiMessages, ...imageEditorText });
+}
 
 /**
  * The type of {@link imageEditorMessages}, for typing the editor's

@@ -1,5 +1,5 @@
 import { readdirSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -118,6 +118,59 @@ const temporaryBuild = (async () => {
 
 afterAll(async () => {
   await rm(await temporaryBuild, { recursive: true, force: true });
+});
+
+/**
+ * One import from a built entry, bundled and minified as an application's
+ * bundler would, with the packages left out: what that import ships.
+ */
+async function bundledAlone(entry: string, name: string): Promise<string> {
+  const directory = await temporaryBuild;
+  const file = join(directory, `only-${name}.js`);
+  await writeFile(file, `export { ${name} } from "./${entry}";\n`);
+  const result = await build({
+    configFile: false,
+    logLevel: "silent",
+    build: {
+      write: false,
+      minify: true,
+      lib: { entry: file, formats: ["es"], fileName: "only" },
+      rolldownOptions: {
+        external: (id) =>
+          externalPackages.some((package_) => id === package_ || id.startsWith(`${package_}/`)) ||
+          id.includes("/lazy/"),
+      },
+    },
+  });
+  const outputs = (Array.isArray(result) ? result : [result]).flatMap((output) =>
+    "output" in output ? output.output : [],
+  );
+  return outputs.map((output) => (output.type === "chunk" ? output.code : "")).join("");
+}
+
+describe("the React entry comes apart (sdk-core ADR 0056)", () => {
+  // Top-level code a bundler can't prove free of side effects keeps whatever
+  // it references in every bundle: a call without `/* @__PURE__ */`, a spread
+  // in a module-level literal. Once, importing the message catalogue alone
+  // shipped the whole editor, 40 kB of the entry's 41. This bundles with
+  // Rolldown, as Vite does; esbuild, which the family measures with, also
+  // keeps a spread inside a marked call's argument, which Rolldown drops, so
+  // that case is left to the per-import budgets of sdk-core ADR 0056.
+  it("ships the message catalogue alone without the editor", async () => {
+    const code = await bundledAlone("react.js", "imageEditorMessages");
+    expect(code).toContain("errors.INVALID_IMAGE");
+    // The tools' definitions, React's contexts and refs, a tool's id, and the
+    // limit definitions' objects (a message key only names them).
+    for (const kept of [
+      /\bdefineTool\b/,
+      /\bcreateContext\b/,
+      /\bforwardRef\b/,
+      /"image\.export"/,
+      /\bmaxImagePixels\s*:\s*\{/,
+    ]) {
+      expect(code, String(kept)).not.toMatch(kept);
+    }
+  });
 });
 
 describe("importing on a server", () => {
