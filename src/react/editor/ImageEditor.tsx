@@ -7,6 +7,7 @@ import {
   type ReactNode,
   useEffect,
   useImperativeHandle,
+  useInsertionEffect,
   useMemo,
   useRef,
 } from "react";
@@ -356,8 +357,11 @@ export const ImageEditor = forwardRef(function ImageEditor(
   // The editor listens to the session's events for its announcements, and
   // passes them on to the host's handler.
   const events = useRef<((event: ImageSessionEvent) => void) | undefined>(undefined);
+  // Set when the render commits, never during it, as the provider does.
   const latestOnEvent = useRef(onEvent);
-  latestOnEvent.current = onEvent;
+  useInsertionEffect(() => {
+    latestOnEvent.current = onEvent;
+  }, [onEvent]);
   const [onSessionEvent] = useMemo(
     () => [
       (event: ImageSessionEvent) => {

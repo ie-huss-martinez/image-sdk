@@ -7,6 +7,7 @@
 - **Amended:** 2026-11-17: the crop frame resizes with `Shift` and the arrows, not `Alt`, which is the browser's Back and Forward with Left and Right; and there's no 10-pixel step. See "Checked against browser and system defaults"
 - **Amended:** 2026-11-19: a slider's keys make one step per press, and one per key held down, as in every family editor, where a burst of presses was one step 500 ms after the last; ui's `Slider` says when a gesture ends and cancels it with Escape. See "Gestures: preview while they run, one step when they end"
 - **Amended:** 2026-11-19: so do the arrow keys on a redaction's or a layer's frame, and Escape cancels a key held there. See the same section
+- **Amended:** 2026-11-21: the export dialog's Download sends a `download` event to `onEvent`, so a host knows the browser was asked to download the file, not just that it was made ready. It isn't a confirmed save. There's none with `onExport`. See "The export dialog"
 
 ## Context
 
@@ -146,6 +147,10 @@ Export is irreversible, so its dialog shows a summary before anything is written
 2. **Summary,** before the export button: the output's dimensions and format, and what's removed, from the session's presence flags, such as "Location, camera details and timestamps will be removed". A field the user filled is listed as kept.
 3. **Progress,** which can be cancelled.
 4. **Done:** a download button, which gets focus, the file's size, and an announcement. With the host's `onExport`, the `Blob` goes to the host instead, and the dialog closes.
+
+   Pressing Download asks the browser to download the file and sends a `download` event to the host's `onEvent`, each time it's pressed. The `export` event comes earlier, when the file is ready, and the user may still close the dialog without pressing Download. So a host that guards against leaving with unsaved work waits for `download`, as editor-apps does. The event carries what `export` carries, its type, outcome and an empty list of commands, and nothing about the file.
+
+   `download` marks the request, not a confirmed save. A sandboxed frame without `allow-downloads` starts no download, and the person can cancel the browser's own prompt; the page can't tell either way. A host that needs a confirmed save passes `onExport` and saves the file itself, and then there's no `download`, since the host knows when it has saved. audio-sdk and video-sdk word their event the same way.
 
 A browser that can't encode WebP fails the export with `UNSUPPORTED_FORMAT` ([ADR 0001](0001-image-engines.md)); the dialog then shows the catalogue's text and keeps the choices, so the user can pick another format.
 

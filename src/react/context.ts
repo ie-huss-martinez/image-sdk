@@ -3,7 +3,7 @@ import { createContext } from "react";
 import { asImageError } from "../core/errors/error-helpers.js";
 import { isImageError } from "../core/errors/image-error.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
-import type { ImageSession } from "../core/session/session.js";
+import type { ImageSession, ImageSessionEvent } from "../core/session/session.js";
 import { type ImageEditorState, NO_TOOL } from "../features/editor-state.js";
 import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
 import type { ImageViewState } from "./view-store.js";
@@ -18,6 +18,11 @@ export interface ImageContextValue {
   readonly editor: Store<ImageEditorState>;
   readonly opener: ImageOpener;
   readonly inserter: ImageInserter;
+  /**
+   * Sends the editor's own usage events, such as `download`, to the
+   * provider's `onEvent`, where the session's go too (docs/adr/0007).
+   */
+  readonly emit: (event: ImageSessionEvent) => void;
 }
 
 /**

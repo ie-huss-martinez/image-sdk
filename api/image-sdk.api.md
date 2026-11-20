@@ -779,7 +779,7 @@ export interface ImageSessionEvent {
     // (undocumented)
     readonly outcome: "done" | "failed" | "cancelled";
     // (undocumented)
-    readonly type: "open" | "insert" | "execute" | "undo" | "redo" | "export";
+    readonly type: "open" | "insert" | "execute" | "undo" | "redo" | "export" | "download";
 }
 
 // @public

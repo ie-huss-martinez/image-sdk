@@ -4,6 +4,7 @@
 - **Date:** 2026-11-12
 - **Partially superseded by:** [0009](0009-scene-space-layers-and-plan-versions.md), for the layer geometry (layers in canvas pixels), the list of layer kinds, the layer commands and `canvas`; and by [0010](0010-redaction.md), for redaction as a kind of layer and its blurred mode
 - **Amended:** 2026-11-13: the plan and the user-level commands have a portable JSON format, `hm-image-plan` and `hm-image-command` version 1 ([the format record](../formats/hm-image-plan.md), sdk-core ADR 0045), and the reducer refuses unknown fields, as their schemas do
+- **Amended:** 2026-11-21: the editor adds one event of its own, `download`, when the export dialog's Download is pressed. See "Events" and [ADR 0007](0007-editor-shell.md)
 
 ## Context
 
@@ -84,7 +85,7 @@ Commands are plain, structured-cloneable data, named `image.*`:
 - **Undo uses inverse commands, never pixel snapshots.** A step costs a few hundred bytes, plus any sources it still refers to, which [ADR 0004](0004-image-limits.md) counts.
 - **Sources are released when nothing refers to them:** not the plan, not a history step, and no export in progress. Releasing closes the worker's bitmap.
 - **The view isn't in the session.** Zoom and pan change many times a second, so the stage has its own small store, also from `createStore`, which the render worker reads with the plan.
-- **Events:** each command emits an anonymous event with its type and outcome for the host's `onEvent`. Events never carry file names, pixels, text the user typed or metadata values.
+- **Events:** each command emits an anonymous event with its type and outcome for the host's `onEvent`. Events never carry file names, pixels, text the user typed or metadata values. The editor adds one of its own, `download`, with the same fields, when the export dialog's Download is pressed (ADR 0007).
 - **Async results check what they started from.** A decode or export that finishes after the document it belongs to was replaced, or after the layer it targets was removed, applies nothing, and its resources are released. The replaced application's race between opening one file and another while the first was still loading is a test case here.
 
 ### Exporting
