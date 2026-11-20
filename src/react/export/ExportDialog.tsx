@@ -147,7 +147,8 @@ const formatOf = (draft: Draft): ImageExportFormat =>
  */
 export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
   const { onExport, fileName = "image" } = props;
-  const lifecycle = engineInternals(useImageInternals().engine);
+  const { engine, emit } = useImageInternals();
+  const lifecycle = engineInternals(engine);
   const session = useImageSession();
   const { plan, source } = useImageDocument();
   const [editor, editorStore] = useImageEditorState();
@@ -278,6 +279,9 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     link.href = objectUrl.current;
     link.download = `${fileName}.${EXTENSIONS[phase.format]}`;
     link.click();
+    // The file is handed to the browser to save: what a host's guard against
+    // leaving unsaved work waits for, which the export alone doesn't mean.
+    emit({ type: "download", outcome: "done", commands: [] });
   };
 
   const composition = compositionSize(plan, source);

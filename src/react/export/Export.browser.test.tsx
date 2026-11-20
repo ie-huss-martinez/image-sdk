@@ -8,7 +8,7 @@ import { readGifFrames } from "../../adapters/gif/frames.js";
 import { ImageError } from "../../core/errors/image-error.js";
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageProcessor } from "../../core/ports/image-processor.js";
-import type { ImageSessionExport } from "../../core/session/session.js";
+import type { ImageSessionEvent, ImageSessionExport } from "../../core/session/session.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle, ImageEditorProps } from "../editor/types.js";
 
@@ -252,6 +252,44 @@ describe("the export dialog (docs/adr/0007)", () => {
     await click(inDialog("Done"));
     expect(dialog()).toBeNull();
     expect(document.activeElement).toBe(exportButton());
+  });
+
+  it("tells the host's onEvent when Download is pressed, not when the file is ready", async () => {
+    const events: ImageSessionEvent[] = [];
+    await opened({ onEvent: (event) => events.push(event) });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    await openDialog();
+    await click(inDialog("Export"));
+    await until(() => dialog()?.textContent?.includes("Download") ?? false, "the result");
+    const types = () => events.map((event) => event.type);
+    // Ready to save, but not saved: no download yet.
+    expect(types()).toContain("export");
+    expect(types()).not.toContain("download");
+    await click(inDialog("Download"));
+    expect(events.at(-1)).toEqual({ type: "download", outcome: "done", commands: [] });
+    // It carries what the export's event carries, and nothing about the file.
+    const exported = events.find((event) => event.type === "export");
+    expect(Object.keys(events.at(-1) ?? {}).sort()).toEqual(Object.keys(exported ?? {}).sort());
+    // Each press is a download.
+    await click(inDialog("Download"));
+    expect(types().filter((type) => type === "download")).toHaveLength(2);
+    // Closing without pressing it again sends nothing.
+    await click(inDialog("Done"));
+    expect(types().filter((type) => type === "download")).toHaveLength(2);
+  });
+
+  it("sends no download event when the host's onExport saves the file", async () => {
+    const events: ImageSessionEvent[] = [];
+    const exports: Blob[] = [];
+    await opened({
+      onEvent: (event) => events.push(event),
+      onExport: (blob) => exports.push(blob),
+    });
+    await openDialog();
+    await click(inDialog("Export"));
+    await until(() => exports.length === 1, "the host's export");
+    expect(events.map((event) => event.type)).toContain("export");
+    expect(events.map((event) => event.type)).not.toContain("download");
   });
 
   it("gives the file to the host's onExport instead, and closes", async () => {

@@ -1,6 +1,6 @@
 import { createMessages, type MessageOverrides } from "@hussmartinez/sdk-core";
 import { UiMessagesProvider } from "@hussmartinez/ui/react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createImageEngine } from "../adapters/image-engine.js";
 import { createImageProcessor } from "../adapters/image-processor.js";
 import type { ImageFilePolicyOverrides } from "../core/errors/image-limits.js";
@@ -119,6 +119,16 @@ export function ImageProvider(
   const [editor] = useState(createEditorStore);
   const [opener] = useState(() => createOpener(owned.session));
   const [inserter] = useState(() => createInserter(owned.session, editor));
+  // The latest handler, so events reach it however often the host passes a new one.
+  const onEvent = useRef(props.onEvent);
+  onEvent.current = props.onEvent;
+  const [emit] = useState(() => (event: ImageSessionEvent) => {
+    try {
+      onEvent.current?.(event);
+    } catch {
+      // A host's handler that throws doesn't break the editor, as with the session's events.
+    }
+  });
 
   useEffect(() => {
     // React's development mode unmounts and mounts again at once, so the
@@ -146,8 +156,9 @@ export function ImageProvider(
       editor,
       opener,
       inserter,
+      emit,
     }),
-    [owned, messages, view, editor, opener, inserter],
+    [owned, messages, view, editor, opener, inserter, emit],
   );
   // The same object gives ui's components their text, so a host's
   // `messages` reach the drop zone and dialogs too (sdk-core ADR 0046).

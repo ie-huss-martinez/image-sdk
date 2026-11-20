@@ -123,10 +123,17 @@ export interface ImageSessionSnapshot {
  * An anonymous usage event for the host's `onEvent` (ADR 0003). It never
  * carries file names, pixels, text the user typed or metadata values.
  *
+ * The session emits every type but `download`, which the editor's export
+ * dialog emits when its Download button is activated: the file has been
+ * handed to the browser to save, which `export` alone doesn't mean, since
+ * the user may close the dialog without saving it (docs/adr/0007). With the
+ * editor's `onExport`, the host saves the file itself, and there's no
+ * `download`.
+ *
  * @public
  */
 export interface ImageSessionEvent {
-  readonly type: "open" | "insert" | "execute" | "undo" | "redo" | "export";
+  readonly type: "open" | "insert" | "execute" | "undo" | "redo" | "export" | "download";
   readonly outcome: "done" | "failed" | "cancelled";
   /** The types of the commands applied or undone. */
   readonly commands: readonly ImageCommand["type"][];

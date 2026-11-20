@@ -37,7 +37,7 @@ export function Editor({ file }: { file: File }) {
 | Limits and assets | `filePolicy`, `assetsUrl`; see [host integration](docs/hosting.md) |
 | Animations | `animations`, `true` by default: an animated GIF opens as an animation. With `false`, every file opens as a still |
 | Host-owned processing | `engine`, `processor`, `session`; a supplied session must use the supplied engine |
-| Host callbacks | `onEvent` receives anonymous usage events; `onExport(blob, details)` receives the exported file instead of the dialog offering a download |
+| Host callbacks | `onEvent` receives anonymous usage events, including `download` when the export dialog's Download is pressed; `onExport(blob, details)` receives the exported file instead of the dialog offering a download, and then there's no `download` event, since the host saves the file |
 
 The ref provides `session`, `open(blob)`, `insertImage(blob)`, `execute(commandOrCommands)`, `export(format)`, `undo()` and `redo()`. For example, `await ref.current.export({ type: "jpeg", quality: 0.9 })` returns `{ blob, width, height, removed, kept }`; the host handles the returned file. The ref's export bypasses the dialog and its metadata summary, so show that summary in your own download flow.
 
