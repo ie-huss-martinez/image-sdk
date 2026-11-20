@@ -279,8 +279,9 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     link.href = objectUrl.current;
     link.download = `${fileName}.${EXTENSIONS[phase.format]}`;
     link.click();
-    // The file is handed to the browser to save: what a host's guard against
-    // leaving unsaved work waits for, which the export alone doesn't mean.
+    // The browser is asked to download the file: what a host's guard against
+    // leaving unsaved work waits for, which the export alone doesn't mean. It
+    // isn't a confirmed save (docs/adr/0007).
     emit({ type: "download", outcome: "done", commands: [] });
   };
 
