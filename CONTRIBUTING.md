@@ -56,7 +56,7 @@ The git hooks run on their own: a secret scan and lint of staged files on commit
 - **Checks:** `verify`, `changeset` and `pr-title` must pass, and the branch must be up to date with `main`.
 - **CodeRabbit:** it reviews every pull request. Fix or answer each of its review threads and resolve it before asking for a merge; the merge is refused while any thread is open. Its walkthrough comment needs nothing.
 
-**CI is the gate** (Huss's decision of 2026-11-19: the repository is public, so GitHub Actions is free). Before pushing, the pre-push hook's `pnpm verify:fast` is the only local run needed; CI runs the full `pnpm verify` on Chromium, Firefox and WebKit. Run things locally to diagnose a failure, to measure, or to capture screenshot baselines, which are still taken locally and committed. A CI failure is investigated first, not re-run until it passes. Once it's explained, such as a runner fault, CI may run again; an unexplained failure blocks a release.
+**CI is the gate** (Huss's decision of 2026-11-19: the repository is public, so GitHub Actions is free). Before pushing, the pre-push hook's `pnpm verify:fast` is the local bar; CI runs the full `pnpm verify` on Chromium, Firefox and WebKit. Run things locally to diagnose a failure, to measure, or to capture screenshot baselines, which are still taken locally and committed. A CI failure is investigated first, not re-run until it passes. Once it's explained, such as a runner fault, CI may run again; an unexplained failure blocks a release.
 
 ## How pull requests are reviewed
 
@@ -64,9 +64,10 @@ The git hooks run on their own: a secret scan and lint of staged files on commit
 
 - **The diff:** the reviewer reads the full diff and checks it against `STANDARDS.md` and the ADRs.
 - **The checks:** CI must be green. The reviewer merges on green CI, without running the checks again locally.
+- **CodeRabbit:** every CodeRabbit review thread is fixed or answered, and resolved, before the merge.
 - **Not "almost right":** if the scope, title or quality isn't right, the pull request is fixed before it's merged.
 
-**Coding agents** open one pull request at a time. After opening it, they stop and report the link, a short summary and the CI result. They start the next change only after the pull request is merged, from an up-to-date `main`. An agent never reviews or merges a pull request it wrote; author and reviewer are always different sessions.
+**Coding agents** open one pull request at a time. After opening it, they stop and report the link, a short summary and the CI result. They start the next change only after the pull request is merged, from an up-to-date `main`. An agent never reviews or merges a pull request it wrote; author and reviewer are always different sessions. Agents keep their task state in an uncommitted `.local/HANDOFF.md` and their durable memory in the maintainer's SilverBullet knowledge base; see [`AGENTS.md`](AGENTS.md#task-state-and-memory).
 
 ## How pull requests are merged
 

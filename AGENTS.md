@@ -24,6 +24,11 @@ It publishes `@hussmartinez/image-sdk`: a headless core for editing images, a Re
 - **ADRs:** add one for any significant decision, meaning anything affecting public API, cross-package consistency or security, or that is hard to reverse.
 - **Other repositories:** don't edit them from here. If this repository needs a change elsewhere, such as a shared helper in `@hussmartinez/sdk-core` or a component in `@hussmartinez/ui`, propose it in that repository.
 
+## Task state and memory
+
+- **Task state:** keep the current task's state in `.local/HANDOFF.md`, uncommitted, with `.local/` listed in `.git/info/exclude`. It holds the goal and decisions, what's done (pull requests and commits), what's in progress with the exact next step, open questions, and where things live. Update it after every step, so that another agent, on any model or provider, can continue from it alone.
+- **Durable memory:** facts, rules and lessons that outlive a task go in the maintainer's SilverBullet knowledge base, following its `playbooks/agent-memory.md`, under the SDK family's `agent-memory/image-sdk/`. Not in a provider's private memory, and not in this repository.
+
 ## Image SDK rules
 
 These follow from the standards; they're repeated here because they apply to almost every change in this repository.
@@ -43,7 +48,7 @@ These follow from the standards; they're repeated here because they apply to alm
 
 - **Hooks:** they run automatically: linting and a secret scan on commit, commit message checks, and `pnpm verify:fast` on push. Never use `--no-verify`. If a hook is wrong or too slow, fix it in its own pull request.
 - **CI is the gate** (Huss's decision of 2026-11-19: the repository is public, so GitHub Actions is free). It runs `pnpm verify` on Chromium, Firefox and WebKit, checks the pull request title, and checks for a changeset when the published package changes. All of it must pass before merging, and the reviewer merges on green CI without running it again locally.
-- **Before pushing,** the pre-push hook's `pnpm verify:fast` is the only local run needed. Don't run the full `pnpm verify` or the three engines locally to open a pull request: CI runs them.
+- **Before pushing,** the pre-push hook's `pnpm verify:fast` is the local bar. Don't run the full `pnpm verify` or the three engines locally before opening a pull request: CI runs them.
 - **Local runs are for diagnosis and baselines:** reproducing or explaining a failure, measurements, and capturing screenshot baselines, which are still taken locally and committed.
 - **Report the CI run** in the pull request's description: its link and result. A CI failure is investigated first. Once it's explained, such as a runner fault, CI may run again; an unexplained failure blocks a release.
 - **CodeRabbit reviews** every pull request. Before asking for a merge, fix or answer every CodeRabbit review thread and resolve it: the reviewer's merge script refuses while any is open. Its walkthrough comment needs nothing.
