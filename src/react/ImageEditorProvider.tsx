@@ -1,6 +1,6 @@
 import { createMessages, type MessageOverrides } from "@hussmartinez/sdk-core";
 import { UiMessagesProvider } from "@hussmartinez/ui/react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useInsertionEffect, useMemo, useRef, useState } from "react";
 import { createImageEngine } from "../adapters/image-engine.js";
 import { createImageProcessor } from "../adapters/image-processor.js";
 import type { ImageFilePolicyOverrides } from "../core/errors/image-limits.js";
@@ -119,9 +119,14 @@ export function ImageProvider(
   const [editor] = useState(createEditorStore);
   const [opener] = useState(() => createOpener(owned.session));
   const [inserter] = useState(() => createInserter(owned.session, editor));
-  // The latest handler, so events reach it however often the host passes a new one.
+  // The latest committed handler, so events reach it however often the host
+  // passes a new one. Set when the render commits, never during it: a render
+  // React discards must not redirect events (useInsertionEffect runs before
+  // any other effect, and isn't warned about when rendering on a server).
   const onEvent = useRef(props.onEvent);
-  onEvent.current = props.onEvent;
+  useInsertionEffect(() => {
+    onEvent.current = props.onEvent;
+  }, [props.onEvent]);
   const [emit] = useState(() => (event: ImageSessionEvent) => {
     try {
       onEvent.current?.(event);
