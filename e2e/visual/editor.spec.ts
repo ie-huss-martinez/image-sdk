@@ -253,15 +253,35 @@ const EDITOR: Readonly<Record<string, State>> = {
 };
 
 /**
- * The Open tool's icon, masked in the right-to-left states only. The pinned
- * Chromium draws ui's OpenIcon one of two ways per page load, 1 to 2 colour
- * levels apart on its edges, and keeps it within the load. Measured on
- * 2026-11-21 over 12 loads: the same geometry, colour and transform every
- * time, and the Rotate-left and Export icons byte-identical. Left to right,
+ * The Open tool's icon, masked in the right-to-left states only.
+ *
+ * The pinned Chromium draws it one of two ways per page load, 1 to 2 colour
+ * levels apart on its edges, and keeps it within the load. Left to right,
  * Playwright counts the difference as anti-aliasing and ignores it; right to
- * left, it doesn't, so a strict comparison (sdk-core ADR 0054) failed some
- * of these states at random. Remove the mask once ui has fixed the icon or
- * the browser's launch, which its agent is following up.
+ * left, it doesn't, so a strict comparison (sdk-core ADR 0054) failed some of
+ * these states at random.
+ *
+ * The cause is Chromium's compositing, not the icon, sdk-config's preset or
+ * image-sdk's CSS. The toolbar is drawn into the page's own layer, and that
+ * layer's raster depends on the state of the stage canvas, which the render
+ * worker draws into through an OffscreenCanvas, at the moment it's
+ * rasterised. The worker's first frame lands at a different time on each
+ * load. Measured on 2026-11-21, 12 loads per case:
+ *
+ * - empty, with no image: one rendering every time;
+ * - an image open, with the stage hidden: the same one every time;
+ * - an image open, with the stage shown: either rendering, at random;
+ * - the stage canvas at opacity 0: the other one every time;
+ * - the toolbar given its own layer (`will-change: transform`): the first
+ *   one every time, but it re-rasterises the whole toolbar, which shifted 77
+ *   left-to-right baselines by up to 30 levels on some icon pixels, so the
+ *   screenshots would no longer show the product's pixels;
+ * - `isolation` or `contain: paint` on the toolbar: still either one;
+ * - `--disable-gpu-rasterization` or `--disable-gpu`: still either one.
+ *
+ * So a mask on the one icon that varies is the smallest honest remedy.
+ * Remove it if Chromium's raster here becomes deterministic. ui's agent
+ * showed the icon itself draws the same way over 78 loads.
  */
 const OPEN_ICON = '[data-tool="image.open"] svg';
 const RTL_PATH = "/editor.html?dir=rtl";
