@@ -7,9 +7,9 @@ import type { ImageFilePolicyOverrides } from "../../core/errors/image-limits.js
 import type { ImagePlan } from "../../core/model/plan.js";
 import type { ImageEngine } from "../../core/ports/image-engine.js";
 import type { ImageProcessor } from "../../core/ports/image-processor.js";
+import type { ImageEditorMessageCatalogue } from "../../messages/editor-catalogue.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle } from "../editor/types.js";
-import type { ImageEditorMessageCatalogue } from "../editor-messages.js";
 import { ExportListenerContext, type ImageExportReport } from "../export/export-listener.js";
 
 /**

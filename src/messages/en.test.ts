@@ -98,7 +98,7 @@ describe("imageMessages", () => {
   });
 });
 
-describe("the server-safe catalogue (docs/adr/0012)", () => {
+describe("the server-safe catalogue (sdk-core ADR 0059)", () => {
   it("holds sdk-core's messages unchanged, and of its own only errors and warnings", () => {
     for (const [key, value] of Object.entries(sdkCoreMessages)) {
       expect(imageMessages[key as keyof typeof imageMessages], key).toEqual(value);

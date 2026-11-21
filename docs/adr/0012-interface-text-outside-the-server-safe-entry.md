@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-17
 - **Refines, for this SDK:** [sdk-core ADR 0019](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0019-message-catalogues.md) (message catalogues) and [sdk-core ADR 0046](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0046-ui-text-through-the-sdk.md) (ui's text through the SDK)
+- **Amended:** 2026-11-21, as the family adopted this rule in [sdk-core ADR 0059](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0059-interface-text-outside-the-server-safe-entry.md), which this record now follows: `ImageEditorMessageCatalogue` is exported from `.` only, under "The type of the editor's catalogue"
 - **Follows:** pdf-sdk's [ADR 0010](https://github.com/ie-huss-martinez/pdf-sdk/blob/main/docs/adr/0010-interface-text-outside-the-server-safe-entry.md), which made the same decision first
 
 ## Context
@@ -23,10 +24,22 @@ pdf-sdk met the same wall and moved its interface text behind its React entry. T
 - **`imageEditorMessages`, from `./react` and `./element`, is the components' catalogue:** `imageMessages`, ui's `uiMessages` and the interface text.
   - `ImageEditor`, `ImageEditorProvider` and `<hm-image-editor>` build their `Messages` from it.
   - `useImageMessages()` returns it.
-  - Hosts type overrides of any key with `MessageOverrides<ImageEditorMessageCatalogue>`.
+  - Hosts type overrides of any key with `MessageOverrides<ImageEditorMessageCatalogue>`, from `.` (see below).
 - **The keys and their text don't change,** nor does how the `messages` props and the element's `messages` property work.
 - **Tools keep naming their labels by key,** such as `tools.crop`. A tool's definition holds the key, not the text, so tools stay where they are.
 - **A headless host that shows errors needs nothing more:** `createMessages(imageMessages).error(error)` still has the text of every code and limit.
+
+### The type of the editor's catalogue
+
+Amended on 2026-11-21, for [sdk-core ADR 0059](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0059-interface-text-outside-the-server-safe-entry.md):
+
+- **`ImageEditorMessageCatalogue` is exported from `.` only.** `./react` and `./element` both use it, and [sdk-core ADR 0033](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0033-api-reports-for-several-entry-points.md) lets them share a type without copying it only when `.` exports it.
+- **It's written in `src/messages/editor-catalogue.ts`, from type-only imports.** It costs `.` no bytes and carries no interface text there.
+- **Three unit tests hold the rule:**
+  - `.`'s catalogue holds only sdk-core's keys, `errors.` and `warnings.`;
+  - no interface key starts with one of those prefixes;
+  - no interface key collides with `.`'s, sdk-core's or ui's.
+- **This SDK names no other prefix for `.`,** and has no other aliases of the catalogue or its type to deprecate.
 
 ## Alternatives considered
 
@@ -39,8 +52,8 @@ pdf-sdk met the same wall and moved its interface text behind its React entry. T
 
 - **`.` dropped from 20.09 kB to 18.16 kB brotli,** and interface text no longer uses up its budget.
 - **Breaking, before 1.0:**
-  - a host that typed overrides of interface keys with `MessageOverrides<ImageMessageCatalogue>` types them with `ImageEditorMessageCatalogue`, from `./react` or `./element`;
+  - a host that typed overrides of interface keys with `MessageOverrides<ImageMessageCatalogue>` types them with `ImageEditorMessageCatalogue`, from `.` since 0.12 (from `./react` or `./element` before);
   - a host that built its own `Messages` from `imageMessages` for the editor's components builds it from `imageEditorMessages`;
   - `imageMessages` no longer has ui's keys or the interface's.
 - **`ImageEditorProvider` accepts overrides of the same keys as before,** ui's included.
-- **This record is to be superseded by a family rule** if sdk-core adopts one, as pdf-sdk's is.
+- **The family adopted this rule** in sdk-core ADR 0059, as the amendment above records.

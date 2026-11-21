@@ -20,7 +20,6 @@ import {
   mountImageEditor,
 } from "./react/element/mount.js";
 
-export type { ImageEditorMessageCatalogue } from "./react/editor-messages.js";
 export { imageEditorMessages } from "./react/editor-messages.js";
 export type { ImageExportReport } from "./react/export/export-listener.js";
 export type { ImageEditorElementEvent, ImageEditorElementMethods, ImageEditorElementProps };

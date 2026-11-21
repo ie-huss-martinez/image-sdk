@@ -9,7 +9,7 @@ import {
 } from "../../core/model/plan.js";
 import { FORBIDDEN_IN_TEXT } from "../../core/operations/layers.js";
 import { NO_TOOL } from "../../features/editor-state.js";
-import type { ImageEditorMessageCatalogue } from "../editor-messages.js";
+import type { ImageEditorMessageCatalogue } from "../../messages/editor-catalogue.js";
 import { type Gesture, useSharedGesture } from "../gesture.js";
 import { useImageInternals } from "../hooks.js";
 import { newRedactionKey } from "../redact/use-redact.js";

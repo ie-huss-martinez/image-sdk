@@ -229,5 +229,6 @@ export type {
   ImageSessionSource,
 } from "./core/session/session.js";
 export { createImageSession } from "./core/session/session.js";
+export type { ImageEditorMessageCatalogue } from "./messages/editor-catalogue.js";
 export type { ImageMessageCatalogue } from "./messages/en.js";
 export { imageMessages } from "./messages/en.js";
