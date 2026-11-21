@@ -1,5 +1,11 @@
 # @hussmartinez/image-sdk
 
+## 0.11.0
+
+### Minor Changes
+
+- [#131](https://github.com/ie-huss-martinez/image-sdk/pull/131) [`4470b46`](https://github.com/ie-huss-martinez/image-sdk/commit/4470b468ac48e6de1364319088573477ad21dc84) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The SDK now depends on `@hussmartinez/ui` `^0.16.0`. Move your own `@hussmartinez/ui` dependency to `^0.16.0` too, so your application keeps one copy of ui beside image-sdk and the family's other SDKs. Nothing changes in the editor: ui 0.16 adds headings, and the editor renders none.
+
 ## 0.10.2
 
 ### Patch Changes
