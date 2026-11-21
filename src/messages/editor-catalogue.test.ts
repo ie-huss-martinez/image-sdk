@@ -31,4 +31,11 @@ describe("the interface text (sdk-core ADR 0059)", () => {
       expect(Object.hasOwn(uiMessages, key), `${key} in uiMessages`).toBe(false);
     }
   });
+
+  it("keeps its keys, which hosts' typed overrides name", () => {
+    // The API reports name the catalogue's type without listing its keys, so
+    // this snapshot is where a renamed or removed key shows in review: it
+    // breaks a host's MessageOverrides<ImageEditorMessageCatalogue>.
+    expect([...interfaceKeys].sort()).toMatchSnapshot();
+  });
 });
