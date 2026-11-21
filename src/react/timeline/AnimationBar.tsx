@@ -47,12 +47,25 @@ export function usePlayback(
   }, [animation, playback.frame, playback.playing, editor]);
 }
 
+/** The keys that move a slider, which pause playing whether or not the frame changes. */
+const SCRUB_KEYS = /* @__PURE__ */ new Set([
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Home",
+  "End",
+  "PageUp",
+  "PageDown",
+]);
+
 /**
  * The animation's bar under the stage (docs/adr/0011): Play, a frame
  * scrubber and where it is. Nothing plays on its own: an animation opens
  * paused on its first frame, and plays only when Play is pressed, or with
- * the editor's play-pause shortcut, Space, which the play tool has. Moving
- * the scrubber pauses it.
+ * the editor's play-pause shortcut, Space, which the play tool has. Taking
+ * the scrubber, with one of its keys or a press, pauses it, even when the
+ * frame doesn't change, as with Home on the first frame.
  *
  * It shows only for an animated plan.
  */
@@ -75,6 +88,14 @@ export function AnimationBar(props: { readonly className?: string | undefined })
       ...state,
       playback: { frame: Math.min(Math.max(0, Math.round(index)), count - 1), playing: false },
     }));
+  // Taking the scrubber pauses, even when it doesn't move: Home on the first
+  // frame changes no value, so the slider reports nothing to seek with.
+  const pause = () =>
+    editor.set((state) =>
+      state.playback.playing
+        ? { ...state, playback: { ...state.playback, playing: false } }
+        : state,
+    );
   const className = ["hm-image-timeline", props.className].filter(Boolean).join(" ");
   return (
     <section className={className} aria-label={messages.t("timeline.label")}>
@@ -98,6 +119,11 @@ export function AnimationBar(props: { readonly className?: string | undefined })
         disabled={count < 2}
         formatValue={position}
         onValueChange={seek}
+        onKeyDown={(event) => {
+          // The slider's own keys: with Alt or Meta, they're the browser's.
+          if (SCRUB_KEYS.has(event.key) && !event.altKey && !event.metaKey) pause();
+        }}
+        onPointerDown={pause}
       />
       <output className="hm-image-timeline-position" aria-hidden="true">
         {messages.t("timeline.where", { frame: frame + 1, count, seconds: delay / 100 })}
