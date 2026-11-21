@@ -1,6 +1,6 @@
 import { act, createRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import type {
@@ -77,6 +77,8 @@ afterAll(() => unloadStyles());
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 afterEach(async () => {
+  // A test that holds the clock gives it back even when it fails.
+  vi.useRealTimers();
   await act(async () => root?.unmount());
   host?.remove();
 });
@@ -1180,8 +1182,11 @@ describe("the layers (docs/adr/0013)", () => {
     });
     expect(name()?.value).toBe("Badge");
 
-    // The text: the plan's replaces what was typed when it changes.
+    // The text: the plan's replaces what was typed when it changes. Typing
+    // sets the text as a step after a pause; the clock is held here, so it
+    // stays typed and not set.
     await click(select("middle"));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     expect(text()?.value).toBe("Hello\nthere");
     await typed(text(), "Hello, draft");
     expect(text()?.value).toBe("Hello, draft");
