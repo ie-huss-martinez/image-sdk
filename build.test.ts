@@ -1,8 +1,10 @@
 import { readdirSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { build as esbuild } from "esbuild";
 import { build, type Rolldown } from "vite";
 import { afterAll, describe, expect, it } from "vitest";
 import { externalPackages } from "./vite.config.js";
@@ -138,7 +140,8 @@ async function bundledAlone(entry: string, name: string): Promise<string> {
       rolldownOptions: {
         external: (id) =>
           externalPackages.some((package_) => id === package_ || id.startsWith(`${package_}/`)) ||
-          id.includes("/lazy/"),
+          id.includes("/lazy/") ||
+          id.startsWith("#hm-image-"),
       },
     },
   });
@@ -192,7 +195,7 @@ describe("importing on a server", () => {
 const CODE_GENERATION = /(?<![\w$.])eval\s*\(|(?<![\w$.])(?:new\s+)?Function\s*\(/;
 
 const jobWorker = () => {
-  const found = files.find((file) => /^lazy\/inline-job-worker-[\w-]+\.js$/.test(file.fileName));
+  const found = files.find((file) => file.fileName === "lazy/inline-job-worker.js");
   if (found?.type !== "chunk") throw new Error("the inlined job worker chunk wasn't built");
   return found;
 };
@@ -248,7 +251,7 @@ describe("the job worker (docs/adr/0011)", () => {
 
 describe("the render worker (docs/adr/0002)", () => {
   const worker = () => {
-    const found = files.find((file) => /^lazy\/inline-worker-[\w-]+\.js$/.test(file.fileName));
+    const found = files.find((file) => file.fileName === "lazy/inline-worker.js");
     if (found?.type !== "chunk") throw new Error("the inlined worker chunk wasn't built");
     return found;
   };
@@ -271,12 +274,14 @@ describe("the render worker (docs/adr/0002)", () => {
       ).toEqual([]);
     }
     // Something the core entry loads imports it, lazily, as it does the job
-    // worker (docs/adr/0011), and nothing else.
+    // worker (docs/adr/0011), and nothing else. Both load through
+    // package.json's imports, which the host's bundler resolves (sdk-core
+    // ADR 0060).
     expect(
       loadedBy("index.js")
         .flatMap((loaded) => loaded.dynamicImports)
         .sort(),
-    ).toEqual([jobWorker().fileName, worker().fileName].sort());
+    ).toEqual(["#hm-image-job-worker", "#hm-image-render-worker"]);
   });
 
   it("generates no code from strings, in any chunk, including the inlined worker", () => {
@@ -293,6 +298,75 @@ describe("the render worker (docs/adr/0002)", () => {
   it("ships no worker source maps", () => {
     expect(files.filter((file) => /\.worker-[\w-]+\.js\.map$/.test(file.fileName))).toEqual([]);
     expect(worker().code).not.toMatch(/sourceMappingURL=data:/);
+  });
+});
+
+/**
+ * Writes this build into `dir` as an installed package would hold it: its
+ * JavaScript under dist/, and a package.json with its exports and imports,
+ * so `#hm-image-render-worker` and `#hm-image-job-worker` resolve as they do
+ * for a host.
+ */
+async function writePackage(dir: string): Promise<void> {
+  for (const file of files) {
+    if (file.type !== "chunk") continue;
+    await mkdir(dirname(join(dir, "dist", file.fileName)), { recursive: true });
+    await writeFile(join(dir, "dist", file.fileName), file.code);
+  }
+  const manifest = JSON.parse(await readFile(new URL("package.json", import.meta.url), "utf8"));
+  const { name, type, exports, imports } = manifest;
+  await writeFile(join(dir, "package.json"), JSON.stringify({ name, type, exports, imports }));
+}
+
+describe("the hm-self-hosted condition (sdk-core ADR 0060)", () => {
+  /**
+   * Bundles an application that passes assetsUrl against this build, laid
+   * out as an installed package, with esbuild and `conditions`. Returns the
+   * code of every output file.
+   */
+  async function bundle(conditions: string[]): Promise<string[]> {
+    const dir = await mkdtemp(join(tmpdir(), "hm-image-sdk-condition-"));
+    try {
+      await writePackage(join(dir, "node_modules/@hussmartinez/image-sdk"));
+      await writeFile(
+        join(dir, "app.js"),
+        [
+          'import { createImageEngine, createImageProcessor } from "@hussmartinez/image-sdk";',
+          'export const engine = createImageEngine({ assetsUrl: "/image-sdk/" });',
+          "export const processor = createImageProcessor(engine);",
+        ].join("\n"),
+      );
+      const result = await esbuild({
+        absWorkingDir: dir,
+        entryPoints: ["app.js"],
+        bundle: true,
+        format: "esm",
+        splitting: true,
+        outdir: "out",
+        write: false,
+        logLevel: "silent",
+        conditions,
+        external: externalPackages,
+      });
+      return result.outputFiles.map((output) => output.text);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+
+  /** An inlined worker: Vite turns it into a blob that revokes its own URL. */
+  const inlinedWorker = (code: string) => code.includes("URL.revokeObjectURL(import.meta.url);");
+
+  it("leaves both inlined workers out of a build that sets it", async () => {
+    const outputs = await bundle(["hm-self-hosted"]);
+    expect(outputs.filter(inlinedWorker)).toEqual([]);
+    expect(outputs.join("\n")).toContain("left the image SDK's inlined workers out");
+  });
+
+  it("keeps them in a build that doesn't, as before", async () => {
+    const outputs = await bundle([]);
+    expect(outputs.filter(inlinedWorker)).toHaveLength(2);
+    expect(outputs.join("\n")).not.toContain("left the image SDK's inlined workers out");
   });
 });
 

@@ -16,6 +16,7 @@ import {
   createWorkerLifecycle,
   type WorkerGeneration,
 } from "./worker-lifecycle.js";
+import { startFailure } from "./worker-start.js";
 
 /**
  * Options for {@link createImageEngine}.
@@ -136,7 +137,9 @@ export function createImageEngine(options: ImageEngineOptions = {}): ImageEngine
           workerUrl = asset("image/render.worker.js");
           return new Worker(workerUrl, { type: "module", name: "hm-image-render" });
         }
-      : async () => (await import("./render-worker/inline-worker.js")).createInlineWorker,
+      : // Through package.json's imports, which a build with the
+        // hm-self-hosted condition maps to a stub (sdk-core ADR 0060).
+        async () => (await import("#hm-image-render-worker")).createInlineWorker,
     // The job worker comes from the same place as the render worker: inlined,
     // or the host's assets (docs/adr/0011).
     loadJobWorker: asset
@@ -148,7 +151,7 @@ export function createImageEngine(options: ImageEngineOptions = {}): ImageEngine
           };
         }
       : async () => ({
-          start: (await import("./job-worker/inline-job-worker.js")).createInlineJobWorker,
+          start: (await import("#hm-image-job-worker")).createInlineJobWorker,
           asset: "inline",
         }),
     version: __IMAGE_SDK_VERSION__,
@@ -218,7 +221,9 @@ export function createEngine(
     const pending = client.call(method, input, options);
     const generation = lifecycle.current();
     const result = await pending.catch((error: unknown) => {
-      throw error instanceof TypeError ? error : asImageError(error);
+      // A worker that couldn't start for a reason of its own keeps it, such
+      // as a build that left the inlined worker out (sdk-core ADR 0060).
+      throw error instanceof TypeError ? error : asImageError(startFailure(error));
     });
     try {
       lifecycle.check(generation);
@@ -238,7 +243,7 @@ export function createEngine(
     try {
       await pending;
     } catch (error) {
-      throw asImageError(error);
+      throw asImageError(startFailure(error));
     }
     lifecycle.check(generation);
     if (!generation) throw new Error("The worker did not create a generation.");

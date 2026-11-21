@@ -10,7 +10,7 @@ licences of its own:
 gifenc 1.0.3
 https://github.com/mattdesl/gifenc
 
-Bundled into the job worker, which writes GIF files: dist/lazy/inline-job-worker-*.js
+Bundled into the job worker, which writes GIF files: dist/lazy/inline-job-worker.js
 and dist/assets/image/job.worker.js.
 
 The MIT License (MIT)

@@ -179,6 +179,8 @@ Images are parsed, decoded, drawn and encoded in workers. The SDK has no upload 
 
 If a worker loses its image/canvas resources, the built-in engine becomes terminal and the editor shows a recovery notice. Explicitly recreate the editor and any host-owned processing resources, then reopen the image; opening it on the old engine cannot restore the preview. Unsaved edits require host-managed preservation.
 
+An application that self-hosts the workers with `assetsUrl` can leave the inlined copies out of its build with the family's `hm-self-hosted` resolve condition, for example `resolve: { conditions: [...defaultClientConditions, "hm-self-hosted"] }` in Vite. See [leaving the inlined workers out](docs/hosting.md#leaving-the-inlined-workers-out) for Vite and esbuild, and what fails without `assetsUrl`.
+
 See [host integration and security](docs/hosting.md) for resource limits, error handling, asset deployment, exact tested CSP directives and the host's responsibilities. Report vulnerabilities through the [security policy](SECURITY.md).
 
 ## Development
