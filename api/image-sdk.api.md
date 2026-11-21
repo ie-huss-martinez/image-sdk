@@ -10,6 +10,7 @@ import { Limits } from '@hussmartinez/sdk-core';
 import type { Reducer } from '@hussmartinez/sdk-core';
 import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
 import { SdkError } from '@hussmartinez/sdk-core';
+import type { uiMessages } from '@hussmartinez/ui';
 
 // @public
 export interface AddStrokesCommand {
@@ -255,6 +256,11 @@ export interface ImageDrawingLayer extends ImageLayerCommon {
     // (undocumented)
     readonly y: number;
 }
+
+// Warning: (ae-forgotten-export) The symbol "imageEditorText" needs to be exported by the entry point index.d.ts
+//
+// @public
+export type ImageEditorMessageCatalogue = typeof imageMessages & typeof uiMessages & typeof imageEditorText;
 
 // @public
 export interface ImageEngine {

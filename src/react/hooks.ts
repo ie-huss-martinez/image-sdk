@@ -2,8 +2,8 @@ import type { Messages, Store } from "@hussmartinez/sdk-core";
 import { useContext, useSyncExternalStore } from "react";
 import type { ImageSession, ImageSessionSnapshot } from "../core/session/session.js";
 import type { ImageEditorState } from "../features/editor-state.js";
+import type { ImageEditorMessageCatalogue } from "../messages/editor-catalogue.js";
 import { ImageContext, type ImageContextValue } from "./context.js";
-import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
 import type { ImageViewState } from "./view-store.js";
 
 function useImageContext(hook: string): ImageContextValue {

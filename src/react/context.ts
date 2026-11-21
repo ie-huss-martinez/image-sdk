@@ -5,7 +5,7 @@ import { isImageError } from "../core/errors/image-error.js";
 import type { ImageEngine } from "../core/ports/image-engine.js";
 import type { ImageSession, ImageSessionEvent } from "../core/session/session.js";
 import { type ImageEditorState, NO_TOOL } from "../features/editor-state.js";
-import type { ImageEditorMessageCatalogue } from "./editor-messages.js";
+import type { ImageEditorMessageCatalogue } from "../messages/editor-catalogue.js";
 import type { ImageViewState } from "./view-store.js";
 
 /** What the provider shares with every image component below it. */

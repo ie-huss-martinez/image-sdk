@@ -12,9 +12,10 @@ import {
   type ImageSessionEvent,
 } from "../core/session/session.js";
 import { createEditorStore } from "../features/editor-state.js";
+import type { ImageEditorMessageCatalogue } from "../messages/editor-catalogue.js";
 import { createInserter, createOpener, ImageContext } from "./context.js";
 import { EngineBoundary } from "./EngineBoundary.js";
-import { type ImageEditorMessageCatalogue, imageEditorMessages } from "./editor-messages.js";
+import { imageEditorMessages } from "./editor-messages.js";
 import { createViewStore } from "./view-store.js";
 
 /**
