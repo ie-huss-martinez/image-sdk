@@ -31,6 +31,7 @@ import {
   useImageSession,
 } from "../hooks.js";
 import { shownFrame } from "../stage/ImageStage.js";
+import { downloadName } from "./download-name.js";
 import { ExportListenerContext } from "./export-listener.js";
 
 /**
@@ -44,7 +45,15 @@ export interface ImageExportDialogProps {
    * dialog closes once it's called.
    */
   readonly onExport?: (blob: Blob, details: ImageSessionExport) => void;
-  /** The downloaded file's name, without its extension. Defaults to `image`. */
+  /**
+   * The downloaded file's name, without its extension. Defaults to `image`.
+   * It's cleaned as sdk-core's `cleanFileName` cleans a file's name (sdk-core
+   * ADR 0051), since a host often takes it from the user's own file: a path,
+   * control and bidirectional formatting characters, and what a file system
+   * refuses are removed, and it's shortened so the whole name, with its
+   * extension, fits in 128 characters. A name with nothing left downloads as
+   * `image`.
+   */
   readonly fileName?: string;
   /** Extra classes on the dialog. */
   readonly className?: string;
@@ -277,7 +286,7 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     objectUrl.current = URL.createObjectURL(phase.result.blob);
     const link = document.createElement("a");
     link.href = objectUrl.current;
-    link.download = `${fileName}.${EXTENSIONS[phase.format]}`;
+    link.download = downloadName(fileName, EXTENSIONS[phase.format]);
     link.click();
     // The browser is asked to download the file: what a host's guard against
     // leaving unsaved work waits for, which the export alone doesn't mean. It

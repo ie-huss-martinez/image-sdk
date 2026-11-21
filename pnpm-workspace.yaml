@@ -21,7 +21,7 @@ catalog:
   # The browser test image's version (ci/Dockerfile): the visual tests'
   # screenshots depend on its Chromium build (sdk-core ADR 0048).
   "@playwright/test": 1.65.1
-  "@hussmartinez/sdk-core": ^0.4.4
+  "@hussmartinez/sdk-core": ^0.4.7
   "@hussmartinez/ui": ^0.16.0
   "@microsoft/api-extractor": ^7.60.1
   # The same version as size-limit: each plugin pins it exactly as a peer.
