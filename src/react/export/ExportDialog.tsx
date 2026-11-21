@@ -178,10 +178,21 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
     objectUrl.current = null;
   };
-  // Whatever closes the dialog, such as another image opening, ends its
-  // export and drops its choices and result, so it reopens fresh. The
-  // controller is cleared before the abort, so the export's own handlers
-  // know it was ended for them, unlike Stop.
+  // Whatever closes the dialog, such as another image opening, drops its
+  // choices and result, so it reopens fresh: reset while rendering, as it
+  // closes, rather than in an effect that would render twice.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) {
+      setDraft(null);
+      setPhase((now) => (now.kind === "choose" ? now : { kind: "choose" }));
+      setError(null);
+    }
+  }
+  // Closing also ends its export and frees a download's URL. The controller
+  // is cleared before the abort, so the export's own handlers know it was
+  // ended for them, unlike Stop.
   useEffect(() => {
     if (open) return;
     const running = controller.current;
@@ -189,9 +200,6 @@ export function ImageExportDialog(props: ImageExportDialogProps): ReactNode {
     running?.abort();
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
     objectUrl.current = null;
-    setDraft(null);
-    setPhase((now) => (now.kind === "choose" ? now : { kind: "choose" }));
-    setError(null);
   }, [open]);
 
   // Unmounting ends an export too, and frees a download's URL.

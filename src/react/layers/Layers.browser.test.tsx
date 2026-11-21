@@ -1143,6 +1143,60 @@ describe("the layers (docs/adr/0013)", () => {
     expect(inputs().map((input) => input.value)).toEqual(["", "10", "8", "20", "10", "0", "100"]);
   });
 
+  it("shows the plan's name and text again over what was typed, as the layer or the plan changes", async () => {
+    const { session } = await opened();
+    await layering();
+    /** Typed into a field without leaving it, so nothing is set on the layer. */
+    const typed = (
+      input: HTMLInputElement | HTMLTextAreaElement | null | undefined,
+      value: string,
+    ) =>
+      act(async () => {
+        if (!input) throw new Error("no field");
+        const prototype = Object.getPrototypeOf(input) as object;
+        Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    const name = () => field("Name");
+    const text = () =>
+      document.querySelector<HTMLTextAreaElement>(".hm-image-layers-text textarea");
+
+    // The name: another layer's replaces what was typed, and so does the plan's after an undo.
+    expect(name()?.value).toBe("Badge");
+    await typed(name(), "Draft");
+    expect(name()?.value).toBe("Draft");
+    await click(select("under"));
+    expect(name()?.value).toBe("");
+    await click(select("over"));
+    expect(name()?.value).toBe("Badge");
+    await act(async () => {
+      session().execute([
+        { type: "image.updateLayers", updates: [{ key: "over", props: { name: "Stamp" } }] },
+      ]);
+    });
+    expect(name()?.value).toBe("Stamp");
+    await act(async () => {
+      session().undo();
+    });
+    expect(name()?.value).toBe("Badge");
+
+    // The text: the plan's replaces what was typed when it changes.
+    await click(select("middle"));
+    expect(text()?.value).toBe("Hello\nthere");
+    await typed(text(), "Hello, draft");
+    expect(text()?.value).toBe("Hello, draft");
+    await act(async () => {
+      session().execute([
+        { type: "image.updateLayers", updates: [{ key: "middle", props: { text: "Goodbye" } }] },
+      ]);
+    });
+    expect(text()?.value).toBe("Goodbye");
+    await act(async () => {
+      session().undo();
+    });
+    expect(text()?.value).toBe("Hello\nthere");
+  });
+
   it("keeps the stage where it is, in a layout with the panel under it", async () => {
     // 400 pixels wide: the inspector sits under the stage and takes its
     // height from its content. If the panel grew, the stage would shrink,

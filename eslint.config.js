@@ -9,8 +9,5 @@ export default await defineReactLint({
   //   renders, and CropFrame's drag state; with ui's useLatest.
   // - immutability, 2: ImageEditor's announcer and ImageStage's canvas,
   //   changed in effects.
-  // - set-state-in-effect, 4: ExportDialog's reset, FramesPanel's repeats,
-  //   and the text and name LayerFields and LayersPanel reset when the
-  //   layer changes.
-  off: ["refs", "immutability", "set-state-in-effect"],
+  off: ["refs", "immutability"],
 });
