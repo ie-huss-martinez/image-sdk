@@ -106,11 +106,17 @@ export default [
     limit: "54.5 kB",
   }),
   importBudget({
+    // Measured at 0.68 kB, then 0.70 kB once the editor imported sdk-core's
+    // cleanFileName and MAX_FILE_NAME_LENGTH, with the same code kept. esbuild
+    // keeps every name of an import from an external package, used or not,
+    // so each import from this entry carries the shared editor chunk's whole
+    // list of sdk-core names. A new name there grows this floor by its bytes,
+    // not by code; sdk-core is asked to measure without them.
     // The floor: a hook over the provider, which every panel reads.
     name: "React: the floor, useImageMessages",
     entry: "dist/react.js",
     imports: "{ useImageMessages }",
-    limit: "0.7 kB",
+    limit: "0.8 kB",
   }),
   importBudget({
     // The interface's text.
@@ -132,10 +138,12 @@ export default [
     limit: "4 kB",
   }),
   importBudget({
+    // 4.99 kB, then 5.00 kB, for the same reason as the floor: the names in
+    // the shared chunk's import from sdk-core, not code.
     name: "React: ImageFramesPanel",
     entry: "dist/react.js",
     imports: "{ ImageFramesPanel }",
-    limit: "5 kB",
+    limit: "5.5 kB",
   }),
   importBudget({
     name: "React: ImageFilterPanel",
