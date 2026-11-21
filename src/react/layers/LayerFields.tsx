@@ -62,7 +62,7 @@ export function TextLayerFields(props: FieldsProps<ImageTextLayer>): ReactNode {
   const key = layer?.key ?? null;
   const text = layer?.text ?? "";
   const [value, setValue] = useState(text);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: another layer with the same text also resets what was typed
+  // A key, too: another layer with the same text also resets what was typed.
   useEffect(() => setValue(text), [key, text]);
   const off = layer === null;
   return (

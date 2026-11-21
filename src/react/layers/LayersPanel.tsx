@@ -50,7 +50,7 @@ function NameField(props: {
 }): ReactNode {
   const { layerKey, name, onRename } = props;
   const [value, setValue] = useState(name);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: another layer with the same name also resets what was typed
+  // A key, too: another layer with the same name also resets what was typed.
   useEffect(() => setValue(name), [layerKey, name]);
   return (
     <TextField

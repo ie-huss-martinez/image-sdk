@@ -203,6 +203,7 @@ The browser and end-to-end tests need Docker: they run in the pinned browser tes
 |---|---|---|
 | Format and lint | `lint` | Biome |
 | CSS rules | `lint:css` | stylelint, with the `hm-` namespace and token rules |
+| React rendering rules | `lint:react` | React's own ESLint plugin and nothing else, through `hm-lint-react` ([sdk-core ADR 0063](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0063-a-lint-for-what-react-components-do-while-rendering.md)) |
 | Types | `typecheck` | TypeScript |
 | Dependency rules | `lint:deps` | dependency-cruiser, through `hm-lint-deps` |
 | One copy of each family package | `check:single-copy` | `hm-check-single-copy` (sdk-core ADR 0047) |
