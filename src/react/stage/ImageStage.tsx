@@ -165,8 +165,8 @@ export function ImageStage(props: ImageStageProps): ReactNode {
   useEffect(() => {
     // The canvas appears in the commit after the frame does, so this runs
     // again then.
-    const canvas = frame ? canvasRef.current : null;
-    if (!canvas) return;
+    const canvas = canvasRef.current;
+    if (!frame || !canvas) return;
     canvas.hidden = shownWidth === undefined || shownHeight === undefined;
     if (shownWidth !== undefined && shownHeight !== undefined) {
       canvas.setAttribute(
