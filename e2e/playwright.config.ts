@@ -1,3 +1,4 @@
+import { webServersFor } from "@hussmartinez/sdk-config/testing/require-image";
 import { endToEndTimeouts } from "@hussmartinez/sdk-config/testing/timeouts";
 import { defineConfig, devices } from "@playwright/test";
 
@@ -34,12 +35,15 @@ export default defineConfig({
     .filter(([name]) => allBrowsers || name === "chromium")
     .map(([name, device]) => ({ name, use: { ...devices[device] } })),
   // Started with Node directly, as in the pinned browser image, where
-  // hm-in-image runs the suite (sdk-core ADR 0049).
-  webServer: {
+  // hm-in-image runs the suite (sdk-core ADR 0049). Playwright starts it
+  // before the global setup, so where the guard will refuse, as on a host,
+  // sdk-config's webServersFor starts none, and the guard's explanation is
+  // the first thing shown. In the image and in CI, it starts.
+  webServer: webServersFor({
     command: "node node_modules/vite/bin/vite.js preview --port 4320 --strictPort",
     cwd: "../examples/vite",
     url: "http://localhost:4320",
     reuseExistingServer: !ci,
     timeout: 60_000,
-  },
+  }),
 });
