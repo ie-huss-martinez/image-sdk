@@ -1,5 +1,11 @@
 # @hussmartinez/image-sdk
 
+## 0.11.1
+
+### Patch Changes
+
+- [#135](https://github.com/ie-huss-martinez/image-sdk/pull/135) [`3a62f0b`](https://github.com/ie-huss-martinez/image-sdk/commit/3a62f0b3c5b4533dd226e745397e9368d0bef96b) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The export dialog cleans the download's name you pass as `fileName`, as sdk-core's `cleanFileName` cleans a file's name. A name you take from the user's own file can hold a path, control characters or a right-to-left override that disguises an extension. Those are removed, along with characters file systems refuse, and the name is shortened so it fits in 128 characters with its extension. A name with nothing usable left downloads as `image`. The SDK now depends on `@hussmartinez/sdk-core` `^0.4.7`.
+
 ## 0.11.0
 
 ### Minor Changes
