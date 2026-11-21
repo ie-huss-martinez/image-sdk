@@ -5,8 +5,10 @@ import { createRoot } from "react-dom/client";
 import { ImageError } from "../../core/errors/image-error.js";
 import type { ImageFilePolicyOverrides } from "../../core/errors/image-limits.js";
 import type { ImagePlan } from "../../core/model/plan.js";
+import type { ImageCommand } from "../../core/operations/commands.js";
 import type { ImageEngine } from "../../core/ports/image-engine.js";
-import type { ImageProcessor } from "../../core/ports/image-processor.js";
+import type { ImageExportFormat, ImageProcessor } from "../../core/ports/image-processor.js";
+import type { ImageSessionExport } from "../../core/session/session.js";
 import type { ImageEditorMessageCatalogue } from "../../messages/editor-catalogue.js";
 import { ImageEditor } from "../editor/ImageEditor.js";
 import type { ImageEditorHandle } from "../editor/types.js";
@@ -42,15 +44,33 @@ export interface ImageEditorElementProps {
 }
 
 /**
- * The `<hm-image-editor>` element's methods: the React editor's ref handle.
- * They wait for the editor's first render; `export()` returns the file.
+ * The `<hm-image-editor>` element's methods: those of the React editor's
+ * ref handle, without its session. They wait for the editor's first render.
+ *
+ * Declared here, rather than picked from `ImageEditorHandle`, so the
+ * element's API doesn't copy a type of the React entry (sdk-core ADR 0033).
+ * A type test keeps the two the same.
  *
  * @public
  */
-export type ImageEditorElementMethods = Pick<
-  ImageEditorHandle,
-  "open" | "insertImage" | "execute" | "export" | "undo" | "redo"
->;
+export interface ImageEditorElementMethods {
+  /** Opens an image, replacing the current one once it has opened. */
+  open(file: Blob): Promise<void>;
+  /**
+   * Adds an image as a layer in the middle of the image as it's shown, as
+   * one undoable step, and shows the layers with it selected. A file that
+   * can't be added is reported on the stage, as a failed open is.
+   */
+  insertImage(file: Blob): Promise<void>;
+  /** Applies commands as one undoable step. */
+  execute(commands: ImageCommand | readonly ImageCommand[]): void;
+  /** Renders and encodes the image as it is now. */
+  export(format: ImageExportFormat): Promise<ImageSessionExport>;
+  /** Undoes the last edit, if there is one. */
+  undo(): void;
+  /** Redoes the last undone edit, if there is one. */
+  redo(): void;
+}
 
 /**
  * The element's events, fired as `hm-image-editor-<name>`. None carries a
