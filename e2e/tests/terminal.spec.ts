@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
 import { fixture } from "../fixtures.js";
+import { expect, test } from "../test.js";
 import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 for (const focus of ["editor", "host"] as const) {

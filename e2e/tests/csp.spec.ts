@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
 import { fixture } from "../fixtures.js";
+import { expect, test } from "../test.js";
 
 /**
  * The render worker under each Content Security Policy of docs/adr/0002:

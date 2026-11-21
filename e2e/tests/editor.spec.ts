@@ -1,11 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
 import {
   fixture,
   gifWithBackground,
   jpegWithPrivateMetadata,
   quadrantsPngWithColourProfile,
 } from "../fixtures.js";
+import { expect, type Page, test } from "../test.js";
 import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
 
 /**

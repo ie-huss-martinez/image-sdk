@@ -55,6 +55,9 @@ export default defineConfig(({ mode }) => {
             // Browser tests start only in the pinned test image or CI, never
             // on a host, where they fail at random (sdk-core ADR 0049).
             globalSetup: ["@hussmartinez/sdk-config/testing/require-image"],
+            // The family's guard against a crash in Playwright's Firefox when
+            // userEvent and axe both read ariaLabelledByElements (ui#61).
+            setupFiles: ["@hussmartinez/sdk-config/testing/firefox-labelled-by/setup"],
             // The family's limits (sdk-core ADR 0057). A test may wait up to
             // 30 s for its first open (test/browser/timeouts.ts), within them.
             ...browserTimeouts,
