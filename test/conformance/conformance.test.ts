@@ -41,10 +41,10 @@ const escaped = (character: string) =>
 const text = (value: unknown) => `${JSON.stringify(value, null, 2).replace(HIDDEN, escaped)}\n`;
 
 // It generates every vector again: thousands of sampled plans and commands,
-// 4 MB of cases. That's work, not waiting: about 1.5 s before the
-// animation's cases were added and 3 to 4 s since, on a busy machine, which
-// is too near the default 5 s to be reliable there.
-it("keeps the checked-in cases up to date with their generator", { timeout: 30_000 }, async () => {
+// 4 MB of cases. That's work, not waiting: about 1.2 s at a load of 4 on
+// 2026-11-21, within the family's 30 s for a unit test even at the 16 times
+// slowdown reported under load (sdk-core ADR 0057).
+it("keeps the checked-in cases up to date with their generator", async () => {
   // `pnpm conformance:update` rewrites them.
   await expect(text(planCases())).toMatchFileSnapshot("../../conformance/hm-image-plan.json");
   await expect(text(commandCases())).toMatchFileSnapshot(

@@ -1,3 +1,4 @@
+import { endToEndTimeouts } from "@hussmartinez/sdk-config/testing/timeouts";
 import { defineConfig, devices } from "@playwright/test";
 
 const ci = Boolean(process.env["CI"]);
@@ -15,9 +16,9 @@ export default defineConfig({
   // Only in the pinned test image or CI, never on a host, where browser
   // tests fail at random (sdk-core ADR 0049).
   globalSetup: "@hussmartinez/sdk-config/testing/require-image",
-  // A test may wait up to 30 s for its first render (timeouts.ts), so
-  // its own limit leaves room.
-  timeout: 60_000,
+  // The family's limits (sdk-core ADR 0057). A test may wait up to 30 s
+  // for its first render (timeouts.ts), within them.
+  ...endToEndTimeouts,
   forbidOnly: ci,
   retries: 0,
   reporter: ci ? "line" : "list",

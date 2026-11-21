@@ -357,7 +357,7 @@ describe("exporting to GIF (docs/adr/0011)", () => {
     // An export that finishes keeps its job worker for the next: no third one starts.
     await processor.export({ plan, format: { type: "gif" } });
     expect(started).toBe(2);
-  }, 20_000);
+  });
 
   it("loads the job worker from the host's assets when the engine is self-hosted", async () => {
     const { processor } = await opened(

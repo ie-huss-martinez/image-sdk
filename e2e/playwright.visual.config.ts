@@ -19,11 +19,9 @@ const config = defineVisualConfig({
   },
 });
 
-const visual: PlaywrightTestConfig = {
-  ...config,
-  // A test may wait up to 30 s for its first render (timeouts.ts), so its
-  // own limit leaves room.
-  timeout: 60_000,
-};
+// defineVisualConfig gives the family's end-to-end limits (sdk-core ADR
+// 0057), within which a test may wait up to 30 s for its first render
+// (timeouts.ts).
+const visual: PlaywrightTestConfig = config;
 
 export default visual;
