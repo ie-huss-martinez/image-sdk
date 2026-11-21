@@ -38,8 +38,10 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `engine-unavailable` | Terminal engine recovery notice after resource loss; stale preview, controls and dialogs removed |
  * | `long-text`, `long-text-export` | A host's longer text, as a translation can be: the panels and the export dialog wrap it |
  *
- * No state is masked: every one renders committed fixtures, at a fixed time,
- * and the editor shows no time or random value. The stage's canvas is drawn
+ * No state is masked but the right-to-left ones' Open icon, which the
+ * browser draws one of two ways per load (see OPEN_ICON). Every state renders
+ * committed fixtures, at a fixed time, and the editor shows no time or random
+ * value. The stage's canvas is drawn
  * by the SDK's own render worker, which is exact in the pinned Chromium.
  */
 
@@ -250,6 +252,40 @@ const EDITOR: Readonly<Record<string, State>> = {
   },
 };
 
+/**
+ * The Open tool's icon, masked in the right-to-left states only.
+ *
+ * The pinned Chromium draws it one of two ways per page load, 1 to 2 colour
+ * levels apart on its edges, and keeps it within the load. Left to right,
+ * Playwright counts the difference as anti-aliasing and ignores it; right to
+ * left, it doesn't, so a strict comparison (sdk-core ADR 0054) failed some of
+ * these states at random.
+ *
+ * The cause is Chromium's compositing, not the icon, sdk-config's preset or
+ * image-sdk's CSS. The toolbar is drawn into the page's own layer, and that
+ * layer's raster depends on the state of the stage canvas, which the render
+ * worker draws into through an OffscreenCanvas, at the moment it's
+ * rasterised. The worker's first frame lands at a different time on each
+ * load. Measured on 2026-11-21, 12 loads per case:
+ *
+ * - empty, with no image: one rendering every time;
+ * - an image open, with the stage hidden: the same one every time;
+ * - an image open, with the stage shown: either rendering, at random;
+ * - the stage canvas at opacity 0: the other one every time;
+ * - the toolbar given its own layer (`will-change: transform`): the first
+ *   one every time, but it re-rasterises the whole toolbar, which shifted 77
+ *   left-to-right baselines by up to 30 levels on some icon pixels, so the
+ *   screenshots would no longer show the product's pixels;
+ * - `isolation` or `contain: paint` on the toolbar: still either one;
+ * - `--disable-gpu-rasterization` or `--disable-gpu`: still either one.
+ *
+ * So a mask on the one icon that varies is the smallest honest remedy.
+ * Remove it if Chromium's raster here becomes deterministic. ui's agent
+ * showed the icon itself draws the same way over 78 loads.
+ */
+const OPEN_ICON = '[data-tool="image.open"] svg';
+const RTL_PATH = "/editor.html?dir=rtl";
+
 /** On the editor page with `?dir=rtl`. */
 const RIGHT_TO_LEFT: Readonly<Record<string, State>> = {
   "rtl-open": opened,
@@ -303,7 +339,7 @@ const ELEMENT: Readonly<Record<string, State>> = {
 
 for (const [path, states] of [
   ["/editor.html", EDITOR],
-  ["/editor.html?dir=rtl", RIGHT_TO_LEFT],
+  [RTL_PATH, RIGHT_TO_LEFT],
   ["/editor.html?long-text", LONG_TEXT],
   ["/editor.html?failure", ENGINE_UNAVAILABLE],
   ["/element.html", ELEMENT],
@@ -324,7 +360,9 @@ for (const [path, states] of [
         await reach(page);
         // The pointer rests outside the editor, so no hover styles show.
         await page.mouse.move(0, 0);
-        await expect(page).toHaveScreenshot(`${state}-${variant.name}.png`);
+        await expect(page).toHaveScreenshot(`${state}-${variant.name}.png`, {
+          mask: path === RTL_PATH ? [page.locator(OPEN_ICON)] : [],
+        });
         expect(foreign).toEqual([]);
       });
     }
