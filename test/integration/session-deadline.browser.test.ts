@@ -132,5 +132,9 @@ describe("session deadlines through the real worker RPC (ADR 0020)", () => {
         await engine.destroy();
       }
     },
+    // Its own limit (sdk-core ADR 0057): each case waits out the worker
+    // client's real 30-second cancellation grace, 30.2 s in CI, which leaves
+    // too little of the browser tests' 60 s for a busy machine.
+    90_000,
   );
 });

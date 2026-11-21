@@ -102,7 +102,6 @@ for (const decodeCase of DECODE_CASES) {
 }
 
 test("worker canvas and encoding", async ({ page, browserName, browser }, info) => {
-  test.setTimeout(120_000);
   const foreign = foreignRequests(page);
   await page.goto("/");
   const features = await page.evaluate(() => window.imageCapabilities.features());

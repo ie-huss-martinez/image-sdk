@@ -286,5 +286,5 @@ describe("the corpus's animations, frame by frame (docs/adr/0011)", () => {
     }
     // The corpus hasn't shrunk under the test.
     expect([animations, frames]).toEqual([36, 144]);
-  }, 120_000);
+  });
 });
