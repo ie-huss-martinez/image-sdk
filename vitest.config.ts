@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { browserInstances } from "@hussmartinez/sdk-config/testing/browser-instances";
 import { browserTimeouts, unitTimeouts } from "@hussmartinez/sdk-config/testing/timeouts";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
@@ -62,7 +63,11 @@ export default defineConfig(({ mode }) => {
               enabled: true,
               headless: true,
               provider: playwright(),
-              instances: browsers.map((browser) => ({ browser })),
+              // In the image, every browser launches with the family's font
+              // rules (sdk-core ADR 0062), so text is drawn as in the
+              // screenshots. With HM_BROWSER_DIAGNOSTICS set to a folder,
+              // Chromium writes a net log there (sdk-config).
+              instances: browserInstances(browsers),
             },
           },
         },

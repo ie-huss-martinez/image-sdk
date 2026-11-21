@@ -62,11 +62,13 @@ export default [
     limit: "27.5 kB",
   }),
   forHosts({
-    // The floor: the error class, which a host uses to tell the SDK's errors apart.
+    // The floor: the error class, which a host uses to tell the SDK's errors
+    // apart. Measured at 70 B, once sdk-config 0.12.1 stopped counting the
+    // names a bundle imports and never uses; 178 B before.
     name: "Core: the floor, ImageError",
     entry: "dist/index.js",
     imports: "{ ImageError }",
-    limit: "0.2 kB",
+    limit: "0.1 kB",
   }),
   forHosts({
     name: "Core: createImageSession",
@@ -120,17 +122,14 @@ export default [
     limit: "54.5 kB",
   }),
   forHosts({
-    // Measured at 0.68 kB, then 0.70 kB once the editor imported sdk-core's
-    // cleanFileName and MAX_FILE_NAME_LENGTH, with the same code kept. esbuild
-    // keeps every name of an import from an external package, used or not,
-    // so each import from this entry carries the shared editor chunk's whole
-    // list of sdk-core names. A new name there grows this floor by its bytes,
-    // not by code; sdk-core is asked to measure without them.
-    // The floor: a hook over the provider, which every panel reads.
+    // The floor: a hook over the provider, which every panel reads. Measured
+    // at 126 B. It was 704 B while the measure counted the shared editor
+    // chunk's whole list of names imported from sdk-core, React and ui, used
+    // or not; sdk-config 0.12.1 measures only the names an import keeps.
     name: "React: the floor, useImageMessages",
     entry: "dist/react.js",
     imports: "{ useImageMessages }",
-    limit: "0.8 kB",
+    limit: "0.2 kB",
   }),
   forHosts({
     // The interface's text.
@@ -152,12 +151,12 @@ export default [
     limit: "4 kB",
   }),
   forHosts({
-    // 4.99 kB, then 5.00 kB, for the same reason as the floor: the names in
-    // the shared chunk's import from sdk-core, not code.
+    // Measured at 4.95 kB. It was raised to 5.5 kB when unused import names
+    // counted (5.00 kB then); sdk-config 0.12.1 stopped counting them.
     name: "React: ImageFramesPanel",
     entry: "dist/react.js",
     imports: "{ ImageFramesPanel }",
-    limit: "5.5 kB",
+    limit: "5 kB",
   }),
   forHosts({
     name: "React: ImageFilterPanel",
