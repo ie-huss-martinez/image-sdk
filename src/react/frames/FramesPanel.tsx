@@ -59,14 +59,18 @@ export function ImageFramesPanel(props: ImageFramesPanelProps): ReactNode {
   const slots = useMemo(() => createThumbnailSlots(), []);
   /** What the session refused, such as a copy over the limit, until the next action. */
   const [problem, setProblem] = useState<unknown>(null);
-  /** The number of repeats offered when Repeats is chosen. */
-  const [repeats, setRepeats] = useState(1);
   const on = state.tool === "frames" && plan?.animation != null;
   const loop = plan?.animation?.loop ?? null;
-  // The last count of repeats, offered again when Repeats is chosen after Once or For ever.
-  useEffect(() => {
+  /** The number of repeats offered when Repeats is chosen. */
+  const [repeats, setRepeats] = useState(loop !== null && loop > 0 ? loop : 1);
+  // The last count of repeats, offered again when Repeats is chosen after
+  // Once or For ever. Followed while rendering, as the loop changes, rather
+  // than in an effect that would render twice.
+  const [seenLoop, setSeenLoop] = useState(loop);
+  if (loop !== seenLoop) {
+    setSeenLoop(loop);
     if (loop !== null && loop > 0) setRepeats(loop);
-  }, [loop]);
+  }
 
   // The list takes focus when the panel opens, on the frame shown.
   useEffect(() => {

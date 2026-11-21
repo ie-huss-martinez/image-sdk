@@ -1,6 +1,6 @@
 import { act, createRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import type {
@@ -77,6 +77,8 @@ afterAll(() => unloadStyles());
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 afterEach(async () => {
+  // A test that holds the clock gives it back even when it fails.
+  vi.useRealTimers();
   await act(async () => root?.unmount());
   host?.remove();
 });
@@ -1141,6 +1143,63 @@ describe("the layers (docs/adr/0013)", () => {
     // The fields follow the selection.
     await click(select("under"));
     expect(inputs().map((input) => input.value)).toEqual(["", "10", "8", "20", "10", "0", "100"]);
+  });
+
+  it("shows the plan's name and text again over what was typed, as the layer or the plan changes", async () => {
+    const { session } = await opened();
+    await layering();
+    /** Typed into a field without leaving it, so nothing is set on the layer. */
+    const typed = (
+      input: HTMLInputElement | HTMLTextAreaElement | null | undefined,
+      value: string,
+    ) =>
+      act(async () => {
+        if (!input) throw new Error("no field");
+        const prototype = Object.getPrototypeOf(input) as object;
+        Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    const name = () => field("Name");
+    const text = () =>
+      document.querySelector<HTMLTextAreaElement>(".hm-image-layers-text textarea");
+
+    // The name: another layer's replaces what was typed, and so does the plan's after an undo.
+    expect(name()?.value).toBe("Badge");
+    await typed(name(), "Draft");
+    expect(name()?.value).toBe("Draft");
+    await click(select("under"));
+    expect(name()?.value).toBe("");
+    await click(select("over"));
+    expect(name()?.value).toBe("Badge");
+    await act(async () => {
+      session().execute([
+        { type: "image.updateLayers", updates: [{ key: "over", props: { name: "Stamp" } }] },
+      ]);
+    });
+    expect(name()?.value).toBe("Stamp");
+    await act(async () => {
+      session().undo();
+    });
+    expect(name()?.value).toBe("Badge");
+
+    // The text: the plan's replaces what was typed when it changes. Typing
+    // sets the text as a step after a pause; the clock is held here, so it
+    // stays typed and not set.
+    await click(select("middle"));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    expect(text()?.value).toBe("Hello\nthere");
+    await typed(text(), "Hello, draft");
+    expect(text()?.value).toBe("Hello, draft");
+    await act(async () => {
+      session().execute([
+        { type: "image.updateLayers", updates: [{ key: "middle", props: { text: "Goodbye" } }] },
+      ]);
+    });
+    expect(text()?.value).toBe("Goodbye");
+    await act(async () => {
+      session().undo();
+    });
+    expect(text()?.value).toBe("Hello\nthere");
   });
 
   it("keeps the stage where it is, in a layout with the panel under it", async () => {

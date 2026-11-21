@@ -50,8 +50,14 @@ function NameField(props: {
 }): ReactNode {
   const { layerKey, name, onRename } = props;
   const [value, setValue] = useState(name);
-  // A key, too: another layer with the same name also resets what was typed.
-  useEffect(() => setValue(name), [layerKey, name]);
+  // What was typed follows the plan's name whenever that changes, and so
+  // does another layer with the same name. Reset while rendering, rather
+  // than in an effect that would render twice.
+  const [shown, setShown] = useState({ layerKey, name });
+  if (shown.layerKey !== layerKey || shown.name !== name) {
+    setShown({ layerKey, name });
+    setValue(name);
+  }
   return (
     <TextField
       autoComplete="off"

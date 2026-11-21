@@ -6,7 +6,7 @@ import {
   TextArea,
   ToggleButton,
 } from "@hussmartinez/ui/react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   type ImageArrowLayer,
   type ImageShapeLayer,
@@ -62,8 +62,14 @@ export function TextLayerFields(props: FieldsProps<ImageTextLayer>): ReactNode {
   const key = layer?.key ?? null;
   const text = layer?.text ?? "";
   const [value, setValue] = useState(text);
-  // A key, too: another layer with the same text also resets what was typed.
-  useEffect(() => setValue(text), [key, text]);
+  // What was typed follows the layer's text whenever that changes, and so
+  // does another layer with the same text. Reset while rendering, rather
+  // than in an effect that would render twice.
+  const [shown, setShown] = useState({ key, text });
+  if (shown.key !== key || shown.text !== text) {
+    setShown({ key, text });
+    setValue(text);
+  }
   const off = layer === null;
   return (
     <div className="hm-image-layer-kind" data-hm-inactive={off ? "" : undefined}>
