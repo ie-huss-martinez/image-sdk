@@ -7,7 +7,5 @@ export default await defineReactLint({
   // turns it back on:
   // - refs, 2: ImageEditor's latest onChange, kept in a ref while it
   //   renders, and CropFrame's drag state; with ui's useLatest.
-  // - immutability, 2: ImageEditor's announcer and ImageStage's canvas,
-  //   changed in effects.
-  off: ["refs", "immutability"],
+  off: ["refs"],
 });

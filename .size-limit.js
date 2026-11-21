@@ -20,19 +20,6 @@ import { entryBudget, importBudget } from "@hussmartinez/sdk-config/size";
  * The element entry ships whole, so it has only a ceiling.
  */
 
-/**
- * An import budget, bundled as a host's bundler would: without this
- * repository's tsconfig, whose paths point the package's own imports of its
- * inlined workers, such as #hm-image-render-worker, at the source for
- * TypeScript. A host resolves them through package.json's imports, to the
- * lazy chunks the budget leaves out (sdk-core ADR 0060).
- */
-const forHosts = (budget) =>
-  importBudget({
-    ...budget,
-    modifyEsbuildConfig: (config) => ({ ...config, tsconfigRaw: "{}" }),
-  });
-
 /** A budget measured on the built files, not bundled by esbuild. */
 const built = (budget) => ({ ...budget, brotli: true, disablePlugins: ["@size-limit/esbuild"] });
 
@@ -61,7 +48,7 @@ export default [
     entry: "dist/index.js",
     limit: "27.5 kB",
   }),
-  forHosts({
+  importBudget({
     // The floor: the error class, which a host uses to tell the SDK's errors
     // apart. Measured at 70 B, once sdk-config 0.12.1 stopped counting the
     // names a bundle imports and never uses; 178 B before.
@@ -70,31 +57,31 @@ export default [
     imports: "{ ImageError }",
     limit: "0.1 kB",
   }),
-  forHosts({
+  importBudget({
     name: "Core: createImageSession",
     entry: "dist/index.js",
     imports: "{ createImageSession }",
     limit: "12 kB",
   }),
-  forHosts({
+  importBudget({
     name: "Core: createImageReducer",
     entry: "dist/index.js",
     imports: "{ createImageReducer }",
     limit: "6.5 kB",
   }),
-  forHosts({
+  importBudget({
     name: "Core: readImagePlanDocument",
     entry: "dist/index.js",
     imports: "{ readImagePlanDocument }",
     limit: "5 kB",
   }),
-  forHosts({
+  importBudget({
     name: "Core: createImageEngine",
     entry: "dist/index.js",
     imports: "{ createImageEngine }",
     limit: "2.5 kB",
   }),
-  forHosts({
+  importBudget({
     // What a headless editor uses together: a session over the engine and processor.
     name: "Core: a headless editor's set",
     entry: "dist/index.js",
@@ -121,7 +108,7 @@ export default [
     entry: "dist/react.js",
     limit: "54.5 kB",
   }),
-  forHosts({
+  importBudget({
     // The floor: a hook over the provider, which every panel reads. Measured
     // at 126 B. It was 704 B while the measure counted the shared editor
     // chunk's whole list of names imported from sdk-core, React and ui, used
@@ -131,26 +118,26 @@ export default [
     imports: "{ useImageMessages }",
     limit: "0.2 kB",
   }),
-  forHosts({
+  importBudget({
     // The interface's text.
     name: "React: imageEditorMessages",
     entry: "dist/react.js",
     imports: "{ imageEditorMessages }",
     limit: "5 kB",
   }),
-  forHosts({
+  importBudget({
     name: "React: ImageExportDialog",
     entry: "dist/react.js",
     imports: "{ ImageExportDialog }",
     limit: "3.5 kB",
   }),
-  forHosts({
+  importBudget({
     name: "React: imageTools",
     entry: "dist/react.js",
     imports: "{ imageTools }",
     limit: "4 kB",
   }),
-  forHosts({
+  importBudget({
     // Measured at 4.95 kB. It was raised to 5.5 kB when unused import names
     // counted (5.00 kB then); sdk-config 0.12.1 stopped counting them.
     name: "React: ImageFramesPanel",
@@ -158,44 +145,44 @@ export default [
     imports: "{ ImageFramesPanel }",
     limit: "5 kB",
   }),
-  forHosts({
+  importBudget({
     name: "React: ImageFilterPanel",
     entry: "dist/react.js",
     imports: "{ ImageFilterPanel }",
     limit: "8 kB",
   }),
-  forHosts({
+  importBudget({
     name: "React: ImageAdjustPanel",
     entry: "dist/react.js",
     imports: "{ ImageAdjustPanel }",
     limit: "8 kB",
   }),
-  forHosts({
+  importBudget({
     name: "React: ImageRedactPanel",
     entry: "dist/react.js",
     imports: "{ ImageRedactPanel }",
     limit: "9.5 kB",
   }),
-  forHosts({
+  importBudget({
     name: "React: ImageDrawPanel",
     entry: "dist/react.js",
     imports: "{ ImageDrawPanel }",
     limit: "9.5 kB",
   }),
-  forHosts({
+  importBudget({
     name: "React: ImageLayersPanel",
     entry: "dist/react.js",
     imports: "{ ImageLayersPanel }",
     limit: "11 kB",
   }),
-  forHosts({
+  importBudget({
     // The stage, with its renderer and overlays.
     name: "React: ImageStage",
     entry: "dist/react.js",
     imports: "{ ImageStage }",
     limit: "19.5 kB",
   }),
-  forHosts({
+  importBudget({
     // A provider creates the engine, processor and session it isn't given.
     // Measured at 19.49 kB locally and 19.52 kB in the release pull
     // request's CI, with the same code kept (hm-size --kept): 19.5 kB left
@@ -205,7 +192,7 @@ export default [
     imports: "{ ImageEditorProvider }",
     limit: "20 kB",
   }),
-  forHosts({
+  importBudget({
     // What a typical application imports: the whole editor.
     name: "React: ImageEditor",
     entry: "dist/react.js",

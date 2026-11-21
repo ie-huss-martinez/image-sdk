@@ -46,11 +46,12 @@ interface BodyProps
     | "theme"
   > {
   readonly handle: ForwardedRef<ImageEditorHandle>;
-  readonly events: { current: ((event: ImageSessionEvent) => void) | undefined };
+  /** Listens to the session's events until the returned function is called. */
+  readonly listen: (listener: (event: ImageSessionEvent) => void) => () => void;
 }
 
 function ImageEditorBody(props: BodyProps): ReactNode {
-  const { initialFile, onChange, classNames = {}, unstyled = false, handle, events } = props;
+  const { initialFile, onChange, classNames = {}, unstyled = false, handle, listen } = props;
   const { engine, session, messages, view, editor, opener, inserter } = useImageInternals();
   const snapshot = useImageDocument();
   const announce = useAnnounce();
@@ -133,23 +134,22 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   }, [session]);
 
   // Opens, undos and redos reach screen readers, politely.
-  useEffect(() => {
-    events.current = (event) => {
-      if (event.outcome !== "done") return;
-      const action = event.commands[0];
-      const name = action ? messages.t(`actions.${action}`) : "";
-      if (event.type === "undo") announce(messages.t("editor.undid", { action: name }));
-      if (event.type === "redo") announce(messages.t("editor.redid", { action: name }));
-      if (event.type === "open") {
-        const source = session.getSnapshot().source;
-        if (source)
-          announce(messages.t("editor.opened", { width: source.width, height: source.height }));
-      }
-    };
-    return () => {
-      events.current = undefined;
-    };
-  }, [announce, events, messages, session]);
+  useEffect(
+    () =>
+      listen((event) => {
+        if (event.outcome !== "done") return;
+        const action = event.commands[0];
+        const name = action ? messages.t(`actions.${action}`) : "";
+        if (event.type === "undo") announce(messages.t("editor.undid", { action: name }));
+        if (event.type === "redo") announce(messages.t("editor.redid", { action: name }));
+        if (event.type === "open") {
+          const source = session.getSnapshot().source;
+          if (source)
+            announce(messages.t("editor.opened", { width: source.width, height: source.height }));
+        }
+      }),
+    [announce, listen, messages, session],
+  );
 
   // After an open, focus moves to the first tool it enabled, when focus was
   // in the editor or nowhere; focus elsewhere on the host's page stays.
@@ -362,13 +362,20 @@ export const ImageEditor = /* @__PURE__ */ forwardRef(function ImageEditor(
   useInsertionEffect(() => {
     latestOnEvent.current = onEvent;
   }, [onEvent]);
-  const [onSessionEvent] = useMemo(
-    () => [
-      (event: ImageSessionEvent) => {
-        events.current?.(event);
-        latestOnEvent.current?.(event);
-      },
-    ],
+  const [onSessionEvent, listen] = useMemo(
+    () =>
+      [
+        (event: ImageSessionEvent) => {
+          events.current?.(event);
+          latestOnEvent.current?.(event);
+        },
+        (listener: (event: ImageSessionEvent) => void) => {
+          events.current = listener;
+          return () => {
+            if (events.current === listener) events.current = undefined;
+          };
+        },
+      ] as const,
     [],
   );
   return (
@@ -376,7 +383,7 @@ export const ImageEditor = /* @__PURE__ */ forwardRef(function ImageEditor(
       <AnnouncerProvider>
         <ImageEditorBody
           handle={ref}
-          events={events}
+          listen={listen}
           {...(initialFile ? { initialFile } : {})}
           {...(onChange ? { onChange } : {})}
           {...(plan ? { plan } : {})}
