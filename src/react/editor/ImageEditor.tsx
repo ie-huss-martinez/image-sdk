@@ -1,5 +1,5 @@
 import { createShortcutRegistry, createToolRegistry } from "@hussmartinez/sdk-core";
-import { AnnouncerProvider, useAnnounce, usePlatform } from "@hussmartinez/ui/react";
+import { AnnouncerProvider, useAnnounce, useLatest, usePlatform } from "@hussmartinez/ui/react";
 import {
   type ForwardedRef,
   forwardRef,
@@ -58,8 +58,8 @@ function ImageEditorBody(props: BodyProps): ReactNode {
   const root = useRef<HTMLElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const layerInput = useRef<HTMLInputElement>(null);
-  const latestOnChange = useRef(onChange);
-  latestOnChange.current = onChange;
+  // The host's latest onChange, taken as each render commits, never during it.
+  const latestOnChange = useLatest(onChange);
 
   // Export off takes its tool out of the registry, so no button or key runs it.
   const exportOn = props.features?.export !== false;
@@ -131,7 +131,7 @@ function ImageEditorBody(props: BodyProps): ReactNode {
       before = after;
       if (after) latestOnChange.current?.(after);
     });
-  }, [session]);
+  }, [session, latestOnChange]);
 
   // Opens, undos and redos reach screen readers, politely.
   useEffect(

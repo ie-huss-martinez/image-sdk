@@ -107,7 +107,8 @@ export function CropFrame(props: CropFrameProps): ReactNode {
     );
   };
 
-  const onPointerDown = (handle: CropHandle | "move") => (event: PointerEvent<HTMLElement>) => {
+  // Called from each handle's own pointer handler, never while rendering.
+  const onPointerDown = (handle: CropHandle | "move", event: PointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
@@ -175,7 +176,7 @@ export function CropFrame(props: CropFrameProps): ReactNode {
       tabIndex={0}
       style={style}
       onKeyDown={onKeyDown}
-      onPointerDown={onPointerDown("move")}
+      onPointerDown={(event) => onPointerDown("move", event)}
       {...pointer}
     >
       <span id={describedBy} hidden>
@@ -192,7 +193,7 @@ export function CropFrame(props: CropFrameProps): ReactNode {
           className="hm-image-crop-handle"
           data-hm-handle={handle}
           aria-hidden="true"
-          onPointerDown={onPointerDown(handle)}
+          onPointerDown={(event) => onPointerDown(handle, event)}
           {...pointer}
         />
       ))}
