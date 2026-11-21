@@ -39,37 +39,46 @@ import { ImageError } from "./image-error.js";
  *
  * @public
  */
-export const imageLimitDefinitions = {
-  ...coreLimits,
-  maxDecodedSize: { ...coreLimits.maxDecodedSize, default: 1_000_000_000, warning: 400_000_000 },
-  maxImagePixels: {
-    code: "IMAGE_TOO_LARGE",
-    unit: "pixels",
-    default: 50_000_000,
-    warning: 24_000_000,
-  },
-  maxImageDimension: { code: "IMAGE_DIMENSION_TOO_LARGE", unit: "pixels", default: 16_384 },
-  maxFrames: { code: "TOO_MANY_FRAMES", unit: "count", default: 300, warning: 100 },
-  maxAnimationPixels: {
-    code: "ANIMATION_TOO_LARGE",
-    unit: "pixels",
-    default: 8_000_000,
-    warning: 2_000_000,
-  },
-  maxSessionSize: {
-    code: "SESSION_TOO_LARGE",
-    unit: "bytes",
-    default: 1_000_000_000,
-    warning: 500_000_000,
-  },
-  maxLayers: { code: "TOO_MANY_LAYERS", unit: "count", default: 256 },
-  maxDrawingPoints: {
-    code: "TOO_MANY_POINTS",
-    unit: "count",
-    default: 200_000,
-    warning: 100_000,
-  },
-} as const;
+export const imageLimitDefinitions = /* @__PURE__ */ limitDefinitions();
+
+/**
+ * Builds {@link imageLimitDefinitions}. A function, so the call can be marked
+ * free of side effects: the spread of sdk-core's limits otherwise keeps the
+ * object in every bundle that imports this module (sdk-core ADR 0056).
+ */
+function limitDefinitions() {
+  return {
+    ...coreLimits,
+    maxDecodedSize: { ...coreLimits.maxDecodedSize, default: 1_000_000_000, warning: 400_000_000 },
+    maxImagePixels: {
+      code: "IMAGE_TOO_LARGE",
+      unit: "pixels",
+      default: 50_000_000,
+      warning: 24_000_000,
+    },
+    maxImageDimension: { code: "IMAGE_DIMENSION_TOO_LARGE", unit: "pixels", default: 16_384 },
+    maxFrames: { code: "TOO_MANY_FRAMES", unit: "count", default: 300, warning: 100 },
+    maxAnimationPixels: {
+      code: "ANIMATION_TOO_LARGE",
+      unit: "pixels",
+      default: 8_000_000,
+      warning: 2_000_000,
+    },
+    maxSessionSize: {
+      code: "SESSION_TOO_LARGE",
+      unit: "bytes",
+      default: 1_000_000_000,
+      warning: 500_000_000,
+    },
+    maxLayers: { code: "TOO_MANY_LAYERS", unit: "count", default: 256 },
+    maxDrawingPoints: {
+      code: "TOO_MANY_POINTS",
+      unit: "count",
+      default: 200_000,
+      warning: 100_000,
+    },
+  } as const;
+}
 
 /**
  * The type of {@link imageLimitDefinitions}.

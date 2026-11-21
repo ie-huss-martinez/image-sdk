@@ -77,7 +77,7 @@ export const DEVELOP_ADJUSTMENTS = [
  *
  * @public
  */
-export const NEUTRAL_DEVELOP: ImageDevelop = Object.freeze({
+export const NEUTRAL_DEVELOP: ImageDevelop = /* @__PURE__ */ Object.freeze({
   temperature: 0,
   tint: 0,
   exposure: 0,
@@ -560,14 +560,18 @@ export interface ImagePlan {
  *
  * @public
  */
-export const UPRIGHT: ImageOrientation = Object.freeze({ rotate: 0, flipX: false, flipY: false });
+export const UPRIGHT: ImageOrientation = /* @__PURE__ */ Object.freeze({
+  rotate: 0,
+  flipX: false,
+  flipY: false,
+});
 
 /**
  * The export at full size.
  *
  * @public
  */
-export const FULL_SIZE: ImageOutput = Object.freeze({ kind: "scale", scale: 1 });
+export const FULL_SIZE: ImageOutput = /* @__PURE__ */ Object.freeze({ kind: "scale", scale: 1 });
 
 /**
  * The plan for a newly opened source: the whole image, upright, undeveloped

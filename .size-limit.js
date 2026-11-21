@@ -43,19 +43,25 @@ export default [
     // frames panel: its list, actions, lazily drawn thumbnails and text
     // (docs/adr/0011), 2.4 kB over the 51.2 kB before the panel; crop,
     // redact, the layers' list and frames, the tools that add text, shapes
-    // and images with their fields, and the interface's text.
+    // and images with their fields, and the interface's text. 54.1 kB (41.7 kB
+    // minified), 0.1 kB over the 54.0 kB before its parts could be imported
+    // apart (sdk-core ADR 0056): the functions that build its module-level
+    // values so the calls can be marked free of side effects. One import
+    // alone ships far less, such as the catalogue's 4.7 kB, not 40.5 kB.
     name: "React entry (./react), with the shared code it loads",
     path: ["dist/react.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "54 kB",
+    limit: "54.5 kB",
   },
   {
-    // The React entry and the element's own mount: measured at 54.6 kB
-    // (41.9 kB minified), 2.4 kB over the 52.2 kB before the frames panel.
+    // The React entry and the element's own mount: measured at 55.1 kB
+    // (42.4 kB minified), 0.1 kB over the 55.0 kB before the React entry's
+    // parts could be imported apart (sdk-core ADR 0056). The element ships
+    // whole.
     name: "Element entry (./element), with the shared code it loads",
     path: ["dist/element.js", "dist/shared/*.js"],
     brotli: true,
-    limit: "55 kB",
+    limit: "55.5 kB",
   },
   {
     name: "Stylesheet (./styles.css)",

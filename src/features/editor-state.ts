@@ -80,13 +80,13 @@ export interface ImageEditorState {
 }
 
 /** The first frame, paused: nothing plays on its own (docs/adr/0011). */
-export const PAUSED = Object.freeze({ frame: 0, playing: false });
+export const PAUSED = /* @__PURE__ */ Object.freeze({ frame: 0, playing: false });
 
 /**
  * No tool on the stage: what a tool spreads before it sets its own state, so
  * one tool has the stage at a time, and what ends them all.
  */
-export const NO_TOOL = Object.freeze({
+export const NO_TOOL = /* @__PURE__ */ Object.freeze({
   tool: null,
   crop: null,
   redact: null,
@@ -94,13 +94,16 @@ export const NO_TOOL = Object.freeze({
   draw: null,
 } satisfies Partial<ImageEditorState>);
 
-export const IDLE: ImageEditorState = Object.freeze({
-  ...NO_TOOL,
-  error: null,
-  preview: null,
-  dialog: null,
-  playback: PAUSED,
-});
+export const IDLE: ImageEditorState = /* @__PURE__ */ idle();
+
+/**
+ * Builds {@link IDLE}. A function, so the call can be marked free of side
+ * effects: the spread of {@link NO_TOOL} otherwise keeps it in every bundle
+ * that imports this module (sdk-core ADR 0056).
+ */
+function idle(): ImageEditorState {
+  return Object.freeze({ ...NO_TOOL, error: null, preview: null, dialog: null, playback: PAUSED });
+}
 
 /** A store of the editor's state. */
 export function createEditorStore(): Store<ImageEditorState> {

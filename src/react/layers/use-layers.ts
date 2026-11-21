@@ -18,7 +18,12 @@ import { newRedactionKey } from "../redact/use-redact.js";
 const DUPLICATE_OFFSET = 8;
 /** How much of a text layer's own text names it in the list. */
 const LABEL_LENGTH = 40;
-const EVERY_FORBIDDEN = new RegExp(FORBIDDEN_IN_TEXT.source, "gu");
+const EVERY_FORBIDDEN = /* @__PURE__ */ everyMatch(FORBIDDEN_IN_TEXT);
+
+/** A pattern's global form. A function, so the call can be marked free of side effects (sdk-core ADR 0056). */
+function everyMatch(pattern: RegExp): RegExp {
+  return new RegExp(pattern.source, `${pattern.flags}g`);
+}
 
 /**
  * What the layers list and the frames call a layer: its name; or, unnamed,

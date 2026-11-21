@@ -48,3 +48,17 @@ export type ImageTool = Tool<ImageToolState, ImageToolContext, undefined> & {
 
 /** Whether a document is open. */
 export const hasDocument = ({ snapshot }: ImageToolState): boolean => snapshot.plan !== null;
+
+/**
+ * A tool with a reason it can't run, as `unavailable` says. A function, not an
+ * object spread, so the call can be marked free of side effects and a bundle
+ * that doesn't use the tool drops it (sdk-core ADR 0056).
+ *
+ * @internal
+ */
+export function withReason(
+  tool: Tool<ImageToolState, ImageToolContext, undefined>,
+  unavailable: NonNullable<ImageTool["unavailable"]>,
+): ImageTool {
+  return { ...tool, unavailable };
+}
