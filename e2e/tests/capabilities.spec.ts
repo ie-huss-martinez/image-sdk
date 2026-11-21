@@ -1,6 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createWindowReader } from "@hussmartinez/sdk-core";
-import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import { probeImage } from "../../src/adapters/probe/probe.js";
 import { isImageError } from "../../src/core/errors/image-error.js";
 import {
@@ -18,6 +17,7 @@ import {
   RESULTS,
   readTable,
 } from "../capabilities.js";
+import { expect, type Page, type TestInfo, test } from "../test.js";
 
 const table = readTable();
 const update = Boolean(process.env["UPDATE_CAPABILITIES"]);

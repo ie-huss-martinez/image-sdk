@@ -1,4 +1,3 @@
-import { expect, type Page, test } from "@playwright/test";
 import {
   fixture,
   gifWithBackground,
@@ -7,6 +6,7 @@ import {
   quadrantsWebp,
 } from "../fixtures.js";
 import { classify } from "../orientation.js";
+import { expect, type Page, test } from "../test.js";
 
 /**
  * The SDK's engine on the built example, as a host runs it (docs/adr/0001,
