@@ -9,6 +9,7 @@ import type { ImageExportOptions } from "../core/ports/options.js";
 import { exportGif, type GifExportWorkers } from "./export/gif-export.js";
 import { engineInternals } from "./image-engine.js";
 import type { JobWorkerContract } from "./job-worker/contract.js";
+import { startFailure } from "./worker-start.js";
 
 const FORMATS = new Set(["png", "jpeg", "webp", "gif"]);
 
@@ -154,7 +155,9 @@ export function createImageProcessor(engine: ImageEngine): ImageProcessor {
           return blob;
         } catch (error) {
           if (error instanceof TypeError) throw error;
-          throw asImageError(error);
+          // A job worker that couldn't start for a reason of its own keeps
+          // it, such as a build that left it out (sdk-core ADR 0060).
+          throw asImageError(startFailure(error));
         } finally {
           if (entry) release(entry, finished);
         }

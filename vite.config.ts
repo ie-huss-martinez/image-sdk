@@ -17,7 +17,20 @@ export const externalPackages = [
   ...Object.keys(manifest.dependencies ?? {}),
   ...Object.keys(manifest.peerDependencies ?? {}),
 ];
+/**
+ * The package's own imports of its inlined workers, by their names in
+ * package.json's imports. They stay imports in the build, so the host's
+ * bundler resolves each one: to the built file by default, or to a stub with
+ * the hm-self-hosted condition, which leaves the inlined workers out of a
+ * build that self-hosts them (sdk-core ADR 0060).
+ */
+export const selfHostedImports = {
+  "#hm-image-render-worker": "src/adapters/render-worker/inline-worker.ts",
+  "#hm-image-job-worker": "src/adapters/job-worker/inline-job-worker.ts",
+} as const;
+
 const isExternal = (id: string): boolean =>
+  Object.hasOwn(selfHostedImports, id) ||
   externalPackages.some((name) => id === name || id.startsWith(`${name}/`));
 
 /** One built file per public entry point (ADR 0004). */
@@ -26,6 +39,17 @@ export const entries = {
   react: "src/react.ts",
   element: "src/element.ts",
   styles: "src/styles.css",
+} as const;
+
+/**
+ * The targets of package.json's imports, built under stable names in lazy/,
+ * where its imports map points (sdk-core ADR 0060): each inlined worker, and
+ * the stub that stands in for both.
+ */
+const lazyEntries = {
+  "lazy/inline-worker": selfHostedImports["#hm-image-render-worker"],
+  "lazy/inline-job-worker": selfHostedImports["#hm-image-job-worker"],
+  "lazy/no-inline-workers": "src/adapters/no-inline-workers.ts",
 } as const;
 
 const entryFiles = new Set(
@@ -83,7 +107,7 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: entries,
+      entry: { ...entries, ...lazyEntries },
       formats: ["es"],
     },
     // Required for a CSS file as an entry; it's then emitted as its own file.
@@ -98,8 +122,9 @@ export default defineConfig({
         // count it with each entry that loads it: shared/editor-* holds the
         // React editor, which the React and element entries load, and
         // shared/core-* the rest, which the server-safe core loads too. Code
-        // loaded with import(), such as the inlined render worker, goes in
-        // lazy/, with budgets of its own.
+        // loaded with import() goes in lazy/, with budgets of its own; the
+        // inlined workers are entries there, under the stable names that
+        // package.json's imports map to (sdk-core ADR 0060).
         chunkFileNames: (chunk) => {
           if (chunk.isDynamicEntry) return "lazy/[name]-[hash].js";
           const editor = chunk.moduleIds.some((id) => id.includes("/src/react/"));

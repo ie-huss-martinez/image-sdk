@@ -40,6 +40,16 @@
     "./formats/*": "./formats/*",
     "./package.json": "./package.json"
   },
+  "imports": {
+    "#hm-image-render-worker": {
+      "hm-self-hosted": "./dist/lazy/no-inline-workers.js",
+      "default": "./dist/lazy/inline-worker.js"
+    },
+    "#hm-image-job-worker": {
+      "hm-self-hosted": "./dist/lazy/no-inline-workers.js",
+      "default": "./dist/lazy/inline-job-worker.js"
+    }
+  },
   "files": [
     "dist",
     "formats",

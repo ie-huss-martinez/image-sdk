@@ -24,6 +24,30 @@ The base may be an absolute URL, a root-relative path such as `/image-sdk/`, or 
 
 Copy the assets again on every package upgrade. Deploy page bundles and worker assets from the same package version, preferably under a versioned directory so cached pages keep their matching worker. The worker handshake checks the package version before accepting calls; stale or missing versions fail with `WORKER_START_FAILED`, with `asset`, `expected` and `actual` in `details`. This version check is not an integrity signature: serve the files over HTTPS from trusted application assets.
 
+### Leaving the inlined workers out
+
+An application that passes `assetsUrl` everywhere never loads the inlined workers, but its bundler still emits them: two chunks of about 91 kB together, 30 kB compressed, that are never used. Set the family's `hm-self-hosted` resolve condition in the application's bundler to leave them out. The SDK reaches both workers through its package's `imports`, and the condition maps each one to a small stub instead ([sdk-core ADR 0060](https://github.com/ie-huss-martinez/sdk-core/blob/main/docs/adr/0060-leaving-inlined-workers-out-of-a-self-hosted-build.md)). The condition is the family's, so it does the same for every family SDK in the build.
+
+With Vite, which replaces its default conditions with the list you give, so keep them:
+
+```ts
+import { defaultClientConditions, defineConfig } from "vite";
+
+export default defineConfig({
+  resolve: { conditions: [...defaultClientConditions, "hm-self-hosted"] },
+});
+```
+
+With esbuild, which drops its `module` condition once you set any, so keep it:
+
+```js
+await build({ /* ... */ conditions: ["hm-self-hosted", "module"] });
+```
+
+webpack (`resolve.conditionNames: ["hm-self-hosted", "..."]`), Rollup (`nodeResolve({ exportConditions: ["hm-self-hosted"] })`) and Next.js through its webpack configuration should work the same way, but they aren't tested yet.
+
+Set the condition only in a build that passes `assetsUrl` everywhere it creates an engine: `createImageEngine`, and the editor's, the provider's and the element's `assetsUrl`. The processor uses its engine's workers. A worker started without it in such a build fails with `WORKER_START_FAILED`, whose `details` are `{ condition: "hm-self-hosted", missing: "assetsUrl" }`. Without the condition, nothing changes.
+
 ## Content Security Policy
 
 The required worker directive is:
