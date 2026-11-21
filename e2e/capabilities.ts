@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fontLaunchEnv } from "@hussmartinez/sdk-config/testing/fonts";
 import {
   fixture,
   gifFrameOutsideScreen,
@@ -261,11 +262,15 @@ export const fontRow = (name: string) => `Font for ${name}`;
 /**
  * What fontconfig resolves a pattern to, as `fc-match` prints it: the file,
  * the family and the style. `not known` where there's no fontconfig, as
- * outside the image.
+ * outside the image. It runs with the browsers' environment, which in the
+ * image carries the family's font rules (sdk-core ADR 0062), so it names the
+ * fonts the browsers draw with.
  */
 export function fontFor(pattern: string): string {
   try {
-    return execFileSync("fc-match", [pattern], { encoding: "utf8" }).trim().replaceAll('"', "");
+    return execFileSync("fc-match", [pattern], { encoding: "utf8", env: fontLaunchEnv() })
+      .trim()
+      .replaceAll('"', "");
   } catch {
     return "not known";
   }

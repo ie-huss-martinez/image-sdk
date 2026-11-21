@@ -88,7 +88,7 @@ ${rows(DECODE_CASES.map((c) => c.name))}
 - **Longest side:** the longest one-pixel-high canvas that draws, found by binary search up to 131,071 pixels; an engine that reaches that shows \`at least\`.
 - **Text:** drawn on a 2D \`OffscreenCanvas\` in the worker, where the text renderer draws it (ADR 0009). \`fillText\` and \`strokeText\` must leave ink, in each of the three generic families the plan offers, and \`measureText\` must give a width. The emoji is U+1F600, and **draws in colour** means some pixel isn't grey. The right-to-left text is Hebrew.
 - **Text through a transform:** the renderer lays text out at one size and scales it with the context's transform. **same pixels** means text at 160 pixels through a half-scale transform equals the same text at 80, pixel for pixel.
-- **serif against sans-serif, and bold:** the word "Hamburg" drawn in each. The plan's three families and its \`bold\` are requests, which the browser answers with the fonts it finds (ADR 0009): **another font** and **bolder** mean the pixels differ, **the same font** and **no change** that they don't. Bold may be a real bold face or one the browser makes from the regular. These rows follow from the fonts below.
+- **serif against sans-serif, and bold:** the word "Hamburg" drawn in each. The plan's three families and its \`bold\` are requests, which the browser answers with the fonts it finds (ADR 0009): **another font** and **bolder** mean the pixels differ, **the same font** and **no change** that they don't. Bold may be a real bold face or one the browser makes from the regular. These rows follow from the fonts below. They were measured in the browser test image, with Liberation fonts (sdk-core ADR 0062); a user's system fonts may differ, so they aren't a promise for every machine.
 
 | Feature | Chromium | Firefox | WebKit |
 |---|---|---|---|
@@ -96,7 +96,7 @@ ${rows(FEATURES)}
 
 ## The fonts behind the generic names
 
-What fontconfig resolves each generic name to in the image, as \`fc-match\` prints it: the file, the family and the style. It's the image's answer, the same for each engine, though each engine may still choose its own fallbacks and make its own bold. The text rows above depend on these: when the image's fonts change, these rows change with them and say why.
+What fontconfig resolves each generic name to in the browser test image, with the family's font rules that its browsers launch with (sdk-core ADR 0062), as \`fc-match\` prints it: the file, the family and the style. A user's system fonts may differ. It's the image's answer, the same for each engine, though each engine may still choose its own fallbacks and make its own bold. The text rows above depend on these: when the image's fonts change, these rows change with them and say why.
 
 | Generic name | Chromium | Firefox | WebKit |
 |---|---|---|---|
