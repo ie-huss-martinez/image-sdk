@@ -1,5 +1,11 @@
 # @hussmartinez/image-sdk
 
+## 0.12.2
+
+### Patch Changes
+
+- [#147](https://github.com/ie-huss-martinez/image-sdk/pull/147) [`234aec7`](https://github.com/ie-huss-martinez/image-sdk/commit/234aec7f604d42d72c04656c2f973d9a30ca66ac) Thanks [@hussmartinez](https://github.com/hussmartinez)! - The export dialog, the frames panel and the layer fields no longer reset their state in an effect after a render. They adjust it while rendering, as React recommends, so a change takes one render instead of two. Nothing you can see changes: the export dialog still reopens fresh, Repeats still offers the last count, and the Name and Text fields still show the plan's value after an undo or another layer is selected.
+
 ## 0.12.1
 
 ### Patch Changes
