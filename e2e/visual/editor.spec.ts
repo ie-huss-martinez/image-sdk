@@ -38,8 +38,10 @@ import { FIRST_RENDER_TIMEOUT } from "../timeouts.js";
  * | `engine-unavailable` | Terminal engine recovery notice after resource loss; stale preview, controls and dialogs removed |
  * | `long-text`, `long-text-export` | A host's longer text, as a translation can be: the panels and the export dialog wrap it |
  *
- * No state is masked: every one renders committed fixtures, at a fixed time,
- * and the editor shows no time or random value. The stage's canvas is drawn
+ * No state is masked but the right-to-left ones' Open icon, which the
+ * browser draws one of two ways per load (see OPEN_ICON). Every state renders
+ * committed fixtures, at a fixed time, and the editor shows no time or random
+ * value. The stage's canvas is drawn
  * by the SDK's own render worker, which is exact in the pinned Chromium.
  */
 
@@ -250,6 +252,20 @@ const EDITOR: Readonly<Record<string, State>> = {
   },
 };
 
+/**
+ * The Open tool's icon, masked in the right-to-left states only. The pinned
+ * Chromium draws ui's OpenIcon one of two ways per page load, 1 to 2 colour
+ * levels apart on its edges, and keeps it within the load. Measured on
+ * 2026-11-21 over 12 loads: the same geometry, colour and transform every
+ * time, and the Rotate-left and Export icons byte-identical. Left to right,
+ * Playwright counts the difference as anti-aliasing and ignores it; right to
+ * left, it doesn't, so a strict comparison (sdk-core ADR 0054) failed some
+ * of these states at random. Remove the mask once ui has fixed the icon or
+ * the browser's launch, which its agent is following up.
+ */
+const OPEN_ICON = '[data-tool="image.open"] svg';
+const RTL_PATH = "/editor.html?dir=rtl";
+
 /** On the editor page with `?dir=rtl`. */
 const RIGHT_TO_LEFT: Readonly<Record<string, State>> = {
   "rtl-open": opened,
@@ -303,7 +319,7 @@ const ELEMENT: Readonly<Record<string, State>> = {
 
 for (const [path, states] of [
   ["/editor.html", EDITOR],
-  ["/editor.html?dir=rtl", RIGHT_TO_LEFT],
+  [RTL_PATH, RIGHT_TO_LEFT],
   ["/editor.html?long-text", LONG_TEXT],
   ["/editor.html?failure", ENGINE_UNAVAILABLE],
   ["/element.html", ELEMENT],
@@ -324,7 +340,9 @@ for (const [path, states] of [
         await reach(page);
         // The pointer rests outside the editor, so no hover styles show.
         await page.mouse.move(0, 0);
-        await expect(page).toHaveScreenshot(`${state}-${variant.name}.png`);
+        await expect(page).toHaveScreenshot(`${state}-${variant.name}.png`, {
+          mask: path === RTL_PATH ? [page.locator(OPEN_ICON)] : [],
+        });
         expect(foreign).toEqual([]);
       });
     }
