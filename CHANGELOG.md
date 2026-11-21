@@ -1,5 +1,11 @@
 # @hussmartinez/image-sdk
 
+## 0.10.2
+
+### Patch Changes
+
+- [#126](https://github.com/ie-huss-martinez/image-sdk/pull/126) [`91716e5`](https://github.com/ie-huss-martinez/image-sdk/commit/91716e50da59297df092b643598982b473d0063b) Thanks [@hussmartinez](https://github.com/hussmartinez)! - Pressing a key on the animation's scrubber, such as Home, or pressing the scrubber itself, now pauses playing even when it doesn't move the frame. Before, Home while the animation was on its first frame changed nothing and playing went on.
+
 ## 0.10.1
 
 ### Patch Changes
