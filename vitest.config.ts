@@ -33,6 +33,9 @@ export default defineConfig(({ mode }) => {
           optimizeDeps: { include: ["@hussmartinez/sdk-core/element"] },
           test: {
             name: "browser",
+            // Browser tests start only in the pinned test image or CI, never
+            // on a host, where they fail at random (sdk-core ADR 0049).
+            globalSetup: ["@hussmartinez/sdk-config/testing/require-image"],
             // A test may wait up to 30 s for its first open
             // (test/browser/timeouts.ts), so its own limit leaves room.
             testTimeout: 60_000,
