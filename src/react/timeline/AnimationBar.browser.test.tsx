@@ -1,6 +1,6 @@
 import { act, createRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadStyles } from "../../../test/browser/styles.js";
 import { FIRST_OPEN_TIMEOUT } from "../../../test/browser/timeouts.js";
 import { writeGif } from "../../../test/fixtures/gif-writer.js";
@@ -24,6 +24,7 @@ afterAll(() => unloadStyles());
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 afterEach(async () => {
+  vi.useRealTimers();
   await act(async () => root?.unmount());
   host?.remove();
 });
@@ -198,6 +199,8 @@ describe("playing an animation in the editor (docs/adr/0011)", () => {
 
   it("moves frame by frame with the scrubber, which pauses playing", async () => {
     await opened(animation(0));
+    // A paused clock: playing can't move on between the keys, however slow the machine.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     await act(async () => play().click());
     scrubber().focus();
     await key(scrubber(), "Home");
@@ -208,6 +211,41 @@ describe("playing an animation in the editor (docs/adr/0011)", () => {
     expect(scrubber().getAttribute("aria-valuetext")).toBe("Frame 3 of 4");
     await key(scrubber(), "End");
     expect(frameShown()).toBe(4);
+  });
+
+  it("pauses when the scrubber is taken, even by a key or a press that doesn't move it", async () => {
+    await opened(animation(0));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    // Home on the first frame changes no value, so the slider reports nothing.
+    await act(async () => play().click());
+    expect(play().getAttribute("aria-pressed")).toBe("true");
+    scrubber().focus();
+    await key(scrubber(), "Home");
+    expect(play().getAttribute("aria-pressed")).toBe("false");
+    await act(async () => vi.advanceTimersByTime(1_000));
+    expect(frameShown()).toBe(1);
+    // A press on the scrubber where it is, the same.
+    await act(async () => play().click());
+    expect(play().getAttribute("aria-pressed")).toBe("true");
+    await act(async () => {
+      scrubber().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    });
+    expect(play().getAttribute("aria-pressed")).toBe("false");
+    await act(async () => vi.advanceTimersByTime(1_000));
+    expect(frameShown()).toBe(1);
+    // With Alt or Meta, a key is the browser's, and playing goes on.
+    await act(async () => play().click());
+    await act(async () => {
+      scrubber().dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Home",
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    expect(play().getAttribute("aria-pressed")).toBe("true");
   });
 
   it("exports the frame shown to PNG, and stops playing when the export dialog opens", async () => {
