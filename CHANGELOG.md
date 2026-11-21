@@ -1,5 +1,13 @@
 # @hussmartinez/image-sdk
 
+## 0.12.3
+
+### Patch Changes
+
+- [#149](https://github.com/ie-huss-martinez/image-sdk/pull/149) [`6845750`](https://github.com/ie-huss-martinez/image-sdk/commit/6845750da32e58cf19e7fce5bda918052ae0bce7) Thanks [@hussmartinez](https://github.com/hussmartinez)! - `ImageEditor` no longer has its inner part change an object it was given to subscribe to the session's events: it now subscribes through a function and unsubscribes when it unmounts. The stage reads its canvas from its own ref when it updates the canvas's name. Nothing you can see changes: the editor announces opens, undos and redos as before, and the preview canvas keeps its label and hides until there's an image.
+
+- [#151](https://github.com/ie-huss-martinez/image-sdk/pull/151) [`26c1d8a`](https://github.com/ie-huss-martinez/image-sdk/commit/26c1d8aa276a12341b6d15cdb8ad624c454af564) Thanks [@hussmartinez](https://github.com/hussmartinez)! - `ImageEditor` now keeps your latest `onChange` with `@hussmartinez/ui`'s `useLatest`, which takes it as each render commits, instead of writing a ref while rendering. The crop frame no longer builds its pointer handlers while it renders. Nothing you can see changes. The package now depends on `@hussmartinez/ui` `^0.16.3`.
+
 ## 0.12.2
 
 ### Patch Changes
