@@ -22,7 +22,7 @@ catalog:
   # screenshots depend on its Chromium build (sdk-core ADR 0048).
   "@playwright/test": 1.65.1
   "@hussmartinez/sdk-core": ^0.4.4
-  "@hussmartinez/ui": ^0.15.0
+  "@hussmartinez/ui": ^0.16.0
   "@microsoft/api-extractor": ^7.60.1
   # The same version as size-limit: each plugin pins it exactly as a peer.
   "@size-limit/esbuild": ^14.3.0
