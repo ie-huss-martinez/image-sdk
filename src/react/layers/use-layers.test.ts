@@ -11,7 +11,7 @@ describe("text as the plan takes it (ADR 0009)", () => {
     expect(fitLayerText("a\tb")).toBe("a b");
     expect(fitLayerText("a\u0000b\u0007c\u007fd")).toBe("abcd");
     // Bidirectional overrides and isolates.
-    expect(fitLayerText("safe‮gnp.exe⁦x⁩")).toBe("safegnp.exex");
+    expect(fitLayerText("safe\u202Egnp.exe\u2066x\u2069")).toBe("safegnp.exex");
   });
 
   it("keeps spaces at the ends, and limits the length in code points", () => {
@@ -21,7 +21,7 @@ describe("text as the plan takes it (ADR 0009)", () => {
   });
 
   it("gives a name no line of its own to break, within 100 code points", () => {
-    expect(fitLayerName("  Stamp‮ 2  ")).toBe("Stamp 2");
+    expect(fitLayerName("  Stamp\u202E 2  ")).toBe("Stamp 2");
     expect([...fitLayerName("é".repeat(150))]).toHaveLength(100);
   });
 });

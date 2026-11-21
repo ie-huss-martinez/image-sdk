@@ -22,7 +22,23 @@ const COMMANDS = new URL("../../conformance/hm-image-commands.json", import.meta
 const PLANS = new URL("../../conformance/hm-image-plan.json", import.meta.url);
 const GEOMETRY = new URL("../../conformance/hm-image-geometry.json", import.meta.url);
 
-const text = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+/**
+ * The characters sdk-config's `hm-check-hidden-unicode` refuses (sdk-core ADR
+ * 0052): ones an editor and a diff don't show, or that reorder the text
+ * around them. Some vectors hold them on purpose, to test that commands
+ * refuse them, so the files write them as JSON escapes, which parse to the
+ * same strings.
+ */
+const HIDDEN =
+  /[\u00AD\u061C\u180E\u200B-\u200F\u2028-\u202E\u2060-\u2064\u2066-\u2069\uFEFF\u{E0000}-\u{E007F}]/gu;
+/** A character as JSON escapes, one per UTF-16 code unit. */
+const escaped = (character: string) =>
+  Array.from(
+    { length: character.length },
+    (_, index) => `\\u${character.charCodeAt(index).toString(16).toUpperCase().padStart(4, "0")}`,
+  ).join("");
+
+const text = (value: unknown) => `${JSON.stringify(value, null, 2).replace(HIDDEN, escaped)}\n`;
 
 // It generates every vector again: thousands of sampled plans and commands,
 // 4 MB of cases. That's work, not waiting: about 1.5 s before the

@@ -246,5 +246,6 @@ export function isRightToLeft(text: string): boolean {
 
 // Hebrew, Arabic, Syriac, Thaana, N'Ko, Samaritan, Mandaic and their
 // presentation forms; then every other letter, which reads left to right.
-const RIGHT_TO_LEFT = /[֐-ࣿיִ-﷿ﹰ-﻿\u{10800}-\u{10FFF}\u{1E800}-\u{1EFFF}]/u;
+const RIGHT_TO_LEFT =
+  /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF\u{10800}-\u{10FFF}\u{1E800}-\u{1EFFF}]/u;
 const LEFT_TO_RIGHT = /\p{L}/u;

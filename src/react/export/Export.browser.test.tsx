@@ -387,6 +387,11 @@ describe("the export dialog (docs/adr/0007)", () => {
       export: (_job, options) =>
         new Promise((_resolve, reject) => {
           options?.onProgress?.(0.4);
+          // As a real export does: refused at once if it's already aborted.
+          if (options?.signal?.aborted) {
+            reject(new ImageError("ABORTED", "Stopped."));
+            return;
+          }
           options?.signal?.addEventListener("abort", () =>
             reject(new ImageError("ABORTED", "Stopped.")),
           );
@@ -412,6 +417,11 @@ describe("the export dialog (docs/adr/0007)", () => {
       export: (_job, options) =>
         new Promise((_resolve, reject) => {
           if (options?.signal) signals.push(options.signal);
+          // As a real export does: refused at once if it's already aborted.
+          if (options?.signal?.aborted) {
+            reject(new ImageError("ABORTED", "Stopped."));
+            return;
+          }
           options?.signal?.addEventListener("abort", () =>
             reject(new ImageError("ABORTED", "Stopped.")),
           );

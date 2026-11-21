@@ -40,15 +40,17 @@ exposeWorker<Pick<RenderWorkerContract, "probe" | "register" | "export" | "relea
           _resolve(new Blob(["exported"]));
           return;
         }
-        signal.addEventListener(
-          "abort",
-          () => {
-            notify("test-cancel-received");
-            cancelled = true;
-            if (cooperative) reject(signal.reason);
-          },
-          { once: true },
-        );
+        const onAbort = () => {
+          notify("test-cancel-received");
+          cancelled = true;
+          if (cooperative) reject(signal.reason);
+        };
+        // A cancel that came first is heard at once, as a listener wouldn't be.
+        if (signal.aborted) {
+          onAbort();
+          return;
+        }
+        signal.addEventListener("abort", onAbort, { once: true });
         notify("test-export-started");
       }),
     release: ({ id }) => {

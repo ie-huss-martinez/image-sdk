@@ -260,7 +260,7 @@ describe("adding layers (docs/adr/0013)", () => {
     const { only } = await opened();
     await click(tool("add-text"));
     // As pasted from elsewhere: Windows and old Mac line breaks, a tab, a bidi override.
-    await type(textarea(), "one\r\ntwo\rthree\tfour‮!");
+    await type(textarea(), "one\r\ntwo\rthree\tfour\u202E!");
     expect(textarea()?.value).toBe("one\ntwo\nthree four!");
     await act(async () => textarea()?.blur());
     expect(only("text").text).toBe("one\ntwo\nthree four!");

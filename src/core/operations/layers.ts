@@ -68,7 +68,7 @@ function anyOwnField(own: Readonly<Record<string, readonly string[]>>): Readonly
  * the same set.
  */
 // biome-ignore lint/suspicious/noControlCharactersInRegex: the controls are what it refuses
-export const FORBIDDEN_IN_TEXT = /[\u0000-\u0009\u000B-\u001F\u007F‪-‮⁦-⁩]/u;
+export const FORBIDDEN_IN_TEXT = /[\u0000-\u0009\u000B-\u001F\u007F\u202A-\u202E\u2066-\u2069]/u;
 
 /** Text of at most `max` code points, with none of the forbidden characters. */
 function checkText(value: unknown, max: number, what: string): string {

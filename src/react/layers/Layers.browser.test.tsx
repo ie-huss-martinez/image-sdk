@@ -1126,7 +1126,7 @@ describe("the layers (docs/adr/0013)", () => {
       opacity: 40,
     });
     // A name loses what text can't hold, and its ends' spaces; the list shows it.
-    await type(inputs()[0], "  Stamp‮\u0007 2  ");
+    await type(inputs()[0], "  Stamp\u202E\u0007 2  ");
     expect(layer("over")?.name).toBe("Stamp 2");
     expect(names()[0]).toBe("Stamp 2");
     expect(session().undo()).toBe(true);
