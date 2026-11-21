@@ -8,8 +8,6 @@ import { EditorElementDefine } from '@hussmartinez/sdk-core/element';
 import { FilePolicy } from '@hussmartinez/sdk-core';
 import { FilePolicyOverrides } from '@hussmartinez/sdk-core';
 import type { MessageOverrides } from '@hussmartinez/sdk-core';
-import { SdkCoreErrorCode } from '@hussmartinez/sdk-core';
-import { SdkError } from '@hussmartinez/sdk-core';
 import type { uiMessages } from '@hussmartinez/ui';
 
 // @public
@@ -18,10 +16,18 @@ export const defineImageEditorElement: EditorElementDefine<Partial<ImageEditorEl
 // @public
 export type ImageEditorElementEvent = "change" | "event" | "export" | "error";
 
-// Warning: (ae-forgotten-export) The symbol "ImageEditorHandle" needs to be exported by the entry point element.d.ts
-//
 // @public
-export type ImageEditorElementMethods = Pick<ImageEditorHandle, "open" | "insertImage" | "execute" | "export" | "undo" | "redo">;
+export interface ImageEditorElementMethods {
+    // Warning: (ae-forgotten-export) The symbol "ImageCommand" needs to be exported by the entry point element.d.ts
+    execute(commands: ImageCommand | readonly ImageCommand[]): void;
+    // Warning: (ae-forgotten-export) The symbol "ImageExportFormat" needs to be exported by the entry point element.d.ts
+    // Warning: (ae-forgotten-export) The symbol "ImageSessionExport" needs to be exported by the entry point element.d.ts
+    export(format: ImageExportFormat): Promise<ImageSessionExport>;
+    insertImage(file: Blob): Promise<void>;
+    open(file: Blob): Promise<void>;
+    redo(): void;
+    undo(): void;
+}
 
 // @public
 export interface ImageEditorElementProps {
@@ -54,8 +60,6 @@ export const imageEditorMessages: ImageEditorMessageCatalogue;
 
 // @public
 export interface ImageExportReport {
-    // Warning: (ae-forgotten-export) The symbol "ImageExportFormat" needs to be exported by the entry point element.d.ts
-    //
     // (undocumented)
     readonly format: ImageExportFormat["type"];
     // (undocumented)
