@@ -104,9 +104,12 @@ export default [
     // apart (sdk-core ADR 0056): the functions that build its module-level
     // values so the calls can be marked free of side effects. One import
     // alone ships far less, such as the catalogue's 4.7 kB, not 40.5 kB.
+    // Then 54.52 kB, with the state the dialog, the frames panel and the
+    // layer fields reset while rendering rather than in effects (#147), and
+    // the subscription for the editor's announcements (#149).
     name: "React (./react), as built",
     entry: "dist/react.js",
-    limit: "54.5 kB",
+    limit: "55 kB",
   }),
   importBudget({
     // The floor: a hook over the provider, which every panel reads. Measured
@@ -205,10 +208,10 @@ export default [
     // The React entry and the element's own mount: measured at 55.1 kB
     // (42.4 kB minified), 0.1 kB over the 55.0 kB before the React entry's
     // parts could be imported apart (sdk-core ADR 0056). The element ships
-    // whole.
+    // whole. Then 55.51 kB, with the React entry's changes of #147 and #149.
     name: "Element (./element), as built",
     entry: "dist/element.js",
-    limit: "55.5 kB",
+    limit: "56 kB",
   }),
 
   built({ name: "Stylesheet (./styles.css)", path: "dist/styles.css", limit: "10 kB" }),
